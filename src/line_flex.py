@@ -246,18 +246,18 @@ def _event_bubble(label: str, color: str, ev: Event, score: float, kw_cfg: dict[
     impact_label, _, _ = score_to_impact(score)
     return {
         "type": "bubble", "size": "kilo",
-        "header": _header(label, f"{impact_label} IMPACT", color),
+        "header": _header(label, impact_label, color),
         "body": {"type": "box", "layout": "vertical", "spacing": "sm",
                  "contents": body_contents, "paddingAll": "16px"},
     }
 
 
 def breaking_bubble(ev: Event, score: float, kw_cfg: dict[str, Any]) -> dict[str, Any]:
-    return _event_bubble("⚡ BREAKING", COLOR["breaking"], ev, score, kw_cfg)
+    return _event_bubble("⚡ Breaking News", COLOR["breaking"], ev, score, kw_cfg)
 
 
 def alert_bubble(ev: Event, score: float, kw_cfg: dict[str, Any]) -> dict[str, Any]:
-    return _event_bubble("🔔 ALERT", COLOR["alert"], ev, score, kw_cfg)
+    return _event_bubble("🔔 News Alert", COLOR["alert"], ev, score, kw_cfg)
 
 
 # ---------- digest ----------
@@ -359,7 +359,7 @@ def health_bubble(warnings: list[tuple[str, str]]) -> dict[str, Any]:
         })
     return {
         "type": "bubble", "size": "kilo",
-        "header": _header("⚠️ HEALTH", f"{len(warnings)} warning(s)", COLOR["health"]),
+        "header": _header("⚠️ Health Check", f"{len(warnings)} warning(s)", COLOR["health"]),
         "body": {"type": "box", "layout": "vertical", "spacing": "sm", "paddingAll": "14px", "contents": lines},
     }
 
