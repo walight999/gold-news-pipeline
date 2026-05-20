@@ -228,15 +228,15 @@ def _event_bubble(label: str, color: str, ev: Event, score: float, kw_cfg: dict[
     topic_text = ev.topic_bucket.replace("_", " ").title()
 
     body_contents: list[dict[str, Any]] = [
-        # Topic + direction row — Title Case xs bold, centered as a group
+        # Topic + direction row — Title Case xs bold, LEFT-aligned, chip tight
         {"type": "box", "layout": "horizontal", "spacing": "sm",
-         "alignItems": "center", "justifyContent": "center", "contents": [
+         "alignItems": "center", "contents": [
              {"type": "text", "text": topic_text,
               "size": "xs", "weight": "bold", "color": topic_fg, "flex": 0},
              _chip(ev.direction_label, dir_bg, dir_fg),
         ]},
-        # Title (big bold) — the headline itself
-        {"type": "text", "text": title, "weight": "bold", "size": "lg",
+        # Title — only one size larger than the summary, bold
+        {"type": "text", "text": title, "weight": "bold", "size": "md",
          "wrap": True, "color": "#111827", "margin": "md"},
     ]
     if summary:
