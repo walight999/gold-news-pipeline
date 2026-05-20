@@ -441,29 +441,83 @@ def calendar_day_bubble(events: list[CalEvent], date_label: str) -> dict[str, An
     }
 
 
-def post_release_bubble(event: CalEvent, impact: dict[str, str]) -> dict[str, Any]:
-    """Sent shortly after a high-impact release. Carries directional
-    gold-impact guidance (free FF JSON doesn't ship `actual` values)."""
+def post_release_bubble(
+    event: CalEvent,
+    impact: dict[str, str],
+    actual_text: str | None = None,
+    surprise: str | None = None,
+    verdict: str | None = None,
+) -> dict[str, Any]:
+    """Sent shortly after a high-impact release.
+
+    Modes:
+      - Without FRED: shows directional guidance (higher_is / lower_is map).
+      - With FRED:    shows ACTUAL value, surprise label (beat/miss/in-line),
+                      and a final verdict (e.g. "Bearish gold" + reason).
+    """
     header_color, _ = _impact_color(event.impact)
-    return {
-        "type": "bubble", "size": "kilo",
-        "header": _header("📊 Released — Watch", "Just released", header_color),
-        "body": {"type": "box", "layout": "vertical", "spacing": "sm",
-                 "paddingAll": "16px", "contents": [
-            {"type": "box", "layout": "horizontal", "spacing": "sm",
-             "alignItems": "center", "contents": [
-                 {"type": "text", "text": event.hhmm_ict + " ICT",
-                  "size": "xs", "color": "#6B7280", "weight": "bold", "flex": 0},
-                 _impact_pill_calendar(event.impact),
-                 {"type": "text", "text": event.country,
-                  "size": "xs", "weight": "bold", "color": "#374151", "flex": 1},
-            ]},
-            {"type": "text", "text": event.title, "size": "md", "weight": "bold",
-             "wrap": True, "color": "#111827", "margin": "md"},
-            {"type": "text",
-             "text": f"Forecast: {event.forecast or '-'}  ·  Previous: {event.previous or '-'}",
-             "size": "xs", "color": "#374151", "margin": "sm"},
-            {"type": "separator", "margin": "lg"},
+    body_contents: list[dict[str, Any]] = [
+        {"type": "box", "layout": "horizontal", "spacing": "sm",
+         "alignItems": "center", "contents": [
+             {"type": "text", "text": event.hhmm_ict + " ICT",
+              "size": "xs", "color": "#6B7280", "weight": "bold", "flex": 0},
+             _impact_pill_calendar(event.impact),
+             {"type": "text", "text": event.country,
+              "size": "xs", "weight": "bold", "color": "#374151", "flex": 1},
+        ]},
+        {"type": "text", "text": event.title, "size": "md", "weight": "bold",
+         "wrap": True, "color": "#111827", "margin": "md"},
+    ]
+
+    if actual_text:
+        # FRED upgraded path: explicit actual + surprise + verdict
+        surprise_emoji = {"beat": "🟢", "miss": "🔴", "in-line": "⚪"}.get(surprise or "", "")
+        body_contents.append({
+            "type": "box", "layout": "horizontal", "margin": "md",
+            "contents": [
+                {"type": "text", "text": "Actual",   "size": "xxs", "color": "#9CA3AF", "flex": 1},
+                {"type": "text", "text": "Forecast", "size": "xxs", "color": "#9CA3AF", "flex": 1, "align": "center"},
+                {"type": "text", "text": "Previous", "size": "xxs", "color": "#9CA3AF", "flex": 1, "align": "end"},
+            ],
+        })
+        body_contents.append({
+            "type": "box", "layout": "horizontal",
+            "contents": [
+                {"type": "text", "text": actual_text, "size": "md", "weight": "bold",
+                 "color": "#111827", "flex": 1},
+                {"type": "text", "text": event.forecast or "-", "size": "sm",
+                 "color": "#374151", "flex": 1, "align": "center"},
+                {"type": "text", "text": event.previous or "-", "size": "sm",
+                 "color": "#374151", "flex": 1, "align": "end"},
+            ],
+        })
+        body_contents.append({"type": "separator", "margin": "lg"})
+        if surprise:
+            body_contents.append({
+                "type": "text",
+                "text": f"{surprise_emoji} {surprise.upper()} vs forecast",
+                "size": "sm", "weight": "bold",
+                "color": "#374151", "margin": "md",
+            })
+        if verdict:
+            body_contents.append({
+                "type": "text", "text": "Gold Impact: " + verdict,
+                "size": "sm", "weight": "bold",
+                "color": "#111827", "margin": "xs", "wrap": True,
+            })
+        body_contents.append({
+            "type": "text", "text": impact["rationale"],
+            "size": "xxs", "color": "#6B7280", "wrap": True, "margin": "sm",
+        })
+    else:
+        # Directional-only path (no FRED key configured)
+        body_contents.append({
+            "type": "text",
+            "text": f"Forecast: {event.forecast or '-'}  ·  Previous: {event.previous or '-'}",
+            "size": "xs", "color": "#374151", "margin": "sm",
+        })
+        body_contents.append({"type": "separator", "margin": "lg"})
+        body_contents.extend([
             {"type": "text", "text": "Gold Impact (directional)",
              "size": "xs", "color": "#9CA3AF", "weight": "bold", "margin": "md"},
             {"type": "text", "text": "↑ Higher actual → " + impact["higher_is"],
@@ -474,7 +528,13 @@ def post_release_bubble(event: CalEvent, impact: dict[str, str]) -> dict[str, An
              "size": "xxs", "color": "#6B7280", "wrap": True, "margin": "sm"},
             {"type": "text", "text": "Watch news feed for the actual print + market reaction.",
              "size": "xxs", "color": "#9CA3AF", "wrap": True, "margin": "md"},
-        ]},
+        ])
+
+    return {
+        "type": "bubble", "size": "kilo",
+        "header": _header("📊 Released — Watch", "Just released", header_color),
+        "body": {"type": "box", "layout": "vertical", "spacing": "sm",
+                 "paddingAll": "16px", "contents": body_contents},
     }
 
 

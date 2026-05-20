@@ -21,7 +21,7 @@ from typing import Any
 import yaml
 
 from . import calendar as cal
-from . import dedup, digest, health, scorer
+from . import dedup, digest, fred, health, scorer
 from .fetcher import fetch_all, plan_fetch
 from .line_client import LineClient
 from .line_flex import (
@@ -335,14 +335,31 @@ async def run_calendar_check() -> int:
                 })
                 pre_pushed += 1
 
-        # Post-release alerts (directional only — FF JSON has no actual)
+        # Post-release alerts. If FRED_API_KEY is set + event title maps to a
+        # supported series, upgrade to actual + surprise + final verdict; else
+        # fall back to directional-only.
+        fred_key = fred.fred_api_key()
         for ev in just_released:
             sent_key = f"postcal:{ev.event_id}"
             if store.get("sent_log", (sent_key, "calendar_post")):
                 continue
             impact_info = cal.gold_impact_directional(ev)
-            bubble = post_release_bubble(ev, impact_info)
-            alt = f"📊 Released · {ev.country} {ev.title}"
+            actual_text = surprise = verdict = None
+            if fred_key:
+                result = fred.fetch_actual(ev.title, fred_key)
+                if result:
+                    actual_text = result.actual_text
+                    forecast_val = fred.parse_forecast_value(ev.forecast)
+                    if forecast_val is not None:
+                        surprise = fred.compute_surprise_label(result.actual_value, forecast_val)
+                        verdict = fred.reconcile_with_impact(surprise, impact_info)
+                    else:
+                        verdict = None
+            bubble = post_release_bubble(ev, impact_info,
+                                         actual_text=actual_text,
+                                         surprise=surprise, verdict=verdict)
+            alt_extra = f" · actual {actual_text}" if actual_text else ""
+            alt = f"📊 Released · {ev.country} {ev.title}{alt_extra}"
             resp = line.push_flex(target, alt, bubble)
             if resp["status"] == 200:
                 store.upsert("sent_log", {

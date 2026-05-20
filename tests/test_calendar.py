@@ -126,7 +126,92 @@ def test_post_release_bubble_shape():
     b = post_release_bubble(e, info)
     assert b["type"] == "bubble"
     assert b["header"]["backgroundColor"] == "#DC2626"
-    # Body should have gold impact lines
+    # Directional-only path: body should have "Higher" + "Lower" lines
     texts = [c.get("text", "") for c in b["body"]["contents"] if c.get("type") == "text"]
     assert any("Higher" in t for t in texts)
     assert any("Lower" in t for t in texts)
+
+
+def _all_texts(node) -> list[str]:
+    """Recursively collect every `text` value from a Flex node."""
+    out: list[str] = []
+    if not isinstance(node, dict):
+        return out
+    if node.get("type") == "text" and node.get("text"):
+        out.append(node["text"])
+    for child in node.get("contents", []) or []:
+        out.extend(_all_texts(child))
+    return out
+
+
+def test_post_release_bubble_with_fred_actual():
+    from src.line_flex import post_release_bubble
+    e = cal.parse_ff_payload([_ff_item("Core CPI m/m", "USD",
+                                       "2026-05-15T08:30:00-04:00", "High",
+                                       forecast="0.3%", previous="0.4%")])[0]
+    info = cal.gold_impact_directional(e)
+    b = post_release_bubble(e, info, actual_text="+0.5%", surprise="beat",
+                            verdict="🔴 Bearish gold")
+    texts = _all_texts(b["body"])
+    assert any("+0.5%" in t for t in texts)
+    assert any("BEAT" in t for t in texts)
+    assert any("Bearish" in t for t in texts)
+
+
+# ---------- FRED unit tests (no network) ----------
+
+def test_find_series_for_event_supported():
+    from src.fred import find_series_for_event
+    assert find_series_for_event("Core CPI m/m")[0] == "CPILFESL"
+    assert find_series_for_event("CPI m/m")[0] == "CPIAUCSL"
+    assert find_series_for_event("Non-Farm Employment Change")[0] == "PAYEMS"
+    assert find_series_for_event("Unemployment Rate")[0] == "UNRATE"
+
+
+def test_find_series_for_event_unsupported():
+    from src.fred import find_series_for_event
+    assert find_series_for_event("ECB Press Conference") is None
+    assert find_series_for_event("BoE Inflation Report") is None
+
+
+def test_parse_forecast_value():
+    from src.fred import parse_forecast_value
+    assert parse_forecast_value("0.3%") == 0.3
+    assert parse_forecast_value("+0.4%") == 0.4
+    assert parse_forecast_value("215K") == 215
+    assert parse_forecast_value("+215K") == 215
+    assert parse_forecast_value("3.9%") == 3.9
+    assert parse_forecast_value("") is None
+    assert parse_forecast_value("garbage") is None
+
+
+def test_compute_surprise_label():
+    from src.fred import compute_surprise_label
+    # within 5% of 0.3 = 0.015 — so 0.31 is in-line, 0.40 is beat, 0.20 is miss
+    assert compute_surprise_label(0.31, 0.3) == "in-line"
+    assert compute_surprise_label(0.40, 0.3) == "beat"
+    assert compute_surprise_label(0.20, 0.3) == "miss"
+
+
+def test_reconcile_with_impact_cpi_beat():
+    """CPI beat → higher actual → bearish gold."""
+    from src.fred import reconcile_with_impact
+    e = cal.parse_ff_payload([_ff_item("Core CPI m/m", "USD", "2026-05-15T08:30:00-04:00")])[0]
+    info = cal.gold_impact_directional(e)
+    verdict = reconcile_with_impact("beat", info)
+    assert "Bearish" in verdict
+
+
+def test_reconcile_with_impact_unemployment_beat():
+    """Unemployment 'beat' (higher actual) → bullish gold (inverse rule)."""
+    from src.fred import reconcile_with_impact
+    e = cal.parse_ff_payload([_ff_item("Unemployment Rate", "USD", "2026-05-15T08:30:00-04:00")])[0]
+    info = cal.gold_impact_directional(e)
+    verdict = reconcile_with_impact("beat", info)
+    assert "Bullish" in verdict
+
+
+def test_fetch_actual_returns_none_without_key():
+    from src.fred import fetch_actual
+    # Empty key → None
+    assert fetch_actual("Core CPI m/m", "") is None
