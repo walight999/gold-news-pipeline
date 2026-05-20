@@ -95,14 +95,18 @@ function scanAndFire() {
 
 /**
  * Sends repository_dispatch to GitHub. Returns the HTTP status code
- * (204 == success).
+ * (204 == success). On non-204, also logs the response body so the exact
+ * GitHub-side reason (e.g. "Resource not accessible by personal access
+ * token") is visible in the Execution log.
  */
 function fireEventModeDispatch(durationMin) {
-  var token = PropertiesService.getScriptProperties().getProperty("GH_PAT_GOLD_NEWS");
-  if (!token) {
+  var raw = PropertiesService.getScriptProperties().getProperty("GH_PAT_GOLD_NEWS");
+  if (!raw) {
     Logger.log("Missing GH_PAT_GOLD_NEWS script property — see setup step 4");
     return 0;
   }
+  // Trim accidental whitespace/newlines from paste
+  var token = String(raw).trim();
   var res = UrlFetchApp.fetch("https://api.github.com/repos/" + REPO + "/dispatches", {
     method:      "post",
     contentType: "application/json",
@@ -117,7 +121,47 @@ function fireEventModeDispatch(durationMin) {
     }),
     muteHttpExceptions: true
   });
-  return res.getResponseCode();
+  var code = res.getResponseCode();
+  if (code !== 204) {
+    Logger.log("dispatch HTTP " + code + " body=" + res.getContentText());
+  }
+  return code;
+}
+
+
+/**
+ * Diagnostics — prints what's stored in Script Properties + token shape.
+ * Run from the GAS editor if testFire fails. Token value itself is NOT
+ * logged — only length + first/last chars so the chat copy is safe.
+ */
+function debugCheck() {
+  var raw = PropertiesService.getScriptProperties().getProperty("GH_PAT_GOLD_NEWS");
+  if (!raw) {
+    Logger.log("FAIL: GH_PAT_GOLD_NEWS is not set in Script Properties");
+    return;
+  }
+  var trimmed = String(raw).trim();
+  Logger.log("raw length     : " + raw.length);
+  Logger.log("trimmed length : " + trimmed.length + "  (expected ~93)");
+  Logger.log("starts with    : " + trimmed.substring(0, 11) +
+             "  (expected 'github_pat_')");
+  Logger.log("ends with      : ..." + trimmed.substring(trimmed.length - 4));
+  Logger.log("has whitespace : " + (raw.length !== trimmed.length));
+  // Probe a read-only endpoint to verify token is recognised at all
+  var probe = UrlFetchApp.fetch("https://api.github.com/repos/" + REPO, {
+    method: "get",
+    headers: {
+      Authorization:          "token " + trimmed,
+      Accept:                 "application/vnd.github+json",
+      "X-GitHub-Api-Version": "2022-11-28"
+    },
+    muteHttpExceptions: true
+  });
+  Logger.log("repo probe HTTP: " + probe.getResponseCode() +
+             "  (200 = token valid + repo visible)");
+  if (probe.getResponseCode() !== 200) {
+    Logger.log("probe body     : " + probe.getContentText().substring(0, 300));
+  }
 }
 
 
