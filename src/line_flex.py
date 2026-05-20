@@ -74,16 +74,19 @@ def score_to_impact(score: float) -> tuple[str, str, str]:
 
 
 def _impact_pill_small(score: float) -> dict[str, Any]:
-    """Tight single-letter pill (H/M/L) for inline digest rows.
-    Distinct from `_chip` so we don't grow the label width."""
+    """Fixed-width pill displaying HIGH/MEDIUM/LOW.
+
+    Width is pinned (sized for the longest label MEDIUM) so all three pills
+    line up identically across rows — visual symmetry over text efficiency.
+    """
     label, bg, fg = score_to_impact(score)
-    short = label[0]  # H / M / L
     return {
         "type": "box", "layout": "vertical",
-        "backgroundColor": bg, "cornerRadius": "8px",
-        "paddingStart": "6px", "paddingEnd": "6px",
-        "paddingTop": "1px", "paddingBottom": "1px",
-        "contents": [{"type": "text", "text": short, "size": "xxs",
+        "backgroundColor": bg, "cornerRadius": "4px",
+        "width": "62px",
+        "paddingTop": "2px", "paddingBottom": "2px",
+        "flex": 0,
+        "contents": [{"type": "text", "text": label, "size": "xxs",
                        "color": fg, "weight": "bold", "align": "center"}],
     }
 
