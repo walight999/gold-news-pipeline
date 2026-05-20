@@ -21,9 +21,10 @@ import yaml
 from . import dedup, digest, health, scorer
 from .fetcher import fetch_all, plan_fetch
 from .line_client import LineClient
+from .line_flex import alert_bubble, alt_text_for_event, breaking_bubble, digest_carousel, health_bubble
 from .normalizer import normalize
 from .parser import parse_feed
-from .router import Route, decide, format_alert, format_breaking
+from .router import Route, decide
 from .store import Store
 from .utils_time import iso_utc, now_utc, within_digest_slot
 
@@ -115,8 +116,13 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
             existing = store.get("sent_log", (ev.event_id, d.route.value))
             if existing:
                 continue
-            text = format_breaking(ev, d.score, kw_cfg) if d.route == Route.BREAKING else format_alert(ev, d.score, kw_cfg)
-            resp = line.push(news_target, text)
+            if d.route == Route.BREAKING:
+                bubble = breaking_bubble(ev, d.score, kw_cfg)
+                alt = alt_text_for_event("⚡ BREAKING", ev, d.score)
+            else:
+                bubble = alert_bubble(ev, d.score, kw_cfg)
+                alt = alt_text_for_event("🔔 ALERT", ev, d.score)
+            resp = line.push_flex(news_target, alt, bubble)
             if resp["status"] == 200:
                 store.upsert("sent_log", {
                     "event_id": ev.event_id,
@@ -139,14 +145,14 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
     if health_warnings and health_target:
         line = line or LineClient.from_env()
         cooldown = int(health_cfg.get("alert_cooldown_minutes", 60))
-        msg_lines = ["⚠️ HEALTH"]
-        emitted = 0
+        emitted_warnings: list[tuple[str, str]] = []
         for sid, wtype in health_warnings:
             if health.raise_warning(store, sid, wtype, cooldown):
-                msg_lines.append(f"- {sid}: {wtype}")
-                emitted += 1
-        if emitted:
-            line.push(health_target, "\n".join(msg_lines))
+                emitted_warnings.append((sid, wtype))
+        if emitted_warnings:
+            bubble = health_bubble(emitted_warnings)
+            alt = f"⚠️ HEALTH {len(emitted_warnings)} warning(s): " + ", ".join(f"{s}:{t}" for s, t in emitted_warnings[:3])
+            line.push_flex(health_target, alt, bubble)
 
     # 7. Digest if in slot
     if mode in ("cron", "digest"):
@@ -154,16 +160,14 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
         window = int(sched_cfg["digest"]["window_minutes"])
         slot = within_digest_slot(slots_ict, window)
         if slot and not digest.already_sent(store, slot):
-            # build from events scoring >= 2.5 OR rate-limit-downgrade routed digest
             digest_events = [d.event for d in decisions if d.route == Route.DIGEST]
-            text = digest.build_digest_text(
-                digest_events, scores, slot,
-                max_events=int(sched_cfg["digest"].get("max_events", 10)),
-                kw_config=kw_cfg,
-            )
-            if text and news_target:
+            max_events = int(sched_cfg["digest"].get("max_events", 10))
+            ranked = sorted(digest_events, key=lambda e: -scores.get(e.event_id, 0))[:max_events]
+            carousel = digest_carousel(ranked, scores, slot, kw_cfg)
+            if carousel and news_target:
                 line = line or LineClient.from_env()
-                resp = line.push(news_target, text)
+                alt = f"📰 Digest {slot} ICT — {len(ranked)} event(s)"
+                resp = line.push_flex(news_target, alt, carousel)
                 digest.mark_sent(store, slot, resp["status"])
 
     # 8. Flush state

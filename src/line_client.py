@@ -29,8 +29,8 @@ class LineClient:
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10),
            reraise=True)
-    def _post(self, target: str, text: str) -> dict[str, Any]:
-        payload = {"to": target, "messages": [{"type": "text", "text": text[:4900]}]}
+    def _post_messages(self, target: str, messages: list[dict[str, Any]]) -> dict[str, Any]:
+        payload = {"to": target, "messages": messages}
         headers = {"Authorization": f"Bearer {self.token}", "Content-Type": "application/json"}
         with httpx.Client(timeout=15.0) as c:
             r = c.post(_PUSH_URL, json=payload, headers=headers)
@@ -38,12 +38,20 @@ class LineClient:
             raise httpx.HTTPStatusError(f"LINE {r.status_code}", request=r.request, response=r)
         return {"status": r.status_code, "body": r.text}
 
-    def push(self, target: str, text: str) -> dict[str, Any]:
+    def _send(self, target: str, messages: list[dict[str, Any]]) -> dict[str, Any]:
         try:
-            return self._post(target, text)
+            return self._post_messages(target, messages)
         except RetryError as e:
             log.warning("line push failed after retries: %s", e)
             return {"status": 0, "body": "retry_exhausted"}
         except httpx.HTTPError as e:
             log.warning("line push http error: %s", e)
             return {"status": 0, "body": str(e)}
+
+    def push(self, target: str, text: str) -> dict[str, Any]:
+        return self._send(target, [{"type": "text", "text": text[:4900]}])
+
+    def push_flex(self, target: str, alt_text: str, contents: dict[str, Any]) -> dict[str, Any]:
+        """Send a Flex Message. `contents` is a bubble or carousel dict."""
+        msg = {"type": "flex", "altText": alt_text[:400], "contents": contents}
+        return self._send(target, [msg])
