@@ -1,9 +1,11 @@
 """Entry point.
 
 Modes:
-  cron   — */5m: respect each source's poll_min, normal routing.
-  event  — Tier-0-only loop, 30m, sleep 60s. Triggered by Calendar Bot dispatch.
-  digest — Build a digest if now_ict ∈ ±5m of a slot. Idempotent.
+  cron              — */5m: respect each source's poll_min, normal routing.
+  event             — Tier-0-only loop, 30m, sleep 60s. Triggered by dispatch.
+  digest            — Build a digest if now_ict ∈ ±5m of a slot. Idempotent.
+  calendar_daily    — Push today's economic calendar (06:30 ICT). Idempotent.
+  calendar_check    — Check for events releasing in [15, 25) min. Push T-15 alerts.
 """
 from __future__ import annotations
 
@@ -18,6 +20,7 @@ from typing import Any
 
 import yaml
 
+from . import calendar as cal
 from . import dedup, digest, health, scorer
 from .fetcher import fetch_all, plan_fetch
 from .line_client import LineClient
@@ -25,15 +28,17 @@ from .line_flex import (
     alert_bubble,
     alt_text_for_event,
     breaking_bubble,
+    calendar_day_bubble,
     digest_carousel,
     health_bubble,
     health_recovered_bubble,
+    pre_release_bubble,
 )
 from .normalizer import normalize
 from .parser import parse_feed
 from .router import Route, decide
 from .store import Store
-from .utils_time import iso_utc, now_utc, within_digest_slot
+from .utils_time import ICT, iso_utc, now_ict, now_utc, within_digest_slot
 
 log = logging.getLogger("gold-news")
 CFG_DIR = Path(__file__).resolve().parent.parent / "config"
@@ -211,6 +216,117 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
 
 # --------------- Event-mode loop ---------------
 
+async def run_calendar_daily() -> int:
+    """Push today's economic calendar to LINE_NEWS_TARGET. Idempotent per ICT day."""
+    _, _, sched_cfg = _load_configs()
+    cal_cfg = sched_cfg.get("calendar", {})
+
+    store = Store.from_env()
+    store.connect()
+    store.load_all()
+
+    today_key = now_ict().strftime("%Y-%m-%d")
+    sent_key = f"cal_daily:{today_key}"
+    if store.get("sent_log", (sent_key, "calendar_daily")):
+        log.info("calendar_daily already sent for %s — skipping", today_key)
+        store.flush()
+        return 0
+
+    try:
+        events = cal.fetch_calendar(cal_cfg.get("source_url", cal.FF_URL))
+    except Exception as e:
+        log.exception("fetch_calendar failed: %s", e)
+        store.flush()
+        return 1
+
+    today = cal.filter_today_ict(events)
+    countries = tuple(cal_cfg.get("daily_currencies", cal.DEFAULT_DAILY_COUNTRIES))
+    impacts   = tuple(cal_cfg.get("daily_impacts",    cal.DEFAULT_DAILY_IMPACTS))
+    filtered = cal.filter_by_impact(cal.filter_by_country(today, countries), impacts)
+    log.info("calendar_daily: %d total, %d today, %d after filter", len(events), len(today), len(filtered))
+
+    if not filtered:
+        store.flush()
+        return 0
+
+    target = os.environ.get("LINE_NEWS_TARGET", "")
+    if not target:
+        log.warning("LINE_NEWS_TARGET not set — skipping push")
+        store.flush()
+        return 0
+
+    date_label = now_ict().strftime("%a %d %b %Y")
+    bubble = calendar_day_bubble(filtered, date_label)
+    if bubble is None:
+        store.flush()
+        return 0
+    line = LineClient.from_env()
+    resp = line.push_flex(target, f"📅 Calendar — {len(filtered)} events today", bubble)
+    if resp["status"] == 200:
+        store.upsert("sent_log", {
+            "event_id": sent_key, "route_type": "calendar_daily",
+            "sent_ts": iso_utc(now_utc()), "line_status": 200,
+        })
+    store.flush()
+    return 0
+
+
+async def run_calendar_check() -> int:
+    """Scan for events in the pre-release window and push T-Xmin alerts.
+    Idempotent per event_id via sent_log."""
+    _, _, sched_cfg = _load_configs()
+    cal_cfg = sched_cfg.get("calendar", {})
+
+    store = Store.from_env()
+    store.connect()
+    store.load_all()
+
+    try:
+        events = cal.fetch_calendar(cal_cfg.get("source_url", cal.FF_URL))
+    except Exception as e:
+        log.exception("fetch_calendar failed: %s", e)
+        store.flush()
+        return 1
+
+    countries = tuple(cal_cfg.get("pre_release_currencies", cal.DEFAULT_PRE_COUNTRIES))
+    impacts   = tuple(cal_cfg.get("pre_release_impacts",    cal.DEFAULT_PRE_IMPACTS))
+    window_lo = int(cal_cfg.get("pre_release_window_low_min",  cal.DEFAULT_PRE_WINDOW_LOW))
+    window_hi = int(cal_cfg.get("pre_release_window_high_min", cal.DEFAULT_PRE_WINDOW_HIGH))
+
+    upcoming = cal.filter_upcoming(
+        cal.filter_by_impact(cal.filter_by_country(events, countries), impacts),
+        window_lo, window_hi,
+    )
+    log.info("calendar_check: %d candidates in window [%dmin, %dmin)", len(upcoming), window_lo, window_hi)
+
+    target = os.environ.get("LINE_NEWS_TARGET", "")
+    if not target:
+        log.warning("LINE_NEWS_TARGET not set — skipping push")
+        store.flush()
+        return 0
+
+    pushed = 0
+    if upcoming:
+        line = LineClient.from_env()
+        for ev in upcoming:
+            sent_key = f"precal:{ev.event_id}"
+            if store.get("sent_log", (sent_key, "calendar_pre")):
+                continue
+            mins_to = cal.minutes_until(ev)
+            bubble = pre_release_bubble(ev, mins_to)
+            alt = f"⏰ T-{mins_to}min · {ev.country} {ev.title}"
+            resp = line.push_flex(target, alt, bubble)
+            if resp["status"] == 200:
+                store.upsert("sent_log", {
+                    "event_id": sent_key, "route_type": "calendar_pre",
+                    "sent_ts": iso_utc(now_utc()), "line_status": 200,
+                })
+                pushed += 1
+    log.info("calendar_check pushes: %d", pushed)
+    store.flush()
+    return 0
+
+
 async def run_event_mode(duration_min: int = 30, sleep_sec: int = 60) -> int:
     deadline = _time.time() + duration_min * 60
     iteration = 0
@@ -233,12 +349,18 @@ def main(argv: list[str] | None = None) -> int:
         format="%(asctime)s %(levelname)s %(name)s :: %(message)s",
     )
     p = argparse.ArgumentParser()
-    p.add_argument("--mode", choices=("cron", "event", "digest"), default="cron")
+    p.add_argument("--mode", choices=(
+        "cron", "event", "digest", "calendar_daily", "calendar_check",
+    ), default="cron")
     p.add_argument("--event-duration-min", type=int, default=30)
     p.add_argument("--event-sleep-sec", type=int, default=60)
     args = p.parse_args(argv)
     if args.mode == "event":
         return asyncio.run(run_event_mode(args.event_duration_min, args.event_sleep_sec))
+    if args.mode == "calendar_daily":
+        return asyncio.run(run_calendar_daily())
+    if args.mode == "calendar_check":
+        return asyncio.run(run_calendar_check())
     return asyncio.run(run_once(mode=args.mode))
 
 

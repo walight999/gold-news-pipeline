@@ -20,3 +20,18 @@ health:
   tier1_no_success_minutes: 60
   tier2_no_item_minutes: 30
   http_consecutive_errors_threshold: 3
+
+calendar:
+  # ForexFactory free weekly JSON. Refreshes every few hours upstream.
+  source_url: "https://nfs.faireconomy.media/ff_calendar_thisweek.json"
+
+  # Daily push at 06:30 ICT — full day's events worth knowing about.
+  daily_push_ict: "06:30"
+  daily_currencies: [USD, EUR, CNY, JPY, GBP]
+  daily_impacts:    [High, Medium]
+
+  # Pre-release alert — tight filter so we don't spam.
+  pre_release_window_low_min:  15   # alert if event is >= this many minutes out
+  pre_release_window_high_min: 25   # ... and < this many minutes out
+  pre_release_currencies: [USD, EUR]
+  pre_release_impacts:    [High]

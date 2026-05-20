@@ -14,6 +14,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
+from .calendar import CalEvent
 from .dedup import Event
 from .normalizer import Item
 
@@ -381,6 +382,97 @@ def health_bubble(warnings: list[tuple[str, str]]) -> dict[str, Any]:
         "header": _header("⚠️ Health Check", str(len(warnings)), COLOR["health"]),
         "body": {"type": "box", "layout": "vertical", "spacing": "xs",
                  "paddingAll": "12px", "contents": lines},
+    }
+
+
+# ---------- calendar ----------
+
+def _impact_color(impact: str) -> tuple[str, str]:
+    """Background / foreground colors for impact pill in calendar."""
+    return {
+        "High":    ("#DC2626", "#FFFFFF"),
+        "Medium":  ("#D97706", "#FFFFFF"),
+        "Low":     ("#6B7280", "#FFFFFF"),
+        "Holiday": ("#7C3AED", "#FFFFFF"),
+    }.get(impact, ("#6B7280", "#FFFFFF"))
+
+
+def _impact_pill_calendar(impact: str) -> dict[str, Any]:
+    """Fixed-width pill displaying the impact level (sized for 'High')."""
+    bg, fg = _impact_color(impact)
+    return {
+        "type": "box", "layout": "vertical",
+        "backgroundColor": bg, "cornerRadius": "4px",
+        "width": "52px",
+        "paddingTop": "2px", "paddingBottom": "2px",
+        "flex": 0,
+        "contents": [{"type": "text", "text": impact, "size": "xxs",
+                       "color": fg, "weight": "bold", "align": "center"}],
+    }
+
+
+def calendar_day_bubble(events: list[CalEvent], date_label: str) -> dict[str, Any] | None:
+    """One long bubble listing today's events chronologically.
+
+    Each row: HH:MM · [Impact] · CCY · Title.
+    """
+    if not events:
+        return None
+    rows: list[dict[str, Any]] = []
+    for ev in events:
+        rows.append({
+            "type": "box", "layout": "horizontal", "spacing": "sm",
+            "alignItems": "center", "margin": "sm",
+            "contents": [
+                {"type": "text", "text": ev.hhmm_ict, "size": "sm",
+                 "weight": "bold", "color": "#111827", "flex": 0},
+                _impact_pill_calendar(ev.impact),
+                {"type": "text", "text": f"{ev.country}", "size": "xs",
+                 "weight": "bold", "color": "#374151", "flex": 0},
+                {"type": "text", "text": ev.title, "size": "sm",
+                 "wrap": True, "color": "#111827", "flex": 1},
+            ],
+        })
+    return {
+        "type": "bubble", "size": "giga",
+        "header": _header("📅 Economic Calendar", date_label, COLOR["digest"]),
+        "body": {"type": "box", "layout": "vertical", "spacing": "xs",
+                 "contents": rows, "paddingAll": "14px"},
+    }
+
+
+def pre_release_bubble(event: CalEvent, minutes_to_release: int) -> dict[str, Any]:
+    """Single bubble: 'T-15min · CPI in 15 minutes'.
+    Header color tracks impact (red for High).
+    """
+    header_color, _ = _impact_color(event.impact)
+    body_contents: list[dict[str, Any]] = [
+        {"type": "box", "layout": "horizontal", "spacing": "sm",
+         "alignItems": "center", "contents": [
+             {"type": "text", "text": event.hhmm_ict + " ICT", "size": "xs",
+              "color": "#6B7280", "weight": "bold", "flex": 0},
+             _impact_pill_calendar(event.impact),
+             {"type": "text", "text": event.country, "size": "xs",
+              "weight": "bold", "color": "#374151", "flex": 1},
+        ]},
+        {"type": "text", "text": event.title, "weight": "bold", "size": "md",
+         "wrap": True, "color": "#111827", "margin": "md"},
+        {"type": "separator", "margin": "lg"},
+        {"type": "box", "layout": "horizontal", "margin": "md",
+         "contents": [
+             {"type": "text",
+              "text": f"Forecast\n{event.forecast or '-'}",
+              "size": "xs", "color": "#374151", "wrap": True, "flex": 1},
+             {"type": "text",
+              "text": f"Previous\n{event.previous or '-'}",
+              "size": "xs", "color": "#374151", "wrap": True, "flex": 1, "align": "end"},
+        ]},
+    ]
+    return {
+        "type": "bubble", "size": "kilo",
+        "header": _header("⏰ Pre-Release", f"T-{minutes_to_release}min", header_color),
+        "body": {"type": "box", "layout": "vertical", "spacing": "sm",
+                 "paddingAll": "16px", "contents": body_contents},
     }
 
 
