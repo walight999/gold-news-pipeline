@@ -4,15 +4,26 @@ Free signup: https://fred.stlouisfed.org/docs/api/api_key.html
 Set FRED_API_KEY env var to enable; without it, fetch_actual returns None
 and the rest of the pipeline keeps working with directional guidance only.
 
-Supported series (Phase 2.1 starter set — most-watched for XAU):
-    CPI m/m            CPIAUCSL    transform mom_pct
-    Core CPI m/m       CPILFESL    transform mom_pct
-    PCE m/m            PCEPI       transform mom_pct
-    Core PCE m/m       PCEPILFE    transform mom_pct
-    NFP                PAYEMS      transform delta_k    (level → monthly delta)
-    Unemployment Rate  UNRATE      transform level_pct
-    Fed Funds Rate     DFEDTARU    transform level_pct
-    PPI m/m            PPIACO      transform mom_pct
+Supported series (Phase 2.2 — 14 series, most-watched for XAU):
+    CPI m/m                 CPIAUCSL    mom_pct
+    Core CPI m/m            CPILFESL    mom_pct
+    PCE Price Index m/m     PCEPI       mom_pct
+    Core PCE m/m            PCEPILFE    mom_pct
+    PPI m/m                 PPIACO      mom_pct
+    Core PPI m/m            WPSFD49207  mom_pct   (PPILFE retired 2015)
+    Retail Sales m/m        RSXFS       mom_pct
+    Durable Goods m/m       DGORDER     mom_pct
+    NFP                     PAYEMS      delta_k    (level → monthly delta)
+    Unemployment Rate       UNRATE      level_pct
+    Initial Jobless Claims  ICSA        count_to_k
+    Continuing Claims       CCSA        count_to_m
+    Building Permits        PERMIT      thousands_to_m
+    Housing Starts          HOUST       thousands_to_m
+    GDP q/q (annualised %)  A191RL1Q225SBEA   level_pct
+    Fed Funds Rate (target) DFEDTARU    level_pct
+
+ISM Manufacturing/Services PMI is NOT available in FRED (ISM Institute
+paywall) — those events stay on directional-only guidance.
 """
 from __future__ import annotations
 
@@ -28,17 +39,30 @@ log = logging.getLogger(__name__)
 FRED_BASE = "https://api.stlouisfed.org/fred"
 
 # (FF-title regex, series_id, transform name)
-# transform values: mom_pct, delta_k, level_pct
+# transform values: mom_pct | delta_k | level_pct | count_to_k | count_to_m | thousands_to_m
 _SERIES_MAP: list[tuple[re.Pattern[str], str, str]] = [
+    # Inflation
     (re.compile(r"\bcore cpi m/m\b",                       re.I), "CPILFESL", "mom_pct"),
     (re.compile(r"\bcpi m/m\b",                            re.I), "CPIAUCSL", "mom_pct"),
     (re.compile(r"\bcore pce price index m/m\b",           re.I), "PCEPILFE", "mom_pct"),
     (re.compile(r"\bpce price index m/m\b",                re.I), "PCEPI",    "mom_pct"),
+    (re.compile(r"\bcore ppi m/m\b",                       re.I), "WPSFD49207", "mom_pct"),
+    (re.compile(r"\bppi m/m\b",                            re.I), "PPIACO",   "mom_pct"),
+    # Labour
     (re.compile(r"\b(non[- ]?farm.*employ.*change|nfp|non[- ]?farm payroll)\b", re.I), "PAYEMS", "delta_k"),
     (re.compile(r"\bunemployment rate\b",                  re.I), "UNRATE",   "level_pct"),
+    (re.compile(r"\b(initial jobless claims|unemployment claims)\b", re.I), "ICSA", "count_to_k"),
+    (re.compile(r"\bcontinuing (jobless )?claims\b",       re.I), "CCSA",     "count_to_m"),
+    # Consumer / Manufacturing
+    (re.compile(r"\bretail sales m/m\b",                   re.I), "RSXFS",    "mom_pct"),
+    (re.compile(r"\bdurable goods orders m/m\b",           re.I), "DGORDER",  "mom_pct"),
+    # Housing
+    (re.compile(r"\bbuilding permits\b",                   re.I), "PERMIT",   "thousands_to_m"),
+    (re.compile(r"\bhousing starts\b",                     re.I), "HOUST",    "thousands_to_m"),
+    # Growth
+    (re.compile(r"\b(advance|prelim|final)? ?gdp q/q\b",   re.I), "A191RL1Q225SBEA", "level_pct"),
+    # Rates
     (re.compile(r"\b(federal funds rate|fed funds rate)\b", re.I), "DFEDTARU", "level_pct"),
-    (re.compile(r"\bcore ppi m/m\b",                       re.I), "PPILFE",   "mom_pct"),
-    (re.compile(r"\bppi m/m\b",                            re.I), "PPIACO",   "mom_pct"),
 ]
 
 
@@ -78,14 +102,54 @@ def _get_observations(series_id: str, api_key: str, n: int) -> list[dict]:
     return [o for o in obs if o.get("value", ".") != "."]
 
 
+def _apply_transform(transform: str, obs: list[dict]) -> tuple[str, float] | None:
+    """Map FRED observation series → (display_text, numeric_value).
+    numeric_value is in the same unit as display_text (e.g. percentage
+    points, thousands, millions) so it lines up with parse_forecast_value
+    output for surprise comparison."""
+    if not obs:
+        return None
+    try:
+        latest = float(obs[0]["value"])
+    except (KeyError, ValueError):
+        return None
+    if transform in ("mom_pct", "delta_k") and len(obs) < 2:
+        return None
+    if transform in ("mom_pct", "delta_k"):
+        try:
+            prev = float(obs[1]["value"])
+        except (KeyError, ValueError):
+            return None
+        if transform == "mom_pct":
+            if prev == 0:
+                return None
+            pct = (latest - prev) / prev * 100
+            return (f"{pct:+.1f}%", round(pct, 2))
+        # delta_k
+        delta = latest - prev
+        return (f"{delta:+.0f}K", round(delta, 0))
+    if transform == "level_pct":
+        return (f"{latest:.2f}%", round(latest, 2))
+    if transform == "count_to_k":
+        v = latest / 1000.0
+        return (f"{v:.0f}K", round(v, 0))
+    if transform == "count_to_m":
+        v = latest / 1_000_000.0
+        return (f"{v:.2f}M", round(v, 2))
+    if transform == "thousands_to_m":
+        v = latest / 1000.0
+        return (f"{v:.2f}M", round(v, 2))
+    return None
+
+
 def fetch_actual(title: str, api_key: str | None = None) -> FredResult | None:
     """Try to fetch the actual value for a calendar event.
 
     Returns None if:
       - No FRED_API_KEY configured.
       - Event title doesn't map to any supported series.
-      - FRED has fewer than 2 observations for the series (needed for deltas).
-      - HTTP error.
+      - FRED has fewer than 2 observations for the series (deltas need it).
+      - HTTP / parse error.
     """
     if api_key is None:
         api_key = fred_api_key()
@@ -102,59 +166,28 @@ def fetch_actual(title: str, api_key: str | None = None) -> FredResult | None:
     except (httpx.HTTPError, ValueError) as e:
         log.warning("fred fetch failed series=%s: %s", sid, e)
         return None
-    if not obs:
+
+    result = _apply_transform(transform, obs)
+    if result is None:
         return None
-
-    try:
-        latest_val = float(obs[0]["value"])
-    except (KeyError, ValueError):
-        return None
-    obs_date = obs[0].get("date", "")
-
-    if transform == "mom_pct":
-        if len(obs) < 2:
-            return None
-        try:
-            prev_val = float(obs[1]["value"])
-        except (KeyError, ValueError):
-            return None
-        if prev_val == 0:
-            return None
-        pct = (latest_val - prev_val) / prev_val * 100
-        return FredResult(sid, f"{pct:+.1f}%", round(pct, 2), obs_date)
-
-    if transform == "delta_k":
-        if len(obs) < 2:
-            return None
-        try:
-            prev_val = float(obs[1]["value"])
-        except (KeyError, ValueError):
-            return None
-        delta_k = latest_val - prev_val   # PAYEMS already in thousands of jobs
-        return FredResult(sid, f"{delta_k:+.0f}K", round(delta_k, 0), obs_date)
-
-    if transform == "level_pct":
-        return FredResult(sid, f"{latest_val:.2f}%", round(latest_val, 2), obs_date)
-
-    return None
+    text, val = result
+    return FredResult(sid, text, val, obs[0].get("date", ""))
 
 
 def parse_forecast_value(text: str) -> float | None:
-    """Parse FF forecast strings ('0.3%', '+215K', '3.9%') to floats in the
-    same unit as FredResult.actual_value (i.e. percentage points or thousands)."""
+    """Parse FF forecast strings to floats in the SAME unit as FredResult
+    .actual_value. Suffix semantics:
+        '0.3%'  →  0.3   (percentage points)
+        '+215K' →  215   (thousands)
+        '1.36M' →  1.36  (millions — display unit)
+        '3.9%'  →  3.9
+    The suffix is just stripped — both sides stay in display units so the
+    surprise comparison is apples-to-apples."""
     if not text:
         return None
     s = text.strip().replace(",", "").replace("+", "")
-    if s.endswith("%"):
+    if s.endswith(("%", "K", "M")):
         s = s[:-1]
-    elif s.endswith("K"):
-        s = s[:-1]
-    elif s.endswith("M"):
-        s = s[:-1]
-        try:
-            return float(s) * 1000
-        except ValueError:
-            return None
     try:
         return float(s)
     except ValueError:

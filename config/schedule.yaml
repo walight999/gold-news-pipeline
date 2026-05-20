@@ -13,6 +13,14 @@ rate_limit:
   breaking_alert_window_minutes: 15
   breaking_alert_max: 5
 
+routing:
+  # When true, BREAKING (score >= 4.5) requires either an official source
+  # (fed/bls/ecb/treasury) OR source_count >= 2. Suppresses single-source
+  # spam (e.g. ForexLive firing 5 inflation BREAKING in 5 minutes).
+  # Default false — matches spec §4.5 verbatim. Flip to true after the
+  # run-log shows the noise floor justifies tightening.
+  breaking_require_confirmation: false
+
 health:
   # Cooldown for repeating the same (source_id, warning_type) warning.
   alert_cooldown_minutes: 60

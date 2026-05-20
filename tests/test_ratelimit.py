@@ -48,3 +48,36 @@ def test_always_pass_uncapped(store):
     by_id = {d.event.event_id: d for d in decisions}
     assert by_id["ap1"].route == Route.BREAKING
     assert by_id["ap1"].always_pass is True
+
+
+def test_breaking_require_confirmation_downgrades_single_source(store):
+    """With flag on, score>=4.5 single-source becomes ALERT instead of BREAKING."""
+    ev, _ = _make_event(eid="single", topic="inflation", sources=["forexlive"])
+    scores = {ev.event_id: 4.8}
+    decisions = decide([ev], scores, store, require_breaking_confirmation=True)
+    assert decisions[0].route == Route.ALERT
+    assert "single-source" in decisions[0].reason
+
+
+def test_breaking_require_confirmation_keeps_official(store):
+    """Official source still gets BREAKING even with flag on."""
+    ev, _ = _make_event(eid="bls", topic="inflation", sources=["bls"])
+    scores = {ev.event_id: 4.8}
+    decisions = decide([ev], scores, store, require_breaking_confirmation=True)
+    assert decisions[0].route == Route.BREAKING
+
+
+def test_breaking_require_confirmation_keeps_multi_source(store):
+    """Two or more sources still get BREAKING even with flag on."""
+    ev, _ = _make_event(eid="multi", topic="inflation", sources=["forexlive", "marketwatch"])
+    scores = {ev.event_id: 4.8}
+    decisions = decide([ev], scores, store, require_breaking_confirmation=True)
+    assert decisions[0].route == Route.BREAKING
+
+
+def test_flag_default_off_preserves_single_source_breaking(store):
+    """Default behaviour unchanged: single-source BREAKING still allowed."""
+    ev, _ = _make_event(eid="single", topic="inflation", sources=["forexlive"])
+    scores = {ev.event_id: 4.8}
+    decisions = decide([ev], scores, store)   # flag defaults to False
+    assert decisions[0].route == Route.BREAKING

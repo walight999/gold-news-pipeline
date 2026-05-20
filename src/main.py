@@ -96,10 +96,12 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
 
     # 4. Route
     rl = sched_cfg.get("rate_limit", {})
+    routing_cfg = sched_cfg.get("routing", {})
     decisions = decide(
         events, scores, store,
         rate_limit_window_min=int(rl.get("breaking_alert_window_minutes", 15)),
         rate_limit_max=int(rl.get("breaking_alert_max", 5)),
+        require_breaking_confirmation=bool(routing_cfg.get("breaking_require_confirmation", False)),
     )
 
     # 5. Send + persist

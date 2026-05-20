@@ -58,8 +58,11 @@ def _is_confirmed(ev: Event) -> bool:
     return _is_official(ev) or ev.source_count >= 2
 
 
-def base_route(ev: Event, score: float) -> tuple[Route, str]:
+def base_route(ev: Event, score: float, require_breaking_confirmation: bool = False) -> tuple[Route, str]:
     if score >= 4.5:
+        if require_breaking_confirmation and not (_is_official(ev) or ev.source_count >= 2):
+            # Phase 2 hint: downgrade single-source BREAKING to ALERT.
+            return Route.ALERT, "score>=4.5 but single-source → tightened to alert"
         return Route.BREAKING, "score>=4.5"
     if score >= 3.5:
         if _is_official(ev) or ev.source_count >= 2:
@@ -101,6 +104,7 @@ def decide(
     store: Store,
     rate_limit_window_min: int = 15,
     rate_limit_max: int = 5,
+    require_breaking_confirmation: bool = False,
 ) -> list[Decision]:
     decisions: list[Decision] = []
     used = _count_recent_breaking_or_alert(store, rate_limit_window_min)
@@ -112,7 +116,7 @@ def decide(
 
     for ev in sorted(events, key=_priority):
         s = scores.get(ev.event_id, 0.0)
-        base, reason = base_route(ev, s)
+        base, reason = base_route(ev, s, require_breaking_confirmation=require_breaking_confirmation)
         ap = is_always_pass(ev, s, SCHEDULED_RELEASE_TOPICS)
         if base in (Route.BREAKING, Route.ALERT):
             if ap:
