@@ -73,6 +73,21 @@ def score_to_impact(score: float) -> tuple[str, str, str]:
     return ("LOW", "#6B7280", "#FFFFFF")
 
 
+def _impact_pill_small(score: float) -> dict[str, Any]:
+    """Tight single-letter pill (H/M/L) for inline digest rows.
+    Distinct from `_chip` so we don't grow the label width."""
+    label, bg, fg = score_to_impact(score)
+    short = label[0]  # H / M / L
+    return {
+        "type": "box", "layout": "vertical",
+        "backgroundColor": bg, "cornerRadius": "8px",
+        "paddingStart": "6px", "paddingEnd": "6px",
+        "paddingTop": "1px", "paddingBottom": "1px",
+        "contents": [{"type": "text", "text": short, "size": "xxs",
+                       "color": fg, "weight": "bold", "align": "center"}],
+    }
+
+
 def _source_label(source_ids: list[str], max_n: int = 3) -> str:
     names = [SOURCE_NAMES.get(s, s.replace("_", " ").title()) for s in source_ids[:max_n]]
     extra = len(source_ids) - max_n
@@ -245,7 +260,6 @@ def _digest_event_row(ev: Event, score: float, kw_cfg: dict[str, Any]) -> dict[s
     primary_src = SOURCE_NAMES.get(ev.source_list[0], ev.source_list[0].title()) if ev.source_list else "source"
     age = _ago_label(_earliest_ts(ev))
     url = _pick_article_url(ev.items)
-    impact_label, impact_bg, impact_fg = score_to_impact(score)
 
     meta_row_contents: list[dict[str, Any]] = [
         {"type": "text",
@@ -258,10 +272,10 @@ def _digest_event_row(ev: Event, score: float, kw_cfg: dict[str, Any]) -> dict[s
     return {
         "type": "box", "layout": "vertical", "spacing": "xs", "margin": "md",
         "contents": [
-            # Title row: impact pill + bold title
+            # Title row: small H/M/L pill + bold title
             {"type": "box", "layout": "horizontal", "spacing": "sm",
              "alignItems": "center", "contents": [
-                 _chip(impact_label, impact_bg, impact_fg),
+                 _impact_pill_small(score),
                  {"type": "text", "text": title, "size": "sm",
                   "wrap": True, "color": "#111827", "flex": 1, "weight": "bold"},
             ]},
