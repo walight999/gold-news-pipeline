@@ -24,7 +24,8 @@
  */
 
 var REPO          = "walight999/gold-news-pipeline";
-var DISPATCH_TYPE = "news-event-mode";
+var WORKFLOW_FILE = "event_mode.yml";   // path-relative filename in .github/workflows/
+var WORKFLOW_REF  = "main";
 var DURATION_MIN  = 30;
 
 // Fire when event is within this many minutes (inclusive..exclusive).
@@ -94,10 +95,13 @@ function scanAndFire() {
 
 
 /**
- * Sends repository_dispatch to GitHub. Returns the HTTP status code
- * (204 == success). On non-204, also logs the response body so the exact
- * GitHub-side reason (e.g. "Resource not accessible by personal access
- * token") is visible in the Execution log.
+ * Sends a workflow_dispatch to the event-mode workflow. Returns the HTTP
+ * status code (204 == success). On non-204, logs the response body so the
+ * exact GitHub-side reason is visible in the Execution log.
+ *
+ * Uses /actions/workflows/<file>/dispatches (Actions: Write) instead of
+ * /repos/<repo>/dispatches (Contents: Write) — matches the PAT permission
+ * model documented in INTEGRATION_CALENDAR_BOT.md.
  */
 function fireEventModeDispatch(durationMin) {
   var raw = PropertiesService.getScriptProperties().getProperty("GH_PAT_GOLD_NEWS");
@@ -105,9 +109,10 @@ function fireEventModeDispatch(durationMin) {
     Logger.log("Missing GH_PAT_GOLD_NEWS script property — see setup step 4");
     return 0;
   }
-  // Trim accidental whitespace/newlines from paste
   var token = String(raw).trim();
-  var res = UrlFetchApp.fetch("https://api.github.com/repos/" + REPO + "/dispatches", {
+  var url = "https://api.github.com/repos/" + REPO +
+            "/actions/workflows/" + WORKFLOW_FILE + "/dispatches";
+  var res = UrlFetchApp.fetch(url, {
     method:      "post",
     contentType: "application/json",
     headers: {
@@ -116,8 +121,8 @@ function fireEventModeDispatch(durationMin) {
       "X-GitHub-Api-Version":  "2022-11-28"
     },
     payload: JSON.stringify({
-      event_type:     DISPATCH_TYPE,
-      client_payload: { duration_min: durationMin || 30 }
+      ref:    WORKFLOW_REF,
+      inputs: { duration_min: String(durationMin || 30) }   // inputs must be strings
     }),
     muteHttpExceptions: true
   });

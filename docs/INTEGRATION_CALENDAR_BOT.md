@@ -5,9 +5,13 @@ high-impact USD/EUR releases so we catch the actual print within one polling
 cycle instead of waiting for the next `*/5` `news-cron`.
 
 Implementation: a **standalone Google Apps Script** project that polls
-ForexFactory every 5 min and fires `repository_dispatch` for matching events.
-It does NOT touch the user's existing GoldBot Calendar V2 — it's its own bot
-with its own trigger.
+ForexFactory every 5 min and fires `workflow_dispatch` on the event-mode
+workflow for matching events. It does NOT touch the user's existing
+GoldBot Calendar V2 — it's its own bot with its own trigger.
+
+(Note: an earlier version used `repository_dispatch`, which would require
+`Contents: Write` on the PAT. Switched to `workflow_dispatch` so only
+`Actions: Write` is needed — narrower blast radius if the PAT leaks.)
 
 The full code lives in `docs/gas_dispatcher.gs`.
 
