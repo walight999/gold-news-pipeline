@@ -21,7 +21,14 @@ import yaml
 from . import dedup, digest, health, scorer
 from .fetcher import fetch_all, plan_fetch
 from .line_client import LineClient
-from .line_flex import alert_bubble, alt_text_for_event, breaking_bubble, digest_carousel, health_bubble
+from .line_flex import (
+    alert_bubble,
+    alt_text_for_event,
+    breaking_bubble,
+    digest_carousel,
+    health_bubble,
+    health_recovered_bubble,
+)
 from .normalizer import normalize
 from .parser import parse_feed
 from .router import Route, decide
@@ -73,7 +80,6 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
                 state["source_id"] = r.source["id"]
                 store.upsert("source_state", state)
             health.mark_validated(store, r.source["id"])
-            health.resolve_warning(store, r.source["id"], "http_errors_streak")
     items = normalize(raw_entries)
     log.info("items normalized: %d (from %d entries)", len(items), len(raw_entries))
 
@@ -133,26 +139,53 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
             else:
                 log.warning("LINE push failed event=%s status=%s — not marking sent", ev.event_id, resp["status"])
 
-    # 6. Health pass
+    # 6. Health pass — first detect current warnings, then resolve any
+    # open warnings whose triggering condition is no longer true, then push.
     health_cfg = sched_cfg.get("health", {})
     is_event_day = (mode == "event")
-    health_warnings: list[tuple[str, str]] = []
+    current_warnings: list[tuple[str, str]] = []
+    sources_checked: set[str] = set()
     for s in src_cfg["sources"]:
         if not s.get("enabled"):
             continue
-        health_warnings.extend(health.check_source_health(store, s, health_cfg, is_event_day=is_event_day))
+        sources_checked.add(s["id"])
+        current_warnings.extend(
+            health.check_source_health(store, s, health_cfg, is_event_day=is_event_day)
+        )
+    current_set = set(current_warnings)
 
-    if health_warnings and health_target:
+    # Recoveries: warnings open in store but no longer in current_set.
+    recovered: list[tuple[str, str]] = []
+    for row in list(store.all_rows("health_log")):
+        if row.get("resolved_ts"):
+            continue
+        sid = row.get("source_id")
+        wtype = row.get("warning_type")
+        if sid not in sources_checked:
+            continue
+        if (sid, wtype) not in current_set:
+            if health.resolve_warning(store, sid, wtype) > 0:
+                recovered.append((sid, wtype))
+
+    # Push new warnings (gated by raise_warning cooldown)
+    if current_warnings and health_target:
         line = line or LineClient.from_env()
         cooldown = int(health_cfg.get("alert_cooldown_minutes", 60))
         emitted_warnings: list[tuple[str, str]] = []
-        for sid, wtype in health_warnings:
+        for sid, wtype in current_warnings:
             if health.raise_warning(store, sid, wtype, cooldown):
                 emitted_warnings.append((sid, wtype))
         if emitted_warnings:
             bubble = health_bubble(emitted_warnings)
-            alt = f"⚠️ HEALTH {len(emitted_warnings)} warning(s): " + ", ".join(f"{s}:{t}" for s, t in emitted_warnings[:3])
+            alt = f"⚠️ Health Check — {len(emitted_warnings)} warning(s)"
             line.push_flex(health_target, alt, bubble)
+
+    # Push recoveries
+    if recovered and health_target:
+        line = line or LineClient.from_env()
+        bubble = health_recovered_bubble(recovered)
+        alt = f"✅ Health Recovered — {len(recovered)} item(s)"
+        line.push_flex(health_target, alt, bubble)
 
     # 7. Digest if in slot
     if mode in ("cron", "digest"):

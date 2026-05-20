@@ -213,35 +213,34 @@ def _source_link(src_name: str, age: str, url: str | None) -> dict[str, Any]:
             "alignItems": "center", "contents": contents}
 
 
-def _inline_tags(topic: str, direction: str) -> dict[str, Any]:
-    """Small gray dotted tags appended below title — minimal visual weight."""
-    return {
-        "type": "text",
-        "text": f"{topic}  ·  {direction}",
-        "size": "xs", "color": "#9CA3AF",
-    }
-
-
 def _event_bubble(label: str, color: str, ev: Event, score: float, kw_cfg: dict[str, Any]) -> dict[str, Any]:
-    title = _trim(ev.representative_title, 180)
+    title = _trim(ev.representative_title, 200)
     summary = _trim(ev.representative_summary, SUMMARY_LIMIT)
     src_name = _source_label(ev.source_list)
     age = _ago_label(_earliest_ts(ev))
     article_url = _pick_article_url(ev.items)
-    primary_source_name = SOURCE_NAMES.get(ev.source_list[0], ev.source_list[0].title()) if ev.source_list else ""
+    _, topic_fg = _topic_chip_color(ev.topic_bucket)
+    dir_bg, dir_fg = _direction_chip_color(ev.direction_label)
+    topic_text = ev.topic_bucket.replace("_", " ").upper()
 
     body_contents: list[dict[str, Any]] = [
-        # Meta row: time (gray) + clickable source link (blue + underline)
-        _source_link(src_name, age, article_url),
-        # Big bold title
+        # Topic + direction row — leads the body (replaces former meta-first)
+        {"type": "box", "layout": "horizontal", "spacing": "sm",
+         "alignItems": "center", "contents": [
+             {"type": "text", "text": topic_text,
+              "size": "sm", "weight": "bold", "color": topic_fg, "flex": 0},
+             _chip(ev.direction_label, dir_bg, dir_fg),
+        ]},
+        # Title (big bold) — the headline itself
         {"type": "text", "text": title, "weight": "bold", "size": "lg",
          "wrap": True, "color": "#111827", "margin": "md"},
-        # Inline tags right below title
-        _inline_tags(ev.topic_bucket, ev.direction_label),
     ]
     if summary:
         body_contents.append({"type": "text", "text": summary, "size": "sm",
                               "wrap": True, "color": "#1F2937", "margin": "md"})
+    # Footer: time + source link (small, last) — separator gives visual gap
+    body_contents.append({"type": "separator", "margin": "lg"})
+    body_contents.append(_source_link(src_name, age, article_url))
 
     impact_label, _, _ = score_to_impact(score)
     return {
@@ -253,11 +252,11 @@ def _event_bubble(label: str, color: str, ev: Event, score: float, kw_cfg: dict[
 
 
 def breaking_bubble(ev: Event, score: float, kw_cfg: dict[str, Any]) -> dict[str, Any]:
-    return _event_bubble("⚡ Breaking News", COLOR["breaking"], ev, score, kw_cfg)
+    return _event_bubble("⚡ Breaking", COLOR["breaking"], ev, score, kw_cfg)
 
 
 def alert_bubble(ev: Event, score: float, kw_cfg: dict[str, Any]) -> dict[str, Any]:
-    return _event_bubble("🔔 News Alert", COLOR["alert"], ev, score, kw_cfg)
+    return _event_bubble("🔔 Alert", COLOR["alert"], ev, score, kw_cfg)
 
 
 # ---------- digest ----------
@@ -344,6 +343,31 @@ def digest_carousel(
 
 
 # ---------- health ----------
+
+def health_recovered_bubble(recoveries: list[tuple[str, str]]) -> dict[str, Any]:
+    """Mirror of health_bubble but with a green "recovered" header.
+    Same row format so the visual rhythm matches a warning notification."""
+    lines: list[dict[str, Any]] = []
+    for sid, wtype in recoveries[:15]:
+        src = SOURCE_NAMES.get(sid, sid)
+        msg = WARNING_MESSAGES.get(wtype, wtype)
+        lines.append({
+            "type": "box", "layout": "vertical", "spacing": "xs", "margin": "sm",
+            "contents": [
+                {"type": "text", "text": f"📡 {src}", "size": "sm",
+                 "weight": "bold", "color": "#111827"},
+                {"type": "text", "text": f"Resolved: {msg}", "size": "xs",
+                 "color": "#4B5563", "wrap": True},
+            ],
+        })
+    return {
+        "type": "bubble", "size": "kilo",
+        "header": _header("✅ Health Recovered",
+                          f"{len(recoveries)} item(s)", "#059669"),
+        "body": {"type": "box", "layout": "vertical", "spacing": "sm",
+                 "paddingAll": "14px", "contents": lines},
+    }
+
 
 def health_bubble(warnings: list[tuple[str, str]]) -> dict[str, Any]:
     lines: list[dict[str, Any]] = []

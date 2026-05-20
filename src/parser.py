@@ -1,6 +1,7 @@
 """Wraps feedparser. Returns a list of raw entries per source."""
 from __future__ import annotations
 
+import html
 import logging
 from datetime import datetime, timezone
 from typing import Any
@@ -21,7 +22,7 @@ def parse_feed(body: bytes, source: dict[str, Any]) -> list[dict[str, Any]]:
             "source_id": source["id"],
             "tier": source["tier"],
             "role": source["role"],
-            "title": (e.get("title") or "").strip(),
+            "title": _clean_text((e.get("title") or "").strip()),
             "summary": _strip_html(e.get("summary") or e.get("description") or ""),
             "url": e.get("link") or "",
             "published_ts": published,  # datetime or None
@@ -47,4 +48,12 @@ def _strip_html(s: str) -> str:
     import re
     s = re.sub(r"<[^>]+>", " ", s or "")
     s = re.sub(r"\s+", " ", s).strip()
-    return s[:500]
+    return _clean_text(s)[:500]
+
+
+def _clean_text(s: str) -> str:
+    """Decode HTML entities (&amp; &#39; &quot; etc) so they render naturally."""
+    if not s:
+        return s
+    # Two passes catch double-encoded entities seen in some RSS feeds.
+    return html.unescape(html.unescape(s))

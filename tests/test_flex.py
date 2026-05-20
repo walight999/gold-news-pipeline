@@ -40,13 +40,19 @@ def test_breaking_bubble_shape(kw_config):
     assert b["header"]["backgroundColor"] == "#DC2626"
     body_contents = b["body"]["contents"]
     assert len(body_contents) >= 3
-    # First component is the meta row containing a clickable source text
-    meta_row = body_contents[0]
-    assert meta_row["type"] == "box" and meta_row["layout"] == "horizontal"
-    src_link = next((c for c in meta_row["contents"]
-                     if c.get("type") == "text" and "📡" in c.get("text", "")), None)
-    assert src_link is not None, "expected source name in meta row"
-    assert src_link["action"]["type"] == "uri"
+    # Source link is anywhere in body — find any horizontal box containing a
+    # clickable source text (📡 + uri action).
+    src_link = None
+    for comp in body_contents:
+        if comp.get("type") != "box" or comp.get("layout") != "horizontal":
+            continue
+        for c in comp.get("contents", []):
+            if c.get("type") == "text" and "📡" in c.get("text", "") and c.get("action", {}).get("type") == "uri":
+                src_link = c
+                break
+        if src_link:
+            break
+    assert src_link is not None, "expected clickable source link in body"
     assert src_link["action"]["uri"].startswith("https://")
 
 
