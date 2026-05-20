@@ -155,12 +155,16 @@ def _header(title: str, sub_label: str, color: str) -> dict[str, Any]:
 
 
 def _chip(text: str, bg: str, fg: str) -> dict[str, Any]:
+    """Tight pill that hugs its text — `flex: 0` so it doesn't stretch in
+    horizontal parents, and the inner text is center-aligned."""
     return {
         "type": "box", "layout": "vertical",
-        "backgroundColor": bg, "cornerRadius": "12px",
+        "backgroundColor": bg, "cornerRadius": "10px",
         "paddingStart": "10px", "paddingEnd": "10px",
-        "paddingTop": "3px", "paddingBottom": "3px",
-        "contents": [{"type": "text", "text": text, "size": "xs", "color": fg, "weight": "bold"}],
+        "paddingTop": "2px", "paddingBottom": "2px",
+        "flex": 0,
+        "contents": [{"type": "text", "text": text, "size": "xs",
+                       "color": fg, "weight": "bold", "align": "center"}],
     }
 
 
@@ -224,11 +228,11 @@ def _event_bubble(label: str, color: str, ev: Event, score: float, kw_cfg: dict[
     topic_text = ev.topic_bucket.replace("_", " ").title()
 
     body_contents: list[dict[str, Any]] = [
-        # Topic + direction row — Title Case sm bold, centered as a group
+        # Topic + direction row — Title Case xs bold, centered as a group
         {"type": "box", "layout": "horizontal", "spacing": "sm",
          "alignItems": "center", "justifyContent": "center", "contents": [
              {"type": "text", "text": topic_text,
-              "size": "sm", "weight": "bold", "color": topic_fg, "flex": 0},
+              "size": "xs", "weight": "bold", "color": topic_fg, "flex": 0},
              _chip(ev.direction_label, dir_bg, dir_fg),
         ]},
         # Title (big bold) — the headline itself
