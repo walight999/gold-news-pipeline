@@ -95,3 +95,38 @@ def test_pre_release_bubble_shape():
     # Header right shows the countdown
     sub_label = b["header"]["contents"][1]["text"]
     assert "T-15min" in sub_label
+
+
+def test_gold_impact_directional_cpi_bearish():
+    e = cal.parse_ff_payload([_ff_item("Core CPI m/m", "USD", "2026-05-15T08:30:00-04:00", "High")])[0]
+    info = cal.gold_impact_directional(e)
+    # Higher CPI = bearish gold
+    assert "Bearish" in info["higher_is"]
+    assert "Bullish" in info["lower_is"]
+
+
+def test_gold_impact_directional_unemployment_inverse():
+    e = cal.parse_ff_payload([_ff_item("Unemployment Rate", "USD", "2026-05-15T08:30:00-04:00", "High")])[0]
+    info = cal.gold_impact_directional(e)
+    # Higher unemployment = bullish gold (Fed dovish)
+    assert "Bullish" in info["higher_is"]
+    assert "Bearish" in info["lower_is"]
+
+
+def test_gold_impact_directional_nfp():
+    e = cal.parse_ff_payload([_ff_item("Non-Farm Employment Change", "USD", "2026-05-15T08:30:00-04:00", "High")])[0]
+    info = cal.gold_impact_directional(e)
+    assert "Bearish" in info["higher_is"]
+
+
+def test_post_release_bubble_shape():
+    from src.line_flex import post_release_bubble
+    e = cal.parse_ff_payload([_ff_item("Core CPI m/m", "USD", "2026-05-15T08:30:00-04:00", "High")])[0]
+    info = cal.gold_impact_directional(e)
+    b = post_release_bubble(e, info)
+    assert b["type"] == "bubble"
+    assert b["header"]["backgroundColor"] == "#DC2626"
+    # Body should have gold impact lines
+    texts = [c.get("text", "") for c in b["body"]["contents"] if c.get("type") == "text"]
+    assert any("Higher" in t for t in texts)
+    assert any("Lower" in t for t in texts)

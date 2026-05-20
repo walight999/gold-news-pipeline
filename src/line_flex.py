@@ -441,10 +441,48 @@ def calendar_day_bubble(events: list[CalEvent], date_label: str) -> dict[str, An
     }
 
 
-def pre_release_bubble(event: CalEvent, minutes_to_release: int) -> dict[str, Any]:
+def post_release_bubble(event: CalEvent, impact: dict[str, str]) -> dict[str, Any]:
+    """Sent shortly after a high-impact release. Carries directional
+    gold-impact guidance (free FF JSON doesn't ship `actual` values)."""
+    header_color, _ = _impact_color(event.impact)
+    return {
+        "type": "bubble", "size": "kilo",
+        "header": _header("📊 Released — Watch", "Just released", header_color),
+        "body": {"type": "box", "layout": "vertical", "spacing": "sm",
+                 "paddingAll": "16px", "contents": [
+            {"type": "box", "layout": "horizontal", "spacing": "sm",
+             "alignItems": "center", "contents": [
+                 {"type": "text", "text": event.hhmm_ict + " ICT",
+                  "size": "xs", "color": "#6B7280", "weight": "bold", "flex": 0},
+                 _impact_pill_calendar(event.impact),
+                 {"type": "text", "text": event.country,
+                  "size": "xs", "weight": "bold", "color": "#374151", "flex": 1},
+            ]},
+            {"type": "text", "text": event.title, "size": "md", "weight": "bold",
+             "wrap": True, "color": "#111827", "margin": "md"},
+            {"type": "text",
+             "text": f"Forecast: {event.forecast or '-'}  ·  Previous: {event.previous or '-'}",
+             "size": "xs", "color": "#374151", "margin": "sm"},
+            {"type": "separator", "margin": "lg"},
+            {"type": "text", "text": "Gold Impact (directional)",
+             "size": "xs", "color": "#9CA3AF", "weight": "bold", "margin": "md"},
+            {"type": "text", "text": "↑ Higher actual → " + impact["higher_is"],
+             "size": "xs", "color": "#374151", "margin": "xs"},
+            {"type": "text", "text": "↓ Lower actual  → " + impact["lower_is"],
+             "size": "xs", "color": "#374151"},
+            {"type": "text", "text": impact["rationale"],
+             "size": "xxs", "color": "#6B7280", "wrap": True, "margin": "sm"},
+            {"type": "text", "text": "Watch news feed for the actual print + market reaction.",
+             "size": "xxs", "color": "#9CA3AF", "wrap": True, "margin": "md"},
+        ]},
+    }
+
+
+def pre_release_bubble(event: CalEvent, minutes_to_release: int,
+                       impact: dict[str, str] | None = None) -> dict[str, Any]:
     """Single bubble: 'T-15min · CPI in 15 minutes'.
-    Header color tracks impact (red for High).
-    """
+    Header color tracks impact (red for High). Optional `impact` dict
+    appends directional gold-impact lines (see calendar.gold_impact_directional)."""
     header_color, _ = _impact_color(event.impact)
     body_contents: list[dict[str, Any]] = [
         {"type": "box", "layout": "horizontal", "spacing": "sm",
@@ -468,6 +506,16 @@ def pre_release_bubble(event: CalEvent, minutes_to_release: int) -> dict[str, An
               "size": "xs", "color": "#374151", "wrap": True, "flex": 1, "align": "end"},
         ]},
     ]
+    if impact:
+        body_contents.extend([
+            {"type": "separator", "margin": "lg"},
+            {"type": "text", "text": "Gold Impact (directional)",
+             "size": "xs", "color": "#9CA3AF", "weight": "bold", "margin": "md"},
+            {"type": "text", "text": "↑ Higher → " + impact["higher_is"],
+             "size": "xs", "color": "#374151", "margin": "xs"},
+            {"type": "text", "text": "↓ Lower  → " + impact["lower_is"],
+             "size": "xs", "color": "#374151"},
+        ])
     return {
         "type": "bubble", "size": "kilo",
         "header": _header("⏰ Pre-Release", f"T-{minutes_to_release}min", header_color),

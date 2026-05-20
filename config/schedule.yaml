@@ -35,3 +35,8 @@ calendar:
   pre_release_window_high_min: 25   # ... and < this many minutes out
   pre_release_currencies: [USD, EUR]
   pre_release_impacts:    [High]
+
+  # Post-release alert — fires once after release, directional gold impact only
+  # (FF free JSON doesn't ship `actual`, so no surprise calc in Phase 1).
+  post_release_window_low_min:  -15
+  post_release_window_high_min:   0

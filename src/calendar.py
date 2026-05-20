@@ -5,15 +5,19 @@ Source: ForexFactory free weekly JSON
 
 Schema per item:
     {title, country, date (ISO with tz), impact, forecast, previous}
+    (NB: free endpoint does NOT include `actual` — see gold_impact_directional
+    docstring for the consequence on post-release alerts.)
 
-Two consumers:
+Three consumers:
     - Daily calendar push (06:30 ICT) — today's events for XAU-relevant currencies
-    - Pre-release alert (every 15 min) — T-15min for high-impact USD/EUR events
+    - Pre-release alert (every 10 min) — T-15min for high-impact USD/EUR events
+    - Post-release alert — directional gold-impact guidance shortly after release
 """
 from __future__ import annotations
 
 import hashlib
 import logging
+import re
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
@@ -129,3 +133,56 @@ def filter_upcoming(
 def minutes_until(event: CalEvent, ref: datetime | None = None) -> int:
     ref_utc = ref or now_utc()
     return int(round((event.dt_utc - ref_utc).total_seconds() / 60.0))
+
+
+# ---------- gold-impact directional rules ----------
+
+# Each rule: (regex applied to lower-cased title, inverse_flag)
+# inverse=True  means higher value is BULLISH gold (e.g., higher unemployment).
+# inverse=False means higher value is BEARISH gold (e.g., higher CPI).
+_GOLD_IMPACT_RULES: list[tuple[re.Pattern[str], bool, str]] = [
+    (re.compile(r"\b(unemployment rate|jobless claims|continuing claims)\b"), True,
+     "Weaker labor data softens USD/yields"),
+    (re.compile(r"\b(cpi|core cpi|pce|core pce|ppi|inflation expectations)\b"), False,
+     "Higher inflation lifts USD/yields"),
+    (re.compile(r"\b(nfp|non[- ]?farm|payroll|employment change|jobs report)\b"), False,
+     "Stronger jobs lift USD/yields"),
+    (re.compile(r"\b(retail sales|durable goods|consumer (confidence|sentiment))\b"), False,
+     "Stronger demand lifts USD/yields"),
+    (re.compile(r"\b(gdp|industrial production|manufacturing pmi|services pmi|ism)\b"), False,
+     "Stronger growth lifts USD/yields"),
+    (re.compile(r"\b(rate decision|federal funds|interest rate decision|fed funds|"
+                r"main refinancing|deposit facility|bank rate)\b"), False,
+     "Hike (or hawkish tone) lifts USD/yields"),
+]
+
+
+def gold_impact_directional(event: CalEvent) -> dict[str, str]:
+    """Returns directional gold-impact guidance keyed off the event title.
+
+    Phase 1 — free FF JSON does NOT include `actual`, so we can't say which
+    way the release surprised. Instead we give the user the *map*: if higher
+    than forecast → effect X; if lower → effect Y. Then they can read the
+    actual from any news source.
+
+    Keys: higher_is, lower_is, rationale.
+    """
+    title_low = event.title.lower()
+    for pat, inverse, rationale in _GOLD_IMPACT_RULES:
+        if pat.search(title_low):
+            if inverse:
+                return {
+                    "higher_is": "🟢 Bullish gold",
+                    "lower_is":  "🔴 Bearish gold",
+                    "rationale": rationale,
+                }
+            return {
+                "higher_is": "🔴 Bearish gold",
+                "lower_is":  "🟢 Bullish gold",
+                "rationale": rationale,
+            }
+    return {
+        "higher_is": "🔴 Bearish gold (hawkish)",
+        "lower_is":  "🟢 Bullish gold (dovish)",
+        "rationale": "Watch official statement for tone",
+    }

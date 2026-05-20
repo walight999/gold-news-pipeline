@@ -32,6 +32,7 @@ from .line_flex import (
     digest_carousel,
     health_bubble,
     health_recovered_bubble,
+    post_release_bubble,
     pre_release_bubble,
 )
 from .normalizer import normalize
@@ -272,8 +273,12 @@ async def run_calendar_daily() -> int:
 
 
 async def run_calendar_check() -> int:
-    """Scan for events in the pre-release window and push T-Xmin alerts.
-    Idempotent per event_id via sent_log."""
+    """Single sweep that does BOTH pre-release and post-release alerts.
+
+    Pre-release: events in [pre_lo, pre_hi) minutes ahead.
+    Post-release: events released in [post_lo, post_hi) minutes — currently
+    (-15, 0]. Both gated by sent_log idempotency per event_id.
+    """
     _, _, sched_cfg = _load_configs()
     cal_cfg = sched_cfg.get("calendar", {})
 
@@ -290,14 +295,17 @@ async def run_calendar_check() -> int:
 
     countries = tuple(cal_cfg.get("pre_release_currencies", cal.DEFAULT_PRE_COUNTRIES))
     impacts   = tuple(cal_cfg.get("pre_release_impacts",    cal.DEFAULT_PRE_IMPACTS))
-    window_lo = int(cal_cfg.get("pre_release_window_low_min",  cal.DEFAULT_PRE_WINDOW_LOW))
-    window_hi = int(cal_cfg.get("pre_release_window_high_min", cal.DEFAULT_PRE_WINDOW_HIGH))
+    pre_lo = int(cal_cfg.get("pre_release_window_low_min",  cal.DEFAULT_PRE_WINDOW_LOW))
+    pre_hi = int(cal_cfg.get("pre_release_window_high_min", cal.DEFAULT_PRE_WINDOW_HIGH))
+    post_lo = int(cal_cfg.get("post_release_window_low_min",  -15))
+    post_hi = int(cal_cfg.get("post_release_window_high_min", 0))
 
-    upcoming = cal.filter_upcoming(
-        cal.filter_by_impact(cal.filter_by_country(events, countries), impacts),
-        window_lo, window_hi,
-    )
-    log.info("calendar_check: %d candidates in window [%dmin, %dmin)", len(upcoming), window_lo, window_hi)
+    relevant = cal.filter_by_impact(cal.filter_by_country(events, countries), impacts)
+
+    upcoming = cal.filter_upcoming(relevant, pre_lo, pre_hi)
+    just_released = cal.filter_upcoming(relevant, post_lo, post_hi)
+    log.info("calendar_check: pre=%d in [%d,%d) min, post=%d in [%d,%d) min",
+             len(upcoming), pre_lo, pre_hi, len(just_released), post_lo, post_hi)
 
     target = os.environ.get("LINE_NEWS_TARGET", "")
     if not target:
@@ -305,15 +313,19 @@ async def run_calendar_check() -> int:
         store.flush()
         return 0
 
-    pushed = 0
-    if upcoming:
+    pre_pushed = 0
+    post_pushed = 0
+    if upcoming or just_released:
         line = LineClient.from_env()
+
+        # Pre-release alerts
         for ev in upcoming:
             sent_key = f"precal:{ev.event_id}"
             if store.get("sent_log", (sent_key, "calendar_pre")):
                 continue
             mins_to = cal.minutes_until(ev)
-            bubble = pre_release_bubble(ev, mins_to)
+            impact_info = cal.gold_impact_directional(ev)
+            bubble = pre_release_bubble(ev, mins_to, impact_info)
             alt = f"⏰ T-{mins_to}min · {ev.country} {ev.title}"
             resp = line.push_flex(target, alt, bubble)
             if resp["status"] == 200:
@@ -321,8 +333,25 @@ async def run_calendar_check() -> int:
                     "event_id": sent_key, "route_type": "calendar_pre",
                     "sent_ts": iso_utc(now_utc()), "line_status": 200,
                 })
-                pushed += 1
-    log.info("calendar_check pushes: %d", pushed)
+                pre_pushed += 1
+
+        # Post-release alerts (directional only — FF JSON has no actual)
+        for ev in just_released:
+            sent_key = f"postcal:{ev.event_id}"
+            if store.get("sent_log", (sent_key, "calendar_post")):
+                continue
+            impact_info = cal.gold_impact_directional(ev)
+            bubble = post_release_bubble(ev, impact_info)
+            alt = f"📊 Released · {ev.country} {ev.title}"
+            resp = line.push_flex(target, alt, bubble)
+            if resp["status"] == 200:
+                store.upsert("sent_log", {
+                    "event_id": sent_key, "route_type": "calendar_post",
+                    "sent_ts": iso_utc(now_utc()), "line_status": 200,
+                })
+                post_pushed += 1
+
+    log.info("calendar_check pushes: pre=%d post=%d", pre_pushed, post_pushed)
     store.flush()
     return 0
 
