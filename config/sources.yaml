@@ -1,0 +1,14 @@
+sources:
+  # enabled: true  = path stable enough to attempt; still gated by validator on first run / after failures
+  # enabled: false = candidate URL only — verify manually before flipping to true
+  - {id: fed,         tier: 0, role: policy,       url: "https://www.federalreserve.gov/feeds/press_all.xml", poll_min: 15, enabled: true}
+  - {id: bls,         tier: 0, role: data_release, url: "https://www.bls.gov/feed/bls_latest.rss",            poll_min: 15, enabled: false, note: "enable after manual verification"}
+  - {id: ecb,         tier: 0, role: policy,       url: "https://www.ecb.europa.eu/rss/press.xml",            poll_min: 15, enabled: false, note: "enable after manual verification"}
+  - {id: treasury,    tier: 0, role: yields,       url: "",                                                   poll_min: 15, enabled: false, note: "find RSS endpoint, then enable"}
+  - {id: bbc_world,   tier: 1, role: geopolitics,  url: "https://feeds.bbci.co.uk/news/world/rss.xml",        poll_min: 15, enabled: true}
+  - {id: aljazeera,   tier: 1, role: geopolitics,  url: "https://www.aljazeera.com/xml/rss/all.xml",          poll_min: 15, enabled: true}
+  - {id: cnbc,        tier: 1, role: macro,        url: "https://www.cnbc.com/id/100003114/device/rss/rss.html", poll_min: 10, enabled: false, note: "verify feed id, then enable"}
+  - {id: marketwatch, tier: 1, role: macro,        url: "https://feeds.marketwatch.com/marketwatch/topstories/", poll_min: 10, enabled: true}
+  - {id: forexlive,   tier: 2, role: trader_macro, url: "https://www.forexlive.com/feed/",                    poll_min: 5,  enabled: true}
+  - {id: fxstreet,    tier: 2, role: gold_bias,    url: "https://www.fxstreet.com/rss",                       poll_min: 5,  enabled: false, note: "enable after manual verification"}
+  - {id: kitco,       tier: 3, role: gold_context, url: "https://www.kitco.com/rss/",                         poll_min: 60, enabled: false, note: "enable after manual verification"}

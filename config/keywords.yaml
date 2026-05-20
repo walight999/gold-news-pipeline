@@ -1,0 +1,40 @@
+topics:
+  inflation:
+    base_impact: 5
+    keywords: [cpi, "core cpi", pce, inflation]
+    entities:  [us, bls, fed]
+  jobs:
+    base_impact: 5
+    keywords: [nfp, nonfarm, payrolls, unemployment, "jobs report"]
+    entities:  [us, bls]
+  rate_policy:
+    base_impact: 4
+    keywords: [fed, powell, fomc, "rate cut", "higher for longer", dots]
+    entities:  [fed, ecb, boj]
+  geopolitics:
+    base_impact: 4
+    keywords: [iran, israel, hormuz, missile, war, ceasefire, tariff]
+    entities:  [mideast, us, china]
+  usd_yields:
+    base_impact: 3
+    # known under-scoring: real yield / DXY breakout impact ~4 but needs price context.
+    # Phase 3 calibrates — do not guess from keyword alone.
+    keywords: [dxy, dollar, yields, treasury, "10-year"]
+    entities:  [us]
+  gold_flow:
+    base_impact: 3
+    keywords: [gold, xau, bullion, "central bank buying"]
+    entities:  [wgc, pboc]
+
+direction_keywords:
+  # Phase 1: keyword-based only (no LLM). Expect to miss some phrasings — adjust after 1-2 weeks of run logs.
+  hawkish:  ["higher for longer", "sticky inflation", "not ready to cut", "restrictive", "restrictive stance", "hike", "inflation remains elevated", "upside risks", "no rush", "hold rates steady"]
+  dovish:   ["rate cut", "cooling inflation", "labor weakness", "slowdown", "easing", "disinflation", "soft landing", "labor market cooling", "downside risks"]
+  risk_off: ["missile", "attack", "war", "hormuz", "strike", "safe haven", "explosion", "drone", "retaliation", "sanctions", "evacuation"]
+  risk_on:  ["ceasefire", "deal", "de-escalation", "truce"]
+  # no match = neutral
+
+# Thai-name mapping for routing output (only map well-known names; otherwise omit).
+name_map:
+  powell: "พาวเวลล์"
+  trump:  "ทรัมป์"

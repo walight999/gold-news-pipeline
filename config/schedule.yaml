@@ -1,0 +1,22 @@
+digest:
+  # All times Asia/Bangkok (ICT). ±5m window around each slot triggers a digest build.
+  slots_ict: ["05:30", "13:30", "21:30"]
+  window_minutes: 5
+  max_events: 10
+
+session:
+  # Active-session gate (ICT). London open → NY close.
+  active_start_ict: "14:00"
+  active_end_ict:   "04:00"   # next-day wrap allowed
+
+rate_limit:
+  breaking_alert_window_minutes: 15
+  breaking_alert_max: 5
+
+health:
+  # Cooldown for repeating the same (source_id, warning_type) warning.
+  alert_cooldown_minutes: 60
+  validator_revalidate_hours: 24
+  tier1_no_success_minutes: 60
+  tier2_no_item_minutes: 30
+  http_consecutive_errors_threshold: 3

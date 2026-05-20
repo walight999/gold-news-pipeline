@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+.env
+.env.local
+*.log
+.pytest_cache/
+.mypy_cache/
+.DS_Store
+creds*.json
+service_account*.json
