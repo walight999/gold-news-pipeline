@@ -2,9 +2,9 @@ sources:
   # enabled: true  = path stable enough to attempt; still gated by validator on first run / after failures
   # enabled: false = candidate URL only — verify manually before flipping to true
   - {id: fed,         tier: 0, role: policy,       url: "https://www.federalreserve.gov/feeds/press_all.xml", poll_min: 15, enabled: true}
-  - {id: bls,         tier: 0, role: data_release, url: "https://www.bls.gov/feed/bls_latest.rss",            poll_min: 15, enabled: false, note: "enable after manual verification"}
-  - {id: ecb,         tier: 0, role: policy,       url: "https://www.ecb.europa.eu/rss/press.xml",            poll_min: 15, enabled: false, note: "enable after manual verification"}
-  - {id: treasury,    tier: 0, role: yields,       url: "",                                                   poll_min: 15, enabled: false, note: "find RSS endpoint, then enable"}
+  - {id: bls,         tier: 0, role: data_release, url: "https://www.bls.gov/feed/bls_latest.rss",            poll_min: 15, enabled: true,  note: "verified 2026-05-20: HTTP 200, 1 item, parses OK"}
+  - {id: ecb,         tier: 0, role: policy,       url: "https://www.ecb.europa.eu/rss/press.xml",            poll_min: 15, enabled: true,  note: "verified 2026-05-20: HTTP 200, 15 items, parses OK"}
+  - {id: treasury,    tier: 0, role: yields,       url: "",                                                   poll_min: 15, enabled: false, note: "2026-05-20: no public RSS endpoint found; treasury.gov returns 404/503, federalregister malformed XML. Phase 2: scrape or use Treasury API."}
   - {id: bbc_world,   tier: 1, role: geopolitics,  url: "https://feeds.bbci.co.uk/news/world/rss.xml",        poll_min: 15, enabled: true}
   - {id: aljazeera,   tier: 1, role: geopolitics,  url: "https://www.aljazeera.com/xml/rss/all.xml",          poll_min: 15, enabled: true}
   - {id: cnbc,        tier: 1, role: macro,        url: "https://www.cnbc.com/id/100003114/device/rss/rss.html", poll_min: 10, enabled: false, note: "verify feed id, then enable"}
