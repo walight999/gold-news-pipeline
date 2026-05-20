@@ -188,19 +188,13 @@ def _direction_chip_color(direction: str) -> tuple[str, str]:
 # ---------- breaking / alert ----------
 
 def _source_link(src_name: str, age: str, url: str | None) -> dict[str, Any]:
-    """Meta row: time (gray, non-tap) + source name (blue + underline + tap → URL).
+    """Footer meta row: source link bottom-LEFT, time bottom-RIGHT (split layout).
 
     Source name itself acts as the article link — no separate Read button.
     """
-    contents: list[dict[str, Any]] = []
-    if age:
-        contents.append({"type": "text", "text": f"🕐 {age}",
-                         "size": "xxs", "color": "#6B7280", "flex": 0})
-        contents.append({"type": "text", "text": " · ",
-                         "size": "xxs", "color": "#6B7280", "flex": 0})
     src_text: dict[str, Any] = {
         "type": "text", "text": f"📡 {src_name}" + (" ↗" if url else ""),
-        "size": "xxs", "weight": "bold", "wrap": True, "flex": 1,
+        "size": "xxs", "weight": "bold", "wrap": False, "flex": 1, "align": "start",
     }
     if url:
         src_text["color"] = "#2563EB"
@@ -208,7 +202,13 @@ def _source_link(src_name: str, age: str, url: str | None) -> dict[str, Any]:
         src_text["action"] = {"type": "uri", "label": "open", "uri": url}
     else:
         src_text["color"] = "#6B7280"
-    contents.append(src_text)
+
+    contents: list[dict[str, Any]] = [src_text]
+    if age:
+        contents.append({
+            "type": "text", "text": f"🕐 {age}",
+            "size": "xxs", "color": "#6B7280", "flex": 0, "align": "end",
+        })
     return {"type": "box", "layout": "horizontal",
             "alignItems": "center", "contents": contents}
 
@@ -221,12 +221,12 @@ def _event_bubble(label: str, color: str, ev: Event, score: float, kw_cfg: dict[
     article_url = _pick_article_url(ev.items)
     _, topic_fg = _topic_chip_color(ev.topic_bucket)
     dir_bg, dir_fg = _direction_chip_color(ev.direction_label)
-    topic_text = ev.topic_bucket.replace("_", " ").upper()
+    topic_text = ev.topic_bucket.replace("_", " ").title()
 
     body_contents: list[dict[str, Any]] = [
-        # Topic + direction row — leads the body (replaces former meta-first)
+        # Topic + direction row — Title Case sm bold, centered as a group
         {"type": "box", "layout": "horizontal", "spacing": "sm",
-         "alignItems": "center", "contents": [
+         "alignItems": "center", "justifyContent": "center", "contents": [
              {"type": "text", "text": topic_text,
               "size": "sm", "weight": "bold", "color": topic_fg, "flex": 0},
              _chip(ev.direction_label, dir_bg, dir_fg),
@@ -345,46 +345,38 @@ def digest_carousel(
 # ---------- health ----------
 
 def health_recovered_bubble(recoveries: list[tuple[str, str]]) -> dict[str, Any]:
-    """Mirror of health_bubble but with a green "recovered" header.
-    Same row format so the visual rhythm matches a warning notification."""
+    """Compact green bubble: one line per recovered feed."""
     lines: list[dict[str, Any]] = []
     for sid, wtype in recoveries[:15]:
         src = SOURCE_NAMES.get(sid, sid)
         msg = WARNING_MESSAGES.get(wtype, wtype)
         lines.append({
-            "type": "box", "layout": "vertical", "spacing": "xs", "margin": "sm",
-            "contents": [
-                {"type": "text", "text": f"📡 {src}", "size": "sm",
-                 "weight": "bold", "color": "#111827"},
-                {"type": "text", "text": f"Resolved: {msg}", "size": "xs",
-                 "color": "#4B5563", "wrap": True},
-            ],
+            "type": "text", "text": f"📡 {src} · {msg}",
+            "size": "xs", "color": "#374151", "wrap": True, "margin": "xs",
         })
     return {
         "type": "bubble", "size": "kilo",
-        "header": _header("✅ Health Recovered",
-                          f"{len(recoveries)} item(s)", "#059669"),
-        "body": {"type": "box", "layout": "vertical", "spacing": "sm",
-                 "paddingAll": "14px", "contents": lines},
+        "header": _header("✅ Recovered", str(len(recoveries)), "#059669"),
+        "body": {"type": "box", "layout": "vertical", "spacing": "xs",
+                 "paddingAll": "12px", "contents": lines},
     }
 
 
 def health_bubble(warnings: list[tuple[str, str]]) -> dict[str, Any]:
+    """Compact gray bubble: one line per warning."""
     lines: list[dict[str, Any]] = []
     for sid, wtype in warnings[:15]:
         src = SOURCE_NAMES.get(sid, sid)
         msg = WARNING_MESSAGES.get(wtype, wtype)
         lines.append({
-            "type": "box", "layout": "vertical", "spacing": "xs", "margin": "sm",
-            "contents": [
-                {"type": "text", "text": f"📡 {src}", "size": "sm", "weight": "bold", "color": "#111827"},
-                {"type": "text", "text": msg, "size": "xs", "color": "#4B5563", "wrap": True},
-            ],
+            "type": "text", "text": f"📡 {src} · {msg}",
+            "size": "xs", "color": "#374151", "wrap": True, "margin": "xs",
         })
     return {
         "type": "bubble", "size": "kilo",
-        "header": _header("⚠️ Health Check", f"{len(warnings)} warning(s)", COLOR["health"]),
-        "body": {"type": "box", "layout": "vertical", "spacing": "sm", "paddingAll": "14px", "contents": lines},
+        "header": _header("⚠️ Health Check", str(len(warnings)), COLOR["health"]),
+        "body": {"type": "box", "layout": "vertical", "spacing": "xs",
+                 "paddingAll": "12px", "contents": lines},
     }
 
 
