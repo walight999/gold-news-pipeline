@@ -43,12 +43,12 @@ SOURCE_NAMES: dict[str, str] = {
     "kitco":       "Kitco",
 }
 
-# Health warning -> Thai-friendly text.
+# Health warning -> human-readable English text.
 WARNING_MESSAGES: dict[str, str] = {
-    "http_errors_streak":          "HTTP errors 3+ ครั้งติด",
-    "tier0_event_day_no_success":  "Tier-0 fetch fail ช่วงข่าว (>15 นาที)",
-    "tier1_no_success":            "ไม่มี success fetch ใน 60+ นาที",
-    "tier2_no_item":               "ไม่มี item ใหม่ใน 30+ นาที",
+    "http_errors_streak":          "HTTP errors (3 consecutive failures)",
+    "tier0_event_day_no_success":  "Tier-0 fetch failed during event window (>15 min)",
+    "tier1_no_success":            "No successful fetch in 60+ min",
+    "tier2_no_item":               "No new items in 30+ min",
 }
 
 
@@ -154,8 +154,7 @@ def _direction_chip_color(direction: str) -> tuple[str, str]:
 # ---------- breaking / alert ----------
 
 def _event_bubble(label: str, color: str, ev: Event, score: float, kw_cfg: dict[str, Any]) -> dict[str, Any]:
-    nm = kw_cfg.get("name_map", {}) or {}
-    title = _trim(_map_name(ev.representative_title, nm), 160)
+    title = _trim(ev.representative_title, 160)
     summary = _trim(ev.representative_summary, SUMMARY_LIMIT)
     src_name = _source_label(ev.source_list)
     age = _ago_label(_earliest_ts(ev))
@@ -213,28 +212,39 @@ def alert_bubble(ev: Event, score: float, kw_cfg: dict[str, Any]) -> dict[str, A
 # ---------- digest ----------
 
 def _digest_event_row(ev: Event, score: float, kw_cfg: dict[str, Any]) -> dict[str, Any]:
-    nm = kw_cfg.get("name_map", {}) or {}
-    title = _trim(_map_name(ev.representative_title, nm), TOPIC_TITLE_LIMIT)
+    title = _trim(ev.representative_title, TOPIC_TITLE_LIMIT)
     src_name = _source_label(ev.source_list, max_n=2)
+    primary_src = SOURCE_NAMES.get(ev.source_list[0], ev.source_list[0].title()) if ev.source_list else "source"
     age = _ago_label(_earliest_ts(ev))
     url = _pick_article_url(ev.items)
 
+    contents: list[dict[str, Any]] = [
+        {"type": "box", "layout": "horizontal", "contents": [
+            {"type": "text", "text": f"{score:.1f}", "size": "sm", "weight": "bold",
+             "color": "#111827", "flex": 0},
+            {"type": "text", "text": title, "size": "sm", "wrap": True,
+             "color": "#111827", "margin": "md", "flex": 1, "weight": "bold"},
+        ]},
+        {"type": "text",
+         "text": f"📡 {src_name}  •  🕐 {age}".strip("  • "),
+         "size": "xxs", "color": "#6B7280"},
+    ]
+    if url:
+        # Explicit link button so tappability is obvious.
+        contents.append({
+            "type": "button",
+            "style": "link",
+            "height": "sm",
+            "action": {"type": "uri",
+                       "label": f"↗ Read at {primary_src}"[:40],
+                       "uri": url},
+        })
     row: dict[str, Any] = {
         "type": "box", "layout": "vertical", "spacing": "xs",
         "paddingAll": "8px", "cornerRadius": "6px",
         "backgroundColor": "#F9FAFB",
-        "contents": [
-            # title row with score + tap-arrow
-            {"type": "box", "layout": "horizontal", "contents": [
-                {"type": "text", "text": f"{score:.1f}", "size": "sm", "weight": "bold", "color": "#111827", "flex": 0},
-                {"type": "text", "text": title, "size": "sm", "wrap": True, "color": "#111827", "margin": "md", "flex": 1, "weight": "bold"},
-                {"type": "text", "text": "›" if url else "", "size": "md", "color": "#9CA3AF", "align": "end", "flex": 0},
-            ]},
-            {"type": "text", "text": f"📡 {src_name}  •  🕐 {age}".strip("  • "), "size": "xxs", "color": "#6B7280"},
-        ],
+        "contents": contents,
     }
-    if url:
-        row["action"] = {"type": "uri", "label": "open", "uri": url}
     return row
 
 

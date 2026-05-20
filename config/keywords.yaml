@@ -34,7 +34,6 @@ direction_keywords:
   risk_on:  ["ceasefire", "deal", "de-escalation", "truce"]
   # no match = neutral
 
-# Thai-name mapping for routing output (only map well-known names; otherwise omit).
-name_map:
-  powell: "พาวเวลล์"
-  trump:  "ทรัมป์"
+# Thai-name mapping disabled (user prefers pure English output).
+# Re-enable by populating this map; line_flex no longer reads it.
+name_map: {}
