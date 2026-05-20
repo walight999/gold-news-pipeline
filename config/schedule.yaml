@@ -21,6 +21,12 @@ routing:
   # run-log shows the noise floor justifies tightening.
   breaking_require_confirmation: false
 
+retention:
+  # Daily `--mode maintain` purges rows older than these thresholds.
+  # calibration_log is never purged (Phase 3 backfills xau_return_* there).
+  event_state_days: 7
+  sent_log_days:    30
+
 health:
   # Cooldown for repeating the same (source_id, warning_type) warning.
   alert_cooldown_minutes: 60

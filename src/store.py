@@ -145,6 +145,32 @@ class Store:
 
     # ---------- batch flush ----------
 
+    def purge_older_than(self, tab: str, days: int, ts_col: str = "updated_at") -> int:
+        """Drop rows from `tab` whose `ts_col` is older than `days` days.
+        Returns the number of rows removed. Rows with missing/unparseable
+        timestamps are kept (safe default — never delete on uncertainty)."""
+        from datetime import timedelta
+        from .utils_time import now_utc, parse_iso
+
+        if tab not in self.data:
+            return 0
+        cutoff = now_utc() - timedelta(days=days)
+        kept: dict[str, dict[str, Any]] = {}
+        removed = 0
+        for rk, row in self.data[tab].items():
+            ts = parse_iso(row.get(ts_col))
+            if ts is None or ts >= cutoff:
+                kept[rk] = row
+            else:
+                removed += 1
+        if removed:
+            self.data[tab] = kept
+            # flush() rewrites the whole tab if its dirty set is non-empty;
+            # add a sentinel so the trimmed sheet gets written even when
+            # no other upserts happened this run.
+            self.dirty.setdefault(tab, set()).add("__purge__")
+        return removed
+
     def flush(self) -> None:
         """Write back only dirty rows. One batch write per tab."""
         if not self._sh:

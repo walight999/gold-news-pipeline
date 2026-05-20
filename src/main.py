@@ -6,6 +6,7 @@ Modes:
   digest            — Build a digest if now_ict ∈ ±5m of a slot. Idempotent.
   calendar_daily    — Push today's economic calendar (06:30 ICT). Idempotent.
   calendar_check    — Check for events releasing in [15, 25) min. Push T-15 alerts.
+  maintain          — Purge stale rows from event_state + sent_log. Daily.
 """
 from __future__ import annotations
 
@@ -219,6 +220,34 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
 
 # --------------- Event-mode loop ---------------
 
+async def run_maintain() -> int:
+    """Purge stale rows so the Sheet doesn't grow unbounded.
+
+    Retention defaults:
+        event_state:     7 days   (keep last week for context)
+        sent_log:        30 days  (keep idempotency window long enough that
+                                   the same dispatch can't slip past twice)
+        calibration_log: kept forever — Phase 3 will backfill xau_return_* here.
+        source_state, health_log: kept (small + per-source, not row-per-event).
+    """
+    _, _, sched_cfg = _load_configs()
+    retention = sched_cfg.get("retention", {}) or {}
+    days_event_state = int(retention.get("event_state_days", 7))
+    days_sent_log    = int(retention.get("sent_log_days", 30))
+
+    store = Store.from_env()
+    store.connect()
+    store.load_all()
+
+    removed_es = store.purge_older_than("event_state", days_event_state, ts_col="last_seen_ts")
+    removed_sl = store.purge_older_than("sent_log",    days_sent_log,    ts_col="sent_ts")
+    store.flush()
+
+    log.info("maintain done: event_state purged=%d, sent_log purged=%d, api_calls=%d",
+             removed_es, removed_sl, store.api_calls)
+    return 0
+
+
 async def run_calendar_daily() -> int:
     """Push today's economic calendar to LINE_NEWS_TARGET. Idempotent per ICT day."""
     _, _, sched_cfg = _load_configs()
@@ -398,7 +427,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     p = argparse.ArgumentParser()
     p.add_argument("--mode", choices=(
-        "cron", "event", "digest", "calendar_daily", "calendar_check",
+        "cron", "event", "digest", "calendar_daily", "calendar_check", "maintain",
     ), default="cron")
     p.add_argument("--event-duration-min", type=int, default=30)
     p.add_argument("--event-sleep-sec", type=int, default=60)
@@ -409,6 +438,8 @@ def main(argv: list[str] | None = None) -> int:
         return asyncio.run(run_calendar_daily())
     if args.mode == "calendar_check":
         return asyncio.run(run_calendar_check())
+    if args.mode == "maintain":
+        return asyncio.run(run_maintain())
     return asyncio.run(run_once(mode=args.mode))
 
 

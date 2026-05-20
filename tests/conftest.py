@@ -47,6 +47,23 @@ class FakeStore:
     def flush(self):
         pass
 
+    def purge_older_than(self, tab, days, ts_col="updated_at"):
+        from datetime import timedelta
+        from src.utils_time import now_utc, parse_iso
+        cutoff = now_utc() - timedelta(days=days)
+        kept = {}
+        removed = 0
+        for rk, row in self.data.get(tab, {}).items():
+            ts = parse_iso(row.get(ts_col))
+            if ts is None or ts >= cutoff:
+                kept[rk] = row
+            else:
+                removed += 1
+        if removed:
+            self.data[tab] = kept
+            self.dirty.setdefault(tab, set()).add("__purge__")
+        return removed
+
 
 @pytest.fixture
 def store():

@@ -7,8 +7,8 @@ sources:
   - {id: treasury,    tier: 0, role: yields,       url: "",                                                   poll_min: 15, enabled: false, note: "2026-05-20: no public RSS endpoint found; treasury.gov returns 404/503, federalregister malformed XML. Phase 2: scrape or use Treasury API."}
   - {id: bbc_world,   tier: 1, role: geopolitics,  url: "https://feeds.bbci.co.uk/news/world/rss.xml",        poll_min: 15, enabled: true}
   - {id: aljazeera,   tier: 1, role: geopolitics,  url: "https://www.aljazeera.com/xml/rss/all.xml",          poll_min: 15, enabled: true}
-  - {id: cnbc,        tier: 1, role: macro,        url: "https://www.cnbc.com/id/100003114/device/rss/rss.html", poll_min: 10, enabled: false, note: "verify feed id, then enable"}
+  - {id: cnbc,        tier: 1, role: macro,        url: "https://www.cnbc.com/id/100003114/device/rss/rss.html", poll_min: 10, enabled: true,  note: "verified 2026-05-20: HTTP 200, 30 items, fresh within minutes"}
   - {id: marketwatch, tier: 1, role: macro,        url: "https://feeds.marketwatch.com/marketwatch/topstories/", poll_min: 10, enabled: true}
   - {id: forexlive,   tier: 2, role: trader_macro, url: "https://www.forexlive.com/feed/",                    poll_min: 5,  enabled: true}
-  - {id: fxstreet,    tier: 2, role: gold_bias,    url: "https://www.fxstreet.com/rss",                       poll_min: 5,  enabled: false, note: "enable after manual verification"}
-  - {id: kitco,       tier: 3, role: gold_context, url: "https://www.kitco.com/rss/",                         poll_min: 60, enabled: false, note: "enable after manual verification"}
+  - {id: fxstreet,    tier: 2, role: gold_bias,    url: "https://www.fxstreet.com/rss",                       poll_min: 5,  enabled: true,  note: "verified 2026-05-20: HTTP 200, 30 items, fresh within minutes"}
+  - {id: kitco,       tier: 3, role: gold_context, url: "https://www.kitco.com/rss/",                         poll_min: 60, enabled: false, note: "2026-05-20: HTTP 404 — Kitco discontinued free RSS. Skip until paid feed or scraping path."}
