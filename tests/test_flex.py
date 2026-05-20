@@ -38,14 +38,15 @@ def test_breaking_bubble_shape(kw_config):
     assert b["type"] == "bubble"
     assert "header" in b and "body" in b
     assert b["header"]["backgroundColor"] == "#DC2626"
-    # body must have a title + summary + chip row + source line
+    # body must include meta + title + tags + read-link
     body_contents = b["body"]["contents"]
     assert len(body_contents) >= 3
-    # footer button must have URL
-    assert "footer" in b
-    btn = b["footer"]["contents"][0]
-    assert btn["action"]["type"] == "uri"
-    assert btn["action"]["uri"].startswith("https://")
+    # read-link is now an inline body text, not a footer button
+    read_links = [c for c in body_contents
+                  if c.get("type") == "text" and "Read at" in c.get("text", "")]
+    assert read_links, "expected an inline 'Read at <Source>' link"
+    assert read_links[0]["action"]["type"] == "uri"
+    assert read_links[0]["action"]["uri"].startswith("https://")
 
 
 def test_alert_bubble_shape(kw_config):
@@ -55,28 +56,32 @@ def test_alert_bubble_shape(kw_config):
     assert b["header"]["backgroundColor"] == "#D97706"
 
 
-def test_digest_carousel_groups_by_topic(kw_config):
+def test_digest_single_bubble_groups_by_topic(kw_config):
     evs = [
         _ev("inflation",   "hawkish", ["forexlive"]),
         _ev("inflation",   "neutral", ["marketwatch"]),
         _ev("geopolitics", "risk_off", ["bbc_world"]),
     ]
-    # mutate event_ids so they're unique enough for scores map
     for i, ev in enumerate(evs):
         ev.event_id = f"e{i}"
     scores = {ev.event_id: 3.0 + i * 0.1 for i, ev in enumerate(evs)}
-    c = digest_carousel(evs, scores, "13:30", kw_config)
-    assert c is not None
-    assert c["type"] == "carousel"
-    # 2 unique topics -> 2 bubbles
-    assert len(c["contents"]) == 2
-    for bubble in c["contents"]:
-        assert bubble["type"] == "bubble"
-        assert bubble["header"]["backgroundColor"] == "#2563EB"
+    b = digest_carousel(evs, scores, "13:30", kw_config)
+    assert b is not None
+    # Single long bubble, not carousel
+    assert b["type"] == "bubble"
+    assert b["size"] == "giga"
+    assert b["header"]["backgroundColor"] == "#2563EB"
+    # Body should contain heading + rows for 2 distinct topics
+    body_contents = b["body"]["contents"]
+    headings = [c for c in body_contents
+                if c.get("type") == "box" and c.get("layout") == "horizontal"
+                and any(x.get("text", "").upper() in {"INFLATION", "GEOPOLITICS"}
+                        for x in c.get("contents", []))]
+    assert len(headings) == 2
 
 
-def test_digest_carousel_caps_bubbles(kw_config):
-    # 7 different topics -> capped at CARRIER_MAX_BUBBLES (5)
+def test_digest_single_bubble_handles_many_topics(kw_config):
+    # 7 topics — single bubble shows them all (no carousel cap)
     topics = ["inflation", "jobs", "rate_policy", "geopolitics", "usd_yields", "gold_flow", "other"]
     evs = []
     for i, t in enumerate(topics):
@@ -84,9 +89,9 @@ def test_digest_carousel_caps_bubbles(kw_config):
         ev.event_id = f"e{i}"
         evs.append(ev)
     scores = {ev.event_id: 3.0 for ev in evs}
-    c = digest_carousel(evs, scores, "21:30", kw_config)
-    assert c is not None
-    assert len(c["contents"]) <= 5
+    b = digest_carousel(evs, scores, "21:30", kw_config)
+    assert b is not None
+    assert b["type"] == "bubble"
 
 
 def test_health_bubble_shape():

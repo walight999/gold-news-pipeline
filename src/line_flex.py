@@ -57,6 +57,22 @@ def _trim(s: str, n: int) -> str:
     return s if len(s) <= n else s[: n - 1].rstrip() + "…"
 
 
+def score_to_impact(score: float) -> tuple[str, str, str]:
+    """Map raw score → (label, bg_color, fg_color).
+
+    Phase 1 routing thresholds:
+        HIGH   >= 4.0   (most BREAKING)
+        MEDIUM 3.0-3.9  (ALERT + top DIGEST)
+        LOW    < 3.0    (DIGEST)
+    Raw score is still persisted to event_state + calibration_log for tuning.
+    """
+    if score >= 4.0:
+        return ("HIGH", "#DC2626", "#FFFFFF")
+    if score >= 3.0:
+        return ("MEDIUM", "#D97706", "#FFFFFF")
+    return ("LOW", "#6B7280", "#FFFFFF")
+
+
 def _source_label(source_ids: list[str], max_n: int = 3) -> str:
     names = [SOURCE_NAMES.get(s, s.replace("_", " ").title()) for s in source_ids[:max_n]]
     extra = len(source_ids) - max_n
@@ -153,52 +169,58 @@ def _direction_chip_color(direction: str) -> tuple[str, str]:
 
 # ---------- breaking / alert ----------
 
+def _read_link(url: str, src_name: str, color: str = "#2563EB") -> dict[str, Any]:
+    """Compact, right-aligned link text — replaces full-width button."""
+    return {
+        "type": "text",
+        "text": f"Read at {src_name} ↗",
+        "action": {"type": "uri", "label": "open", "uri": url},
+        "size": "xs", "color": color, "weight": "bold",
+        "decoration": "underline", "align": "end",
+    }
+
+
+def _inline_tags(topic: str, direction: str) -> dict[str, Any]:
+    """Small gray dotted tags appended below title — minimal visual weight."""
+    return {
+        "type": "text",
+        "text": f"{topic}  ·  {direction}",
+        "size": "xs", "color": "#9CA3AF",
+    }
+
+
 def _event_bubble(label: str, color: str, ev: Event, score: float, kw_cfg: dict[str, Any]) -> dict[str, Any]:
-    title = _trim(ev.representative_title, 160)
+    title = _trim(ev.representative_title, 180)
     summary = _trim(ev.representative_summary, SUMMARY_LIMIT)
     src_name = _source_label(ev.source_list)
     age = _ago_label(_earliest_ts(ev))
-    topic_bg, topic_fg = _topic_chip_color(ev.topic_bucket)
-    dir_bg, dir_fg = _direction_chip_color(ev.direction_label)
     article_url = _pick_article_url(ev.items)
     primary_source_name = SOURCE_NAMES.get(ev.source_list[0], ev.source_list[0].title()) if ev.source_list else ""
 
     body_contents: list[dict[str, Any]] = [
-        # Time + source meta row (top, small)
-        {"type": "box", "layout": "horizontal", "contents": [
-            {"type": "text", "text": f"🕐 {age}" if age else "", "size": "xs", "color": "#6B7280", "flex": 1},
-            {"type": "text", "text": f"📡 {src_name}", "size": "xs", "color": "#6B7280", "flex": 2, "align": "end", "wrap": True},
-        ]},
-        # Title - big and bold
-        {"type": "text", "text": title, "weight": "bold", "size": "lg", "wrap": True, "color": "#111827", "margin": "md"},
+        # Meta row: time + source (small gray)
+        {"type": "text",
+         "text": f"🕐 {age}  ·  📡 {src_name}".strip(" · "),
+         "size": "xs", "color": "#6B7280", "wrap": True},
+        # Big bold title
+        {"type": "text", "text": title, "weight": "bold", "size": "lg",
+         "wrap": True, "color": "#111827", "margin": "md"},
+        # Inline tags right below title
+        _inline_tags(ev.topic_bucket, ev.direction_label),
     ]
     if summary:
-        body_contents.append({"type": "text", "text": summary, "size": "sm", "wrap": True, "color": "#1F2937", "margin": "md"})
-    # chips: topic + direction (drop entity - low info)
-    body_contents.append({
-        "type": "box", "layout": "horizontal", "spacing": "sm", "margin": "lg",
-        "contents": [
-            _chip(ev.topic_bucket, topic_bg, topic_fg),
-            _chip(ev.direction_label, dir_bg, dir_fg),
-        ],
-    })
-
-    bubble: dict[str, Any] = {
-        "type": "bubble", "size": "kilo",
-        "header": _header(label, f"score {score:.1f}", color),
-        "body": {"type": "box", "layout": "vertical", "spacing": "md", "contents": body_contents, "paddingAll": "16px"},
-    }
+        body_contents.append({"type": "text", "text": summary, "size": "sm",
+                              "wrap": True, "color": "#1F2937", "margin": "md"})
     if article_url:
-        bubble["footer"] = {
-            "type": "box", "layout": "vertical", "paddingAll": "10px",
-            "contents": [{
-                "type": "button", "style": "primary", "color": color, "height": "sm",
-                "action": {"type": "uri",
-                           "label": f"Read at {primary_source_name} →"[:40],
-                           "uri": article_url},
-            }],
-        }
-    return bubble
+        body_contents.append(_read_link(article_url, primary_source_name, color))
+
+    impact_label, _, _ = score_to_impact(score)
+    return {
+        "type": "bubble", "size": "kilo",
+        "header": _header(label, f"{impact_label} IMPACT", color),
+        "body": {"type": "box", "layout": "vertical", "spacing": "sm",
+                 "contents": body_contents, "paddingAll": "16px"},
+    }
 
 
 def breaking_bubble(ev: Event, score: float, kw_cfg: dict[str, Any]) -> dict[str, Any]:
@@ -212,40 +234,42 @@ def alert_bubble(ev: Event, score: float, kw_cfg: dict[str, Any]) -> dict[str, A
 # ---------- digest ----------
 
 def _digest_event_row(ev: Event, score: float, kw_cfg: dict[str, Any]) -> dict[str, Any]:
+    """Compact event row for the single long-bubble digest.
+
+    Layout:
+      [HIGH] Title in bold (wraps)
+             ForexLive · 12m ago                            Read ↗
+    """
     title = _trim(ev.representative_title, TOPIC_TITLE_LIMIT)
     src_name = _source_label(ev.source_list, max_n=2)
     primary_src = SOURCE_NAMES.get(ev.source_list[0], ev.source_list[0].title()) if ev.source_list else "source"
     age = _ago_label(_earliest_ts(ev))
     url = _pick_article_url(ev.items)
+    impact_label, impact_bg, impact_fg = score_to_impact(score)
 
-    contents: list[dict[str, Any]] = [
-        {"type": "box", "layout": "horizontal", "contents": [
-            {"type": "text", "text": f"{score:.1f}", "size": "sm", "weight": "bold",
-             "color": "#111827", "flex": 0},
-            {"type": "text", "text": title, "size": "sm", "wrap": True,
-             "color": "#111827", "margin": "md", "flex": 1, "weight": "bold"},
-        ]},
+    meta_row_contents: list[dict[str, Any]] = [
         {"type": "text",
-         "text": f"📡 {src_name}  •  🕐 {age}".strip("  • "),
-         "size": "xxs", "color": "#6B7280"},
+         "text": f"📡 {src_name}  ·  🕐 {age}".strip("  · "),
+         "size": "xxs", "color": "#6B7280", "flex": 1},
     ]
     if url:
-        # Explicit link button so tappability is obvious.
-        contents.append({
-            "type": "button",
-            "style": "link",
-            "height": "sm",
-            "action": {"type": "uri",
-                       "label": f"↗ Read at {primary_src}"[:40],
-                       "uri": url},
-        })
-    row: dict[str, Any] = {
-        "type": "box", "layout": "vertical", "spacing": "xs",
-        "paddingAll": "8px", "cornerRadius": "6px",
-        "backgroundColor": "#F9FAFB",
-        "contents": contents,
+        meta_row_contents.append(_read_link(url, primary_src))
+
+    return {
+        "type": "box", "layout": "vertical", "spacing": "xs", "margin": "md",
+        "contents": [
+            # Title row: impact pill + bold title
+            {"type": "box", "layout": "horizontal", "spacing": "sm",
+             "alignItems": "center", "contents": [
+                 _chip(impact_label, impact_bg, impact_fg),
+                 {"type": "text", "text": title, "size": "sm",
+                  "wrap": True, "color": "#111827", "flex": 1, "weight": "bold"},
+            ]},
+            # Meta + read-link row
+            {"type": "box", "layout": "horizontal",
+             "alignItems": "center", "contents": meta_row_contents},
+        ],
     }
-    return row
 
 
 def digest_carousel(
@@ -254,7 +278,11 @@ def digest_carousel(
     slot: str,
     kw_cfg: dict[str, Any],
 ) -> dict[str, Any] | None:
-    """Group events by topic_bucket, one bubble per topic. Per-row taps open URL."""
+    """Single LONG bubble: header then per-topic sections (no carousel).
+
+    Name retained for backward compat with main.py — returns a bubble dict,
+    LINE renders the same regardless of bubble vs carousel at this level.
+    """
     if not events:
         return None
     groups: dict[str, list[Event]] = {}
@@ -263,28 +291,35 @@ def digest_carousel(
     sorted_topics = sorted(
         groups.keys(),
         key=lambda t: -max(scores.get(e.event_id, 0) for e in groups[t]),
-    )[:CARRIER_MAX_BUBBLES]
+    )
 
-    bubbles: list[dict[str, Any]] = []
-    for topic in sorted_topics:
+    total_events = 0
+    sections: list[dict[str, Any]] = []
+    for i, topic in enumerate(sorted_topics):
         evs = sorted(groups[topic], key=lambda e: -scores.get(e.event_id, 0))[:5]
-        topic_bg, topic_fg = _topic_chip_color(topic)
-        body_rows: list[dict[str, Any]] = [
-            {"type": "box", "layout": "horizontal", "alignItems": "center", "contents": [
-                _chip(topic, topic_bg, topic_fg),
-                {"type": "text", "text": f"{len(evs)} item(s)", "size": "xs", "color": "#6B7280",
-                 "align": "end", "gravity": "center"},
-            ]},
-            {"type": "separator", "margin": "md"},
-        ]
-        for ev in evs:
-            body_rows.append(_digest_event_row(ev, scores.get(ev.event_id, 0), kw_cfg))
-        bubbles.append({
-            "type": "bubble", "size": "kilo",
-            "header": _header(f"📰 {slot} ICT", f"{len(evs)} in {topic}", COLOR["digest"]),
-            "body": {"type": "box", "layout": "vertical", "contents": body_rows, "paddingAll": "14px", "spacing": "sm"},
+        total_events += len(evs)
+        if i > 0:
+            sections.append({"type": "separator", "margin": "lg"})
+        # Topic section heading
+        sections.append({
+            "type": "box", "layout": "horizontal", "margin": "lg",
+            "alignItems": "center",
+            "contents": [
+                {"type": "text", "text": topic.upper(), "size": "sm",
+                 "color": "#374151", "weight": "bold", "flex": 1},
+                {"type": "text", "text": f"{len(evs)} item(s)", "size": "xs",
+                 "color": "#9CA3AF", "align": "end", "flex": 0},
+            ],
         })
-    return {"type": "carousel", "contents": bubbles}
+        for ev in evs:
+            sections.append(_digest_event_row(ev, scores.get(ev.event_id, 0), kw_cfg))
+
+    return {
+        "type": "bubble", "size": "giga",
+        "header": _header(f"📰 {slot} ICT", f"{total_events} event(s)", COLOR["digest"]),
+        "body": {"type": "box", "layout": "vertical", "spacing": "sm",
+                 "contents": sections, "paddingAll": "16px"},
+    }
 
 
 # ---------- health ----------
