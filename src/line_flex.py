@@ -187,15 +187,30 @@ def _direction_chip_color(direction: str) -> tuple[str, str]:
 
 # ---------- breaking / alert ----------
 
-def _read_link(url: str, src_name: str, color: str = "#2563EB") -> dict[str, Any]:
-    """Compact, right-aligned link text — replaces full-width button."""
-    return {
-        "type": "text",
-        "text": f"Read at {src_name} ↗",
-        "action": {"type": "uri", "label": "open", "uri": url},
-        "size": "xs", "color": color, "weight": "bold",
-        "decoration": "underline", "align": "end",
+def _source_link(src_name: str, age: str, url: str | None) -> dict[str, Any]:
+    """Meta row: time (gray, non-tap) + source name (blue + underline + tap → URL).
+
+    Source name itself acts as the article link — no separate Read button.
+    """
+    contents: list[dict[str, Any]] = []
+    if age:
+        contents.append({"type": "text", "text": f"🕐 {age}",
+                         "size": "xxs", "color": "#6B7280", "flex": 0})
+        contents.append({"type": "text", "text": " · ",
+                         "size": "xxs", "color": "#6B7280", "flex": 0})
+    src_text: dict[str, Any] = {
+        "type": "text", "text": f"📡 {src_name}" + (" ↗" if url else ""),
+        "size": "xxs", "weight": "bold", "wrap": True, "flex": 1,
     }
+    if url:
+        src_text["color"] = "#2563EB"
+        src_text["decoration"] = "underline"
+        src_text["action"] = {"type": "uri", "label": "open", "uri": url}
+    else:
+        src_text["color"] = "#6B7280"
+    contents.append(src_text)
+    return {"type": "box", "layout": "horizontal",
+            "alignItems": "center", "contents": contents}
 
 
 def _inline_tags(topic: str, direction: str) -> dict[str, Any]:
@@ -216,10 +231,8 @@ def _event_bubble(label: str, color: str, ev: Event, score: float, kw_cfg: dict[
     primary_source_name = SOURCE_NAMES.get(ev.source_list[0], ev.source_list[0].title()) if ev.source_list else ""
 
     body_contents: list[dict[str, Any]] = [
-        # Meta row: time + source (small gray)
-        {"type": "text",
-         "text": f"🕐 {age}  ·  📡 {src_name}".strip(" · "),
-         "size": "xs", "color": "#6B7280", "wrap": True},
+        # Meta row: time (gray) + clickable source link (blue + underline)
+        _source_link(src_name, age, article_url),
         # Big bold title
         {"type": "text", "text": title, "weight": "bold", "size": "lg",
          "wrap": True, "color": "#111827", "margin": "md"},
@@ -229,8 +242,6 @@ def _event_bubble(label: str, color: str, ev: Event, score: float, kw_cfg: dict[
     if summary:
         body_contents.append({"type": "text", "text": summary, "size": "sm",
                               "wrap": True, "color": "#1F2937", "margin": "md"})
-    if article_url:
-        body_contents.append(_read_link(article_url, primary_source_name, color))
 
     impact_label, _, _ = score_to_impact(score)
     return {
@@ -264,27 +275,18 @@ def _digest_event_row(ev: Event, score: float, kw_cfg: dict[str, Any]) -> dict[s
     age = _ago_label(_earliest_ts(ev))
     url = _pick_article_url(ev.items)
 
-    meta_row_contents: list[dict[str, Any]] = [
-        {"type": "text",
-         "text": f"📡 {src_name}  ·  🕐 {age}".strip("  · "),
-         "size": "xxs", "color": "#6B7280", "flex": 1},
-    ]
-    if url:
-        meta_row_contents.append(_read_link(url, primary_src))
-
     return {
         "type": "box", "layout": "vertical", "spacing": "xs", "margin": "md",
         "contents": [
-            # Title row: small H/M/L pill + bold title
+            # Title row: fixed-width impact pill + bold title
             {"type": "box", "layout": "horizontal", "spacing": "sm",
              "alignItems": "center", "contents": [
                  _impact_pill_small(score),
                  {"type": "text", "text": title, "size": "sm",
                   "wrap": True, "color": "#111827", "flex": 1, "weight": "bold"},
             ]},
-            # Meta + read-link row
-            {"type": "box", "layout": "horizontal",
-             "alignItems": "center", "contents": meta_row_contents},
+            # Meta row: time + source-as-link (source name itself opens URL)
+            _source_link(src_name, age, url),
         ],
     }
 
@@ -333,7 +335,9 @@ def digest_carousel(
 
     return {
         "type": "bubble", "size": "giga",
-        "header": _header(f"📰 {slot} ICT", f"{total_events} event(s)", COLOR["digest"]),
+        "header": _header("📰 Latest News Update",
+                          f"{slot} ICT · {total_events} event(s)",
+                          COLOR["digest"]),
         "body": {"type": "box", "layout": "vertical", "spacing": "sm",
                  "contents": sections, "paddingAll": "16px"},
     }

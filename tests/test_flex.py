@@ -38,15 +38,16 @@ def test_breaking_bubble_shape(kw_config):
     assert b["type"] == "bubble"
     assert "header" in b and "body" in b
     assert b["header"]["backgroundColor"] == "#DC2626"
-    # body must include meta + title + tags + read-link
     body_contents = b["body"]["contents"]
     assert len(body_contents) >= 3
-    # read-link is now an inline body text, not a footer button
-    read_links = [c for c in body_contents
-                  if c.get("type") == "text" and "Read at" in c.get("text", "")]
-    assert read_links, "expected an inline 'Read at <Source>' link"
-    assert read_links[0]["action"]["type"] == "uri"
-    assert read_links[0]["action"]["uri"].startswith("https://")
+    # First component is the meta row containing a clickable source text
+    meta_row = body_contents[0]
+    assert meta_row["type"] == "box" and meta_row["layout"] == "horizontal"
+    src_link = next((c for c in meta_row["contents"]
+                     if c.get("type") == "text" and "📡" in c.get("text", "")), None)
+    assert src_link is not None, "expected source name in meta row"
+    assert src_link["action"]["type"] == "uri"
+    assert src_link["action"]["uri"].startswith("https://")
 
 
 def test_alert_bubble_shape(kw_config):
