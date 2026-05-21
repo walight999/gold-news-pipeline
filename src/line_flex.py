@@ -209,7 +209,7 @@ def _source_link(src_name: str, age: str, url: str | None) -> dict[str, Any]:
     Source name itself acts as the article link — no separate Read button.
     """
     src_text: dict[str, Any] = {
-        "type": "text", "text": f"📡 {src_name}" + (" ↗" if url else ""),
+        "type": "text", "text": f"{src_name}" + (" ↗" if url else ""),
         "size": "xxs", "weight": "bold", "wrap": False, "flex": 1, "align": "start",
     }
     if url:
@@ -222,16 +222,24 @@ def _source_link(src_name: str, age: str, url: str | None) -> dict[str, Any]:
     contents: list[dict[str, Any]] = [src_text]
     if age:
         contents.append({
-            "type": "text", "text": f"🕐 {age}",
+            "type": "text", "text": age,
             "size": "xxs", "color": "#6B7280", "flex": 0, "align": "end",
         })
     return {"type": "box", "layout": "horizontal",
             "alignItems": "center", "contents": contents}
 
 
-def _event_bubble(label: str, color: str, ev: Event, score: float, kw_cfg: dict[str, Any]) -> dict[str, Any]:
-    title = _trim(ev.representative_title, 200)
-    summary = _trim(ev.representative_summary, SUMMARY_LIMIT)
+def _event_bubble(label: str, color: str, ev: Event, score: float, kw_cfg: dict[str, Any],
+                  title_th: str | None = None,
+                  summary_th: str | None = None) -> dict[str, Any]:
+    """Breaking / Alert body. Renders the Thai title + summary inline when
+    provided so the reader doesn't have to click through to understand
+    the story — same UX as the digest. English fallback on translation
+    failure."""
+    en_title = _trim(ev.representative_title, 200)
+    en_summary = _trim(ev.representative_summary, SUMMARY_LIMIT)
+    display_title = (title_th.strip() if title_th else en_title)
+    display_summary = (summary_th.strip() if summary_th else en_summary)
     src_name = _source_label(ev.source_list)
     age = _ago_label(_earliest_ts(ev))
     article_url = _pick_article_url(ev.items)
@@ -248,11 +256,11 @@ def _event_bubble(label: str, color: str, ev: Event, score: float, kw_cfg: dict[
              _chip(ev.direction_label, dir_bg, dir_fg),
         ]},
         # Title — only one size larger than the summary, bold
-        {"type": "text", "text": title, "weight": "bold", "size": "md",
+        {"type": "text", "text": display_title, "weight": "bold", "size": "md",
          "wrap": True, "color": "#111827", "margin": "md"},
     ]
-    if summary:
-        body_contents.append({"type": "text", "text": summary, "size": "sm",
+    if display_summary:
+        body_contents.append({"type": "text", "text": display_summary, "size": "sm",
                               "wrap": True, "color": "#1F2937", "margin": "md"})
     # Footer: time + source link (small, last) — separator gives visual gap
     body_contents.append({"type": "separator", "margin": "lg"})
@@ -267,12 +275,18 @@ def _event_bubble(label: str, color: str, ev: Event, score: float, kw_cfg: dict[
     }
 
 
-def breaking_bubble(ev: Event, score: float, kw_cfg: dict[str, Any]) -> dict[str, Any]:
-    return _event_bubble("⚡ Breaking", COLOR["breaking"], ev, score, kw_cfg)
+def breaking_bubble(ev: Event, score: float, kw_cfg: dict[str, Any],
+                    title_th: str | None = None,
+                    summary_th: str | None = None) -> dict[str, Any]:
+    return _event_bubble("⚡ Breaking", COLOR["breaking"], ev, score, kw_cfg,
+                          title_th=title_th, summary_th=summary_th)
 
 
-def alert_bubble(ev: Event, score: float, kw_cfg: dict[str, Any]) -> dict[str, Any]:
-    return _event_bubble("🔔 Alert", COLOR["alert"], ev, score, kw_cfg)
+def alert_bubble(ev: Event, score: float, kw_cfg: dict[str, Any],
+                 title_th: str | None = None,
+                 summary_th: str | None = None) -> dict[str, Any]:
+    return _event_bubble("🔔 Alert", COLOR["alert"], ev, score, kw_cfg,
+                          title_th=title_th, summary_th=summary_th)
 
 
 # ---------- digest ----------

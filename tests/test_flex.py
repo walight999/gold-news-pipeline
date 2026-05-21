@@ -40,18 +40,22 @@ def test_breaking_bubble_shape(kw_config):
     assert b["header"]["backgroundColor"] == "#DC2626"
     body_contents = b["body"]["contents"]
     assert len(body_contents) >= 3
-    # Source link is anywhere in body — find any horizontal box containing a
-    # clickable source text (📡 + uri action).
+    # Source link is anywhere in body — find any text component that's
+    # clickable (has uri action). Emoji prefix was removed, so we just look
+    # for the uri action.
     src_link = None
+    def _walk(node):
+        nonlocal src_link
+        if src_link is not None:
+            return
+        if isinstance(node, dict):
+            if node.get("type") == "text" and node.get("action", {}).get("type") == "uri":
+                src_link = node
+                return
+            for c in node.get("contents", []) or []:
+                _walk(c)
     for comp in body_contents:
-        if comp.get("type") != "box" or comp.get("layout") != "horizontal":
-            continue
-        for c in comp.get("contents", []):
-            if c.get("type") == "text" and "📡" in c.get("text", "") and c.get("action", {}).get("type") == "uri":
-                src_link = c
-                break
-        if src_link:
-            break
+        _walk(comp)
     assert src_link is not None, "expected clickable source link in body"
     assert src_link["action"]["uri"].startswith("https://")
 

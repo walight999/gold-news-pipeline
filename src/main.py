@@ -165,11 +165,18 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
             existing = store.get("sent_log", (ev.event_id, d.route.value))
             if existing:
                 continue
+            # Translate title + summary to Thai inline so the bubble carries
+            # full context without the user clicking through. Falls back to
+            # English if Google Translate hiccups.
+            title_th   = translator.to_thai(ev.representative_title, 200)
+            summary_th = translator.to_thai(ev.representative_summary, 600)
             if d.route == Route.BREAKING:
-                bubble = breaking_bubble(ev, d.score, kw_cfg)
+                bubble = breaking_bubble(ev, d.score, kw_cfg,
+                                          title_th=title_th, summary_th=summary_th)
                 alt = alt_text_for_event("⚡ BREAKING", ev, d.score)
             else:
-                bubble = alert_bubble(ev, d.score, kw_cfg)
+                bubble = alert_bubble(ev, d.score, kw_cfg,
+                                       title_th=title_th, summary_th=summary_th)
                 alt = alt_text_for_event("🔔 ALERT", ev, d.score)
             resp = _push_or_skip(line, news_target, alt, bubble, sched_cfg, label=d.route.value)
             if resp["status"] == 200:
