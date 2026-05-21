@@ -1,0 +1,32 @@
+name: watchdog
+on:
+  schedule:
+    # Every 30 min. Reads the heartbeat written by news-cron / event-mode
+    # and pushes a LINE health alert if the pipeline goes silent for >25 min
+    # OR no items have been fetched across all sources for >180 min.
+    # Cooldown-gated so it won't repeat the same warning inside 120 min.
+    - cron: "*/30 * * * *"
+  workflow_dispatch: {}
+
+concurrency:
+  group: gold-news-watchdog
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    env:
+      LINE_CHANNEL_TOKEN: ${{ secrets.LINE_CHANNEL_TOKEN }}
+      LINE_HEALTH_TARGET: ${{ secrets.LINE_HEALTH_TARGET }}
+      GSHEET_ID: ${{ secrets.GSHEET_ID }}
+      GSHEET_CREDS: ${{ secrets.GSHEET_CREDS }}
+      PYTHONUNBUFFERED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: python -m src.main --mode watchdog
