@@ -1,7 +1,7 @@
 name: calendar-daily
 on:
   schedule:
-    - cron: "30 23 * * *"   # 23:30 UTC = 06:30 ICT
+    - cron: "40 21 * * *"   # 21:40 UTC = 04:40 ICT (before market session ramp)
   workflow_dispatch: {}
 
 concurrency:
