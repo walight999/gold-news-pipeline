@@ -667,26 +667,43 @@ async def run_calendar_check() -> int:
                 })
                 pre_pushed += 1
 
-        # Post-release alerts. If FRED_API_KEY is set + event title maps to a
-        # supported series, upgrade to actual + surprise + final verdict; else
-        # fall back to directional-only.
+        # Post-release alerts. Priority order for actual values:
+        #   1. FRED — fast, reliable for US series (CPI/NFP/PCE/etc.)
+        #   2. FF HTML actuals — covers everything else (PMI, IFO, BoC, etc.)
+        #   3. Directional-only when both fail.
         fred_key = fred.fred_api_key()
+        ff_actuals_cache: dict[str, str] | None = None   # lazy, once per run
         for ev in just_released:
             sent_key = f"postcal:{ev.event_id}"
             if store.get("sent_log", (sent_key, "calendar_post")):
                 continue
             impact_info = cal.gold_impact_directional(ev)
             actual_text = surprise = verdict = None
+            actual_value: float | None = None
             if fred_key:
                 result = fred.fetch_actual(ev.title, fred_key)
                 if result:
                     actual_text = result.actual_text
-                    forecast_val = fred.parse_forecast_value(ev.forecast)
-                    if forecast_val is not None:
-                        surprise = fred.compute_surprise_label(result.actual_value, forecast_val)
-                        verdict = fred.reconcile_with_impact(surprise, impact_info)
-                    else:
-                        verdict = None
+                    actual_value = result.actual_value
+            # FF HTML actuals fallback for non-FRED events
+            if actual_text is None:
+                if ff_actuals_cache is None:
+                    try:
+                        from . import ff_scraper
+                        ff_actuals_cache = ff_scraper.scrape_current_week_actuals()
+                    except Exception as e:
+                        log.warning("FF actuals scrape failed: %s", e)
+                        ff_actuals_cache = {}
+                from . import ff_scraper
+                ff_actual = ff_scraper.lookup_actual_for_event(ev, ff_actuals_cache)
+                if ff_actual:
+                    actual_text = ff_actual
+                    actual_value = fred.parse_forecast_value(ff_actual)
+            if actual_text is not None and actual_value is not None:
+                forecast_val = fred.parse_forecast_value(ev.forecast)
+                if forecast_val is not None:
+                    surprise = fred.compute_surprise_label(actual_value, forecast_val)
+                    verdict = fred.reconcile_with_impact(surprise, impact_info)
             # XAU reaction since release (Phase 3 — when intraday data is
             # available; off-hours / 429s gracefully return None).
             xau_reaction = price_feed.xau_return_pct(ev.dt_utc, minutes_after=5)

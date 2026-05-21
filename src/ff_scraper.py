@@ -27,6 +27,7 @@ from curl_cffi import requests as cffi
 log = logging.getLogger(__name__)
 
 CALENDAR_URL = "https://www.forexfactory.com/calendar?week=next"
+CURRENT_WEEK_URL = "https://www.forexfactory.com/calendar"   # default = this week
 
 # FF page renders in Eastern Time by default for non-logged-in visitors.
 # zoneinfo handles EDT/EST automatically.
@@ -188,3 +189,76 @@ def scrape_ff_html(
 
     log.info("FF scrape parsed %d events from %s", len(out), url)
     return out
+
+
+def _make_actual_key(country: str, title: str) -> str:
+    """Key on country + title only. FF HTML displays times in geo-IP
+    timezone (ET for US runners, ICT for Bangkok), so a UTC-time match
+    breaks. (country, title) is unique within a week for our targets."""
+    return f"{country}|{title.strip().lower()}"
+
+
+def scrape_current_week_actuals(timeout: float = 25.0) -> dict[str, str]:
+    """Scrapes FF HTML current-week page and returns a dict mapping
+    `country|YYYY-MM-DDTHH:MM (UTC)|title-lower` → actual_value_text
+    for every row whose `actual` column is populated.
+
+    Used as a fallback in post-release alerts when FRED doesn't carry the
+    series (PMI, IFO, regional CPIs, BoC/BoE/SNB decisions, etc.).
+    """
+    html = _try_fetch(CURRENT_WEEK_URL, timeout)
+    if not html:
+        return {}
+    soup = BeautifulSoup(html, "lxml")
+    table = soup.find("table", class_="calendar__table")
+    if not table:
+        return {}
+
+    ref_now = datetime.now(timezone.utc)
+    current_date_et: datetime | None = None
+    last_time: tuple[int, int] | None = None
+    out: dict[str, str] = {}
+
+    for tr in table.find_all("tr"):
+        cls = tr.get("class", []) or []
+        if any("day-breaker" in c or "calendar__row--day" in c for c in cls):
+            current_date_et = _parse_date_header(tr.get_text(strip=True), ref_now)
+            last_time = None
+            continue
+
+        ccy_td = tr.find("td", class_="calendar__currency")
+        evt_td = tr.find("td", class_="calendar__event")
+        actual_td = tr.find("td", class_="calendar__actual")
+        if not (current_date_et and ccy_td and evt_td and actual_td):
+            continue
+        actual_s = actual_td.get_text(strip=True)
+        if not actual_s:
+            continue
+
+        time_td = tr.find("td", class_="calendar__time")
+        time_s = time_td.get_text(strip=True) if time_td else ""
+        if time_s:
+            parsed = _parse_time(time_s)
+            if parsed:
+                last_time = parsed
+        if not last_time:
+            continue
+        h, mm = last_time
+        dt_et = current_date_et.replace(hour=h, minute=mm)
+        dt_utc = dt_et.astimezone(timezone.utc)
+
+        country = ccy_td.get_text(strip=True).upper()
+        title = evt_td.get_text(strip=True)
+        if not country or not title:
+            continue
+
+        # Date intentionally NOT in the key — see _make_actual_key().
+        out[_make_actual_key(country, title)] = actual_s
+
+    log.info("FF actuals scrape: %d events with actuals", len(out))
+    return out
+
+
+def lookup_actual_for_event(event, actuals: dict[str, str]) -> str | None:
+    """Match a CalEvent against an actuals dict from scrape_current_week_actuals."""
+    return actuals.get(_make_actual_key(event.country, event.title))
