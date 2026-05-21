@@ -338,14 +338,17 @@ def _build_digest_bubble(
         evs = sorted(groups[topic], key=lambda e: -scores.get(e.event_id, 0))
         if i > 0:
             sections.append({"type": "separator", "margin": "lg"})
+        # Topic header: name on the left, the topic's MAX impact pill on
+        # the right (replaces the "N item(s)" indicator which was usually
+        # just "1 item(s)" and added nothing).
+        section_max_score = max(scores.get(e.event_id, 0) for e in evs)
         sections.append({
             "type": "box", "layout": "horizontal", "margin": "lg",
             "alignItems": "center",
             "contents": [
                 {"type": "text", "text": topic.upper(), "size": "sm",
                  "color": "#374151", "weight": "bold", "flex": 1},
-                {"type": "text", "text": f"{len(evs)} item(s)", "size": "xs",
-                 "color": "#9CA3AF", "align": "end", "flex": 0},
+                _impact_pill_small(section_max_score),
             ],
         })
         for ev in evs:
