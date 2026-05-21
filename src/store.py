@@ -17,10 +17,81 @@ from typing import Any
 
 import gspread
 from google.oauth2.service_account import Credentials
+from gspread.exceptions import APIError
+from tenacity import (
+    RetryError,
+    retry,
+    retry_if_exception,
+    stop_after_attempt,
+    wait_exponential,
+)
 
 from .utils_time import iso_utc, now_utc
 
 log = logging.getLogger(__name__)
+
+
+# ---------------- gspread transient-error retry ----------------
+#
+# Google Sheets API regularly returns 503/500/429 under load. Captured live
+# in run 26243926577 (2026-05-22) — calendar_daily failed entirely because
+# of a single 503 on open_by_key. Wrap every API entrypoint in tenacity
+# retry so we ride out the dip instead of failing the workflow.
+
+def _is_transient_sheets_error(exc: BaseException) -> bool:
+    """True for gspread APIErrors worth retrying. Matches on the [STATUS]
+    prefix gspread prepends to the error message (works across SDK
+    versions without relying on internal attribute layout)."""
+    if not isinstance(exc, APIError):
+        return False
+    s = str(exc)
+    return any(f"[{c}]" in s for c in (429, 500, 502, 503, 504))
+
+
+def _retry(fn):
+    """Decorator: 4 attempts, exponential backoff 2-10s, only on transient
+    Sheets errors. Other exceptions bubble immediately."""
+    return retry(
+        stop=stop_after_attempt(4),
+        wait=wait_exponential(multiplier=1, min=2, max=10),
+        retry=retry_if_exception(_is_transient_sheets_error),
+        reraise=True,
+    )(fn)
+
+
+@_retry
+def _open_by_key(gc: gspread.Client, sheet_id: str) -> gspread.Spreadsheet:
+    return gc.open_by_key(sheet_id)
+
+
+@_retry
+def _ws_worksheet(sh: gspread.Spreadsheet, name: str) -> gspread.Worksheet:
+    return sh.worksheet(name)
+
+
+@_retry
+def _ws_add(sh: gspread.Spreadsheet, name: str, rows: int, cols: int) -> gspread.Worksheet:
+    return sh.add_worksheet(title=name, rows=rows, cols=cols)
+
+
+@_retry
+def _ws_get_all_records(ws: gspread.Worksheet, expected_headers: list[str]) -> list[dict]:
+    return ws.get_all_records(expected_headers=expected_headers)
+
+
+@_retry
+def _ws_row_values(ws: gspread.Worksheet, n: int) -> list[str]:
+    return ws.row_values(n)
+
+
+@_retry
+def _ws_update(ws: gspread.Worksheet, range_: str, values, **kwargs) -> Any:
+    return ws.update(range_, values, **kwargs)
+
+
+@_retry
+def _ws_clear(ws: gspread.Worksheet) -> Any:
+    return ws.clear()
 
 _SCOPES = [
     "https://www.googleapis.com/auth/spreadsheets",
@@ -50,6 +121,12 @@ SCHEMAS: dict[str, list[str]] = {
     "health_log": [
         "source_id", "warning_type", "warning_ts", "resolved_ts", "updated_at",
     ],
+    "translation_cache": [
+        # cache_key = first 16 chars of SHA-256(source_text). source_text
+        # truncated to 80 chars purely for human inspection; full lookup
+        # uses cache_key. Maintain mode caps to 2000 rows + 24h TTL.
+        "cache_key", "source_preview", "thai_text", "hits", "created_at", "updated_at",
+    ],
 }
 
 # Primary keys per tab — drive upsert behaviour.
@@ -59,6 +136,7 @@ PRIMARY_KEYS: dict[str, tuple[str, ...]] = {
     "sent_log": ("event_id", "route_type"),
     "calibration_log": ("event_id",),
     "health_log": ("source_id", "warning_type", "warning_ts"),
+    "translation_cache": ("cache_key",),
 }
 
 
@@ -89,24 +167,25 @@ class Store:
         info = json.loads(self.creds_json)
         creds = Credentials.from_service_account_info(info, scopes=_SCOPES)
         self._gc = gspread.authorize(creds)
-        self._sh = self._gc.open_by_key(self.sheet_id)
+        self._sh = _open_by_key(self._gc, self.sheet_id)
         self.api_calls += 1
 
     def _ensure_tab(self, name: str) -> gspread.Worksheet:
         assert self._sh is not None
         try:
-            ws = self._sh.worksheet(name)
+            ws = _ws_worksheet(self._sh, name)
         except gspread.WorksheetNotFound:
-            ws = self._sh.add_worksheet(title=name, rows=1000, cols=max(20, len(SCHEMAS[name]) + 2))
-            ws.update("A1", [SCHEMAS[name]])
+            ws = _ws_add(self._sh, name, rows=1000,
+                         cols=max(20, len(SCHEMAS[name]) + 2))
+            _ws_update(ws, "A1", [SCHEMAS[name]])
             self.api_calls += 2
             return ws
         self.api_calls += 1
         # Ensure header row present and matches schema.
-        header = ws.row_values(1)
+        header = _ws_row_values(ws, 1)
         self.api_calls += 1
         if header != SCHEMAS[name]:
-            ws.update("A1", [SCHEMAS[name]])
+            _ws_update(ws, "A1", [SCHEMAS[name]])
             self.api_calls += 1
         return ws
 
@@ -114,7 +193,7 @@ class Store:
         """One read per tab. Populates self.data."""
         for tab, cols in SCHEMAS.items():
             ws = self._ensure_tab(tab)
-            records = ws.get_all_records(expected_headers=cols)
+            records = _ws_get_all_records(ws, cols)
             self.api_calls += 1
             buf: dict[str, dict[str, Any]] = {}
             for r in records:
@@ -179,14 +258,14 @@ class Store:
         for tab, dirty_keys in self.dirty.items():
             if not dirty_keys:
                 continue
-            ws = self._sh.worksheet(tab)
+            ws = _ws_worksheet(self._sh, tab)
             self.api_calls += 1
             all_rows = list(self.data[tab].values())
             cols = SCHEMAS[tab]
             values = [cols] + [[_cell(r.get(c, "")) for c in cols] for r in all_rows]
-            ws.clear()
+            _ws_clear(ws)
             self.api_calls += 1
-            ws.update("A1", values, value_input_option="RAW")
+            _ws_update(ws, "A1", values, value_input_option="RAW")
             self.api_calls += 1
             log.info("store.flush tab=%s rows=%d dirty=%d", tab, len(all_rows), len(dirty_keys))
             self.dirty[tab] = set()

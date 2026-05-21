@@ -47,6 +47,7 @@ SOURCE_NAMES: dict[str, str] = {
     "investing_general":    "Investing.com",
     "benzinga":             "Benzinga",
     "_pipeline_heartbeat":  "Pipeline",
+    "_ff_scraper":          "FF HTML Scraper",
     "yahoo_finance":        "Yahoo Finance",
 }
 
@@ -58,6 +59,7 @@ WARNING_MESSAGES: dict[str, str] = {
     "tier2_no_item":               "No new items in 30+ min",
     "watchdog_silence":            "Pipeline silent — cron may have stopped firing",
     "watchdog_no_items":           "All sources returned 0 items for hours — scraper/network down?",
+    "ff_scraper_dead":             "FF HTML scrape returned 0 events 3× in a row — Cloudflare/HTML changed?",
 }
 
 

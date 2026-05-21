@@ -57,11 +57,16 @@ reliable cron, drive `news-cron` from a Google Apps Script trigger via
 
 ## Google Sheet tabs (auto-created on first run)
 
-- `source_state` — per-source fetch timestamps + ETags + pipeline heartbeat
+- `source_state` — per-source fetch timestamps + ETags + pipeline heartbeat + FF scraper health
 - `event_state` — clustered news events with scores
 - `sent_log` — idempotency for LINE pushes
 - `calibration_log` — every score ≥ 2 event (kept forever for Phase 3 backfill)
 - `health_log` — per-(source, warning_type) warning records, incl. watchdog
+- `translation_cache` — SHA-keyed Thai translation cache (TTL 24h, 2000-row cap)
+
+Detailed setup: [docs/SETUP_SHEETS.md](docs/SETUP_SHEETS.md).
+LINE channel setup: [docs/SETUP_LINE.md](docs/SETUP_LINE.md).
+Contributing: [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Sources
 
@@ -165,18 +170,36 @@ pipeline falls back to **ForexFactory HTML scrape** via `curl_cffi`
 
 ## Self-monitoring
 
-The `watchdog` workflow runs every 30 min and reads the pipeline
-heartbeat (a synthetic row in `source_state`). It pushes a LINE health
-alert when:
+The `watchdog` workflow runs every 30 min and reads two health signals
+written by `run_once` and `ff_scraper`. It pushes a LINE health alert
+when:
 
 - **`watchdog_silence`** — heartbeat hasn't ticked in >25 min. Cron stopped
   firing, OR Sheet writes failed, OR the runner crashed.
 - **`watchdog_no_items`** — heartbeat is fresh but 0 items have been
   fetched across all sources for >180 min. All scrapers dead simultaneously
   (network down, Cloudflare blocking, RSS endpoints all dead at once).
+- **`ff_scraper_dead`** — FF HTML scraper returned 0 events 3 times in
+  a row. Cloudflare tightened, or FF changed the HTML schema — post-release
+  actuals for non-FRED events (PMI, BoC/BoE/SNB decisions) go silent.
 
 Cooldown-gated (120 min) so it won't spam during an extended outage. A
-recovered bubble is pushed automatically when the warning clears.
+recovered bubble is pushed automatically when each warning clears.
+
+## Robustness
+
+- **Sheets API retry** — `gspread` calls (open, worksheet, get_records,
+  update, clear) auto-retry on 429/5xx with exponential backoff. Captured
+  live on 2026-05-22 — a single 503 was failing the calendar workflow
+  entirely until this was added.
+- **yfinance retry** — price snapshots retry 3× with 1.5s/3s backoff on
+  any exception (Yahoo backend is famously flaky).
+- **Translation cache** — `translation_cache` tab keyed by SHA-256 of the
+  source text. Same RSS title across multiple cron runs gets translated
+  exactly once. Reduces Claude API spend ~70% at current scale.
+- **FF scraper health row** — `_ff_scraper` row in `source_state` tracks
+  scrape success / failure streak; watchdog promotes 3 in a row to a
+  LINE alert.
 
 ## Calendar Bot v2.6 integration
 
@@ -207,11 +230,8 @@ see [docs/INTEGRATION_CALENDAR_BOT.md](docs/INTEGRATION_CALENDAR_BOT.md).
 - **GitHub Actions cron drops** — free-tier `*/5` cron drops ~96% of
   slots during peak hours. Use a GAS dispatcher (see above) for reliable
   triggering.
-- **No price feed cache** — yfinance calls go straight through; transient
-  429s show as "no data" in calendar / EOD bubbles. Roadmap.
-- **No translation cache** — every cron call re-translates same/similar
-  titles. Wasteful of Claude API tokens; consider adding a SHA-keyed
-  cache tab if running at scale.
+- **No price-feed bar cache** — yfinance retries 3× then renders "no
+  data". A small in-memory snapshot cache would smooth this further.
 
 ## Local development
 
@@ -220,7 +240,7 @@ git clone https://github.com/walight999/gold-news-pipeline
 cd gold-news-pipeline
 pip install -r requirements.txt
 cp .env.example .env       # fill in values
-pytest -q                  # 68 tests
+pytest -q                  # 81 tests
 python -m src.main --mode cron
 ```
 

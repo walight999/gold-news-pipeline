@@ -1,5 +1,11 @@
 """ForexFactory HTML scraper — fallback for next-week data.
 
+Health tracking: every scrape attempt stamps the `_ff_scraper` row in
+source_state with last_attempt_ts, last_success_ts (only when >0 events
+returned), and consecutive_errors (incremented on empty result). Watchdog
+fires `ff_scraper_dead` after 3 consecutive empties.
+
+
 The free `ff_calendar_thisweek.json` endpoint only ships ISO-week-current
 data and rolls over Sunday morning ET, so Saturday-morning ICT runs of
 weekly_preview find nothing. The HTML calendar page (forexfactory.com/calendar
@@ -28,6 +34,36 @@ log = logging.getLogger(__name__)
 
 CALENDAR_URL = "https://www.forexfactory.com/calendar?week=next"
 CURRENT_WEEK_URL = "https://www.forexfactory.com/calendar"   # default = this week
+
+# Source-state row id for the scraper's own health (consecutive empty
+# returns + last_success timestamp). Watchdog reads this to detect a
+# silently-broken Cloudflare bypass / HTML schema change.
+FF_SCRAPER_SOURCE_ID = "_ff_scraper"
+
+
+def record_scrape_result(store, items_count: int) -> None:
+    """Update the FF scraper health row in source_state. Call after every
+    scrape attempt. `items_count=0` is treated as a failure (Cloudflare
+    block or empty HTML); positive counts reset the error streak."""
+    from .utils_time import iso_utc, now_utc
+    ts = iso_utc(now_utc())
+    prev = store.get("source_state", (FF_SCRAPER_SOURCE_ID,)) or {}
+    consec = int(prev.get("consecutive_errors") or 0)
+    if items_count > 0:
+        consec = 0
+        last_success_ts = ts
+    else:
+        consec += 1
+        last_success_ts = prev.get("last_success_ts") or ""
+    store.upsert("source_state", {
+        "source_id": FF_SCRAPER_SOURCE_ID,
+        "last_attempt_ts": ts,
+        "last_success_ts": last_success_ts,
+        "last_item_ts": last_success_ts,
+        "consecutive_errors": str(consec),
+        "items_last_hour": str(items_count),
+        "updated_at": ts,
+    })
 
 # FF page renders in Eastern Time by default for non-logged-in visitors.
 # zoneinfo handles EDT/EST automatically.

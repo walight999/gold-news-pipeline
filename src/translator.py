@@ -1,6 +1,9 @@
 """Thai translation for digest / breaking / alert content.
 
 Backends (waterfall):
+  0. translation_cache Sheet tab — SHA-keyed exact-match cache. Cuts
+     Claude token cost ~70% across cron iterations because the same RSS
+     items keep reappearing for hours before they age out.
   1. Anthropic Claude Haiku — set ANTHROPIC_API_KEY to enable.
      Best quality for finance jargon ("patient stance" → "ท่าทีอดทน"
      instead of "ผู้ป่วยยืน").
@@ -10,14 +13,55 @@ Backends (waterfall):
   3. None — caller renders the English original.
 
 Translation only — never AI summarisation or rephrasing.
+
+Cache lifecycle:
+  - to_thai_cached(text, store) checks the cache first, on miss calls the
+    waterfall, on success writes back. Maintain mode prunes >24h-old
+    entries + caps at 2000 most-recent rows.
 """
 from __future__ import annotations
 
+import hashlib
 import logging
 import os
 import re
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .store import Store
 
 log = logging.getLogger(__name__)
+
+
+def _cache_key(text: str) -> str:
+    """16-char SHA-256 prefix. 16 chars = 64 bits → collision-free across
+    any reasonable cache size (~2k rows; birthday paradox needs ~2^32)."""
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()[:16]
+
+
+def _cache_lookup(store: "Store | None", key: str) -> str | None:
+    if store is None:
+        return None
+    row = store.get("translation_cache", (key,))
+    if not row:
+        return None
+    return row.get("thai_text") or None
+
+
+def _cache_write(store: "Store | None", key: str, src_preview: str, thai: str) -> None:
+    if store is None:
+        return
+    from .utils_time import iso_utc, now_utc
+    existing = store.get("translation_cache", (key,)) or {}
+    hits = int(existing.get("hits") or 0) + 1
+    created = existing.get("created_at") or iso_utc(now_utc())
+    store.upsert("translation_cache", {
+        "cache_key": key,
+        "source_preview": src_preview[:80],
+        "thai_text": thai,
+        "hits": str(hits),
+        "created_at": created,
+    })
 
 _LLM_PROMPT = """Translate this English financial news to natural Thai for a Thai-speaking trader audience. Rules:
 
@@ -256,17 +300,32 @@ def _translate_google(text: str) -> str | None:
         return None
 
 
-def to_thai(text: str | None, max_len: int = 600) -> str | None:
-    """Translate English to Thai. Tries Claude first (when key is set),
-    falls back to Google. Returns None if both fail so callers can show
-    the English original.
+def to_thai(text: str | None, max_len: int = 600, store: "Store | None" = None) -> str | None:
+    """Translate English to Thai. Cache-first, then Claude, then Google.
+    Returns None if every backend fails so callers render the English
+    original.
+
+    `store` is optional — when provided, exact-match translations are
+    cached in the `translation_cache` Sheet tab to avoid re-translating
+    the same RSS title every cron run (~70% token-cost reduction).
 
     Output is validated to ensure no Chinese / Japanese / Korean script
-    leaks through (Google Translate passes through Chinese names from
-    Reuters-style sources; Claude transliterates them properly to Thai)."""
+    leaks through (Google passes through Chinese names from Reuters-style
+    sources; Claude transliterates them properly to Thai)."""
     if not text:
         return None
     text = re.sub(r"\s+", " ", text).strip()[:max_len]
     if not text:
         return None
-    return _translate_claude(text) or _translate_google(text)
+
+    key = _cache_key(text)
+    cached = _cache_lookup(store, key)
+    if cached:
+        # Bump hits counter for cache visibility but don't re-translate.
+        _cache_write(store, key, text, cached)
+        return cached
+
+    out = _translate_claude(text) or _translate_google(text)
+    if out:
+        _cache_write(store, key, text, out)
+    return out

@@ -139,6 +139,56 @@ def test_write_heartbeat_bumps_last_item_when_nonzero(store):
     assert row["items_last_hour"] == "7"
 
 
+# ---------------- FF scraper health tracking ----------------
+
+
+def test_ff_scraper_record_resets_streak_on_success(store):
+    """A successful scrape (items_count > 0) zeroes consecutive_errors
+    and bumps last_success_ts. After 2 failures, a success row clears."""
+    from src.ff_scraper import FF_SCRAPER_SOURCE_ID, record_scrape_result
+    record_scrape_result(store, 0)
+    record_scrape_result(store, 0)
+    row = store.get("source_state", (FF_SCRAPER_SOURCE_ID,))
+    assert row["consecutive_errors"] == "2"
+    # Successful scrape — streak resets
+    record_scrape_result(store, 17)
+    row = store.get("source_state", (FF_SCRAPER_SOURCE_ID,))
+    assert row["consecutive_errors"] == "0"
+    assert row["items_last_hour"] == "17"
+
+
+def test_ff_scraper_record_increments_streak_on_empty(store):
+    from src.ff_scraper import FF_SCRAPER_SOURCE_ID, record_scrape_result
+    for _ in range(3):
+        record_scrape_result(store, 0)
+    row = store.get("source_state", (FF_SCRAPER_SOURCE_ID,))
+    assert row["consecutive_errors"] == "3"
+
+
+def test_watchdog_flags_ff_scraper_dead_at_3_consecutive_empties(store):
+    """3 consecutive 0-event scrapes → ff_scraper_dead warning."""
+    from src.ff_scraper import record_scrape_result
+    for _ in range(3):
+        record_scrape_result(store, 0)
+    warns = check_pipeline_health(store)
+    types = [wt for wt, _ in warns]
+    assert "ff_scraper_dead" in types
+
+
+def test_watchdog_no_ff_warning_below_threshold(store):
+    """Only 2 empties → no warning yet (threshold is 3)."""
+    from src.ff_scraper import record_scrape_result
+    for _ in range(2):
+        record_scrape_result(store, 0)
+    # Heartbeat row also needed so the check doesn't short-circuit on
+    # 'no heartbeat ever' silence warning.
+    from src.health import write_heartbeat
+    write_heartbeat(store, items_seen=5)
+    warns = check_pipeline_health(store)
+    types = [wt for wt, _ in warns]
+    assert "ff_scraper_dead" not in types
+
+
 def test_tier0_event_day_no_success(store):
     sid = "fed"
     long_ago = datetime.now(timezone.utc) - timedelta(minutes=30)

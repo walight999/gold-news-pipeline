@@ -168,8 +168,8 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
             # Translate title + summary to Thai inline so the bubble carries
             # full context without the user clicking through. Falls back to
             # English if Google Translate hiccups.
-            title_th   = translator.to_thai(ev.representative_title, 200)
-            summary_th = translator.to_thai(ev.representative_summary, 600)
+            title_th   = translator.to_thai(ev.representative_title, 200, store=store)
+            summary_th = translator.to_thai(ev.representative_summary, 600, store=store)
             if d.route == Route.BREAKING:
                 bubble = breaking_bubble(ev, d.score, kw_cfg,
                                           title_th=title_th, summary_th=summary_th)
@@ -268,8 +268,8 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
             translations: dict[str, dict[str, str | None]] = {}
             for ev in ranked:
                 translations[ev.event_id] = {
-                    "title_th":   translator.to_thai(ev.representative_title, 200),
-                    "summary_th": translator.to_thai(ev.representative_summary, 400),
+                    "title_th":   translator.to_thai(ev.representative_title, 200, store=store),
+                    "summary_th": translator.to_thai(ev.representative_summary, 400, store=store),
                 }
             carousel = digest_carousel(ranked, scores, slot, kw_cfg, translations=translations)
             if carousel and news_target:
@@ -462,11 +462,41 @@ async def run_maintain() -> int:
 
     removed_es = store.purge_older_than("event_state", days_event_state, ts_col="last_seen_ts")
     removed_sl = store.purge_older_than("sent_log",    days_sent_log,    ts_col="sent_ts")
+
+    # Translation cache — TTL 1 day + hard cap 2000 most-recent rows.
+    # TTL keeps stale RSS titles from bloating Claude lookup; cap keeps
+    # the Sheet small enough that load_all stays fast.
+    removed_tc = store.purge_older_than("translation_cache", 1, ts_col="updated_at")
+    removed_tc_cap = _cap_translation_cache(store, max_rows=2000)
+
     store.flush()
 
-    log.info("maintain done: event_state purged=%d, sent_log purged=%d, api_calls=%d",
-             removed_es, removed_sl, store.api_calls)
+    log.info(
+        "maintain done: event_state purged=%d, sent_log purged=%d, "
+        "translation_cache TTL purged=%d + capped=%d, api_calls=%d",
+        removed_es, removed_sl, removed_tc, removed_tc_cap, store.api_calls,
+    )
     return 0
+
+
+def _cap_translation_cache(store: Store, max_rows: int) -> int:
+    """Drop oldest rows from translation_cache when over max_rows. Sorts
+    by updated_at DESC — most recent kept, oldest evicted (LRU)."""
+    rows = store.all_rows("translation_cache")
+    if len(rows) <= max_rows:
+        return 0
+    rows.sort(key=lambda r: r.get("updated_at") or "", reverse=True)
+    keepers = rows[:max_rows]
+    keeper_keys = {r["cache_key"] for r in keepers}
+    removed = 0
+    for row in list(store.data.get("translation_cache", {}).values()):
+        if row["cache_key"] not in keeper_keys:
+            rk = row["cache_key"]
+            store.data["translation_cache"].pop(rk, None)
+            removed += 1
+    if removed:
+        store.dirty.setdefault("translation_cache", set()).add("__cap__")
+    return removed
 
 
 async def run_weekly_preview() -> int:
@@ -726,6 +756,10 @@ async def run_calendar_check() -> int:
                     except Exception as e:
                         log.warning("FF actuals scrape failed: %s", e)
                         ff_actuals_cache = {}
+                    # Health tracking — empty dict = scrape failed or all
+                    # actuals empty. Watchdog promotes 3 in a row to LINE.
+                    from . import ff_scraper
+                    ff_scraper.record_scrape_result(store, len(ff_actuals_cache))
                 from . import ff_scraper
                 ff_actual = ff_scraper.lookup_actual_for_event(ev, ff_actuals_cache)
                 if ff_actual:
@@ -760,15 +794,25 @@ async def run_calendar_check() -> int:
     return 0
 
 
+def _watchdog_source_id(warning_type: str) -> str:
+    """Map a watchdog warning_type to the source_state row it's about.
+    Pipeline-level warnings go under _pipeline_heartbeat; per-subsystem
+    warnings (FF scraper, future additions) go under their own row id."""
+    if warning_type == "ff_scraper_dead":
+        return "_ff_scraper"
+    return health.HEARTBEAT_SOURCE_ID
+
+
 async def run_watchdog() -> int:
     """Pipeline-level self-monitor. Runs every 30 min (via watchdog.yml).
-    Reads the heartbeat written by run_once; pushes a LINE health alert
-    when the pipeline goes silent (cron stopped firing or Sheet writes
-    broken) or when no items have been fetched across all sources for
-    hours (likely scraper / network issue).
+    Reads the heartbeat written by run_once and the FF scraper streak;
+    pushes a LINE health alert when:
+      - pipeline silent (cron stopped or Sheet writes broken)
+      - all sources returned 0 items for hours (network/scraper issue)
+      - FF HTML scraper hit 3 consecutive empties (Cloudflare/HTML change)
 
     Cooldown-aware: won't repeat the same warning inside 120 min. Pushes a
-    `recovered` bubble when the warning clears."""
+    `recovered` bubble when each individual warning clears."""
     store = Store.from_env()
     store.connect()
     store.load_all()
@@ -779,38 +823,35 @@ async def run_watchdog() -> int:
     line = None
     health_target = os.environ.get("LINE_HEALTH_TARGET", "")
 
-    # Resolve any open watchdog warnings that are no longer in the warning
-    # set — and notify on transition.
+    # Resolve any open warnings that are no longer firing — one row per
+    # (source_id, warning_type) so each clears independently.
     recovered: list[tuple[str, str]] = []
-    for warning_type in ("watchdog_silence", "watchdog_no_items"):
+    for warning_type in ("watchdog_silence", "watchdog_no_items", "ff_scraper_dead"):
         if warning_type in warning_types:
             continue
-        # Open warning that no longer applies → resolve + push recovered.
-        if health.warning_open_minutes(store, health.HEARTBEAT_SOURCE_ID, warning_type) > 0:
-            health.resolve_warning(store, health.HEARTBEAT_SOURCE_ID, warning_type)
-            recovered.append((health.HEARTBEAT_SOURCE_ID, warning_type))
+        sid = _watchdog_source_id(warning_type)
+        if health.warning_open_minutes(store, sid, warning_type) > 0:
+            health.resolve_warning(store, sid, warning_type)
+            recovered.append((sid, warning_type))
 
-    # Raise fresh warnings (cooldown-gated).
-    fresh: list[tuple[str, str]] = []
+    # Raise fresh warnings (cooldown-gated, per (source_id, warning_type)).
+    fresh: list[tuple[str, str, str]] = []  # (source_id, warning_type, message)
     for warning_type, message in warnings:
-        new_row = health.raise_warning(
-            store, health.HEARTBEAT_SOURCE_ID, warning_type, cooldown_min=120,
-        )
+        sid = _watchdog_source_id(warning_type)
+        new_row = health.raise_warning(store, sid, warning_type, cooldown_min=120)
         if new_row:
-            fresh.append((warning_type, message))
+            fresh.append((sid, warning_type, message))
 
     if fresh and health_target:
         line = line or LineClient.from_env()
-        # Reuse the per-source health bubble — labelled "Pipeline" via the
-        # SOURCE_NAMES alias for _pipeline_heartbeat. WARNING_MESSAGES has
-        # entries for watchdog_silence / watchdog_no_items so the bubble
-        # renders human-readable lines without extra plumbing.
-        warning_pairs = [(health.HEARTBEAT_SOURCE_ID, wt) for wt, _ in fresh]
+        # health_bubble takes (source_id, warning_type) pairs — labels come
+        # from SOURCE_NAMES + WARNING_MESSAGES tables in line_flex.py.
+        warning_pairs = [(sid, wt) for sid, wt, _ in fresh]
         bubble = health_bubble(warning_pairs)
         alt = f"🚨 Pipeline alert — {len(fresh)} issue(s)"
         line.push_flex(health_target, alt, bubble)
-        for wt, msg in fresh:
-            log.warning("watchdog: %s — %s", wt, msg)
+        for sid, wt, msg in fresh:
+            log.warning("watchdog: %s/%s — %s", sid, wt, msg)
 
     if recovered and health_target:
         line = line or LineClient.from_env()

@@ -131,35 +131,49 @@ def check_pipeline_health(
     store: Store,
     max_silence_min: int = 25,
     max_no_items_min: int = 180,
+    max_ff_scrape_errors: int = 3,
 ) -> list[tuple[str, str]]:
     """Returns (warning_type, human_message) pairs. Empty list = healthy.
     Used by --mode watchdog.
 
-    Two failure modes:
+    Three failure modes:
       `watchdog_silence`  — heartbeat hasn't ticked in >max_silence_min.
                             Cron stopped firing OR Sheet writes broken.
       `watchdog_no_items` — heartbeat ticking but 0 items for >max_no_items_min
                             during market hours. All sources dead simultaneously
-                            (unlikely random, likely scraper / network issue)."""
+                            (unlikely random, likely scraper / network issue).
+      `ff_scraper_dead`   — FF HTML scraper returned 0 events
+                            max_ff_scrape_errors times in a row. Cloudflare
+                            tightened OR FF changed HTML — post-release
+                            actuals for non-FRED events go silent."""
     out: list[tuple[str, str]] = []
     row = store.get("source_state", (HEARTBEAT_SOURCE_ID,)) or {}
     last_hb = parse_iso(row.get("last_success_ts"))
     if not last_hb:
         out.append(("watchdog_silence",
                     "No heartbeat ever recorded — pipeline has never run successfully"))
-        return out
-    silence_min = (now_utc() - last_hb).total_seconds() / 60.0
-    if silence_min > max_silence_min:
-        out.append(("watchdog_silence",
-                    f"Pipeline silent for {silence_min:.0f} min "
-                    f"(last heartbeat {row.get('last_success_ts')})"))
-    last_item = parse_iso(row.get("last_item_ts"))
-    if last_item:
-        no_item_min = (now_utc() - last_item).total_seconds() / 60.0
-        if no_item_min > max_no_items_min:
-            out.append(("watchdog_no_items",
-                        f"No items fetched across all sources for {no_item_min:.0f} min — "
-                        "scraper or network may be down"))
+    else:
+        silence_min = (now_utc() - last_hb).total_seconds() / 60.0
+        if silence_min > max_silence_min:
+            out.append(("watchdog_silence",
+                        f"Pipeline silent for {silence_min:.0f} min "
+                        f"(last heartbeat {row.get('last_success_ts')})"))
+        last_item = parse_iso(row.get("last_item_ts"))
+        if last_item:
+            no_item_min = (now_utc() - last_item).total_seconds() / 60.0
+            if no_item_min > max_no_items_min:
+                out.append(("watchdog_no_items",
+                            f"No items fetched across all sources for {no_item_min:.0f} min — "
+                            "scraper or network may be down"))
+
+    # FF scraper streak check. Row is written by ff_scraper.record_scrape_result.
+    ff_row = store.get("source_state", ("_ff_scraper",)) or {}
+    ff_consec = int(ff_row.get("consecutive_errors") or 0)
+    if ff_consec >= max_ff_scrape_errors:
+        last_ok = ff_row.get("last_success_ts") or "never"
+        out.append(("ff_scraper_dead",
+                    f"FF HTML scrape returned 0 events {ff_consec}× in a row "
+                    f"(last success: {last_ok}). Cloudflare tightened or HTML changed."))
     return out
 
 
