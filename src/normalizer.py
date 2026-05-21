@@ -19,6 +19,7 @@ class Item:
     url: str
     published_ts: datetime | None
     first_seen_ts: datetime  # set on first encounter; anchor for freshness
+    source_class: str = "aggregator"   # Phase-2 independent_source_count input
 
     @property
     def url_hash(self) -> str:
@@ -40,5 +41,6 @@ def normalize(entries: list[dict[str, Any]]) -> list[Item]:
             url=e["url"],
             published_ts=e.get("published_ts"),
             first_seen_ts=anchor,
+            source_class=e.get("source_class", "aggregator"),
         ))
     return items

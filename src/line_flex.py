@@ -355,6 +355,58 @@ def digest_carousel(
 
 # ---------- health ----------
 
+def eod_recap_bubble(stats: dict[str, Any], date_label: str) -> dict[str, Any]:
+    """End-of-day recap. `stats` shape:
+       {breaking_n, alert_n, digest_events_n, calendar_pre_n,
+        calendar_post_n, top_topics: list[(topic, count, max_score)]}
+    """
+    rows: list[dict[str, Any]] = [
+        {"type": "box", "layout": "horizontal", "contents": [
+            {"type": "text", "text": f"⚡ {stats.get('breaking_n', 0)} Breaking",
+             "size": "sm", "weight": "bold", "color": "#DC2626", "flex": 1},
+            {"type": "text", "text": f"🔔 {stats.get('alert_n', 0)} Alert",
+             "size": "sm", "weight": "bold", "color": "#D97706", "flex": 1, "align": "end"},
+        ]},
+        {"type": "box", "layout": "horizontal", "margin": "sm", "contents": [
+            {"type": "text", "text": f"📰 {stats.get('digest_events_n', 0)} Digest events",
+             "size": "sm", "color": "#374151", "flex": 1},
+        ]},
+        {"type": "separator", "margin": "lg"},
+        {"type": "text", "text": "CALENDAR", "size": "xs", "color": "#9CA3AF",
+         "weight": "bold", "margin": "md"},
+        {"type": "box", "layout": "horizontal", "contents": [
+            {"type": "text", "text": f"⏰ {stats.get('calendar_pre_n', 0)} Pre-Release",
+             "size": "sm", "color": "#374151", "flex": 1},
+            {"type": "text", "text": f"📊 {stats.get('calendar_post_n', 0)} Post-Release",
+             "size": "sm", "color": "#374151", "flex": 1, "align": "end"},
+        ]},
+    ]
+    top_topics = stats.get("top_topics") or []
+    if top_topics:
+        rows.append({"type": "separator", "margin": "lg"})
+        rows.append({"type": "text", "text": "TOP TOPICS", "size": "xs",
+                     "color": "#9CA3AF", "weight": "bold", "margin": "md"})
+        for topic, count, max_score in top_topics[:6]:
+            bg, fg = _topic_chip_color(topic)
+            rows.append({
+                "type": "box", "layout": "horizontal", "spacing": "sm",
+                "alignItems": "center", "margin": "sm",
+                "contents": [
+                    _chip(topic, bg, fg),
+                    {"type": "text", "text": f"{count} events",
+                     "size": "xs", "color": "#6B7280", "flex": 1, "margin": "sm"},
+                    {"type": "text", "text": f"max {max_score:.1f}",
+                     "size": "xs", "color": "#9CA3AF", "flex": 0, "align": "end"},
+                ],
+            })
+    return {
+        "type": "bubble", "size": "kilo",
+        "header": _header("🌙 End of Day", date_label, "#1F2937"),
+        "body": {"type": "box", "layout": "vertical", "spacing": "sm",
+                 "paddingAll": "16px", "contents": rows},
+    }
+
+
 def health_recovered_bubble(recoveries: list[tuple[str, str]]) -> dict[str, Any]:
     """Compact green bubble: one line per recovered feed."""
     lines: list[dict[str, Any]] = []
@@ -417,17 +469,50 @@ def _impact_pill_calendar(impact: str) -> dict[str, Any]:
     }
 
 
-def calendar_day_bubble(events: list[CalEvent], date_label: str) -> dict[str, Any] | None:
+def calendar_day_bubble(
+    events: list[CalEvent],
+    date_label: str,
+    xau_snapshot: tuple[float, float] | None = None,   # (last, day_pct)
+    dxy_snapshot: tuple[float, float] | None = None,
+) -> dict[str, Any] | None:
     """One long bubble listing today's events chronologically.
 
-    Each row: HH:MM · [Impact] · CCY · Title — generous spacing between
-    the four cells so the eye reads each segment as a discrete column.
+    Optional `xau_snapshot` / `dxy_snapshot` render a market-pulse band
+    at the top of the body so the user sees gold / dollar levels alongside
+    the day's release schedule.
     """
     if not events:
         return None
-    rows: list[dict[str, Any]] = []
+    body_contents: list[dict[str, Any]] = []
+
+    # Price snapshot strip
+    if xau_snapshot or dxy_snapshot:
+        cells = []
+        for label, snap in (("XAU", xau_snapshot), ("DXY", dxy_snapshot)):
+            if not snap:
+                continue
+            last, pct = snap
+            color = "#059669" if pct > 0 else "#DC2626" if pct < 0 else "#374151"
+            sign = "+" if pct > 0 else ""
+            cells.append({
+                "type": "box", "layout": "vertical", "flex": 1,
+                "contents": [
+                    {"type": "text", "text": label, "size": "xxs", "color": "#9CA3AF"},
+                    {"type": "text", "text": f"${last:,.2f}", "size": "sm",
+                     "weight": "bold", "color": "#111827"},
+                    {"type": "text", "text": f"{sign}{pct:.2f}%", "size": "xxs",
+                     "color": color},
+                ],
+            })
+        if cells:
+            body_contents.append({
+                "type": "box", "layout": "horizontal", "spacing": "md",
+                "contents": cells,
+            })
+            body_contents.append({"type": "separator", "margin": "md"})
+
     for ev in events:
-        rows.append({
+        body_contents.append({
             "type": "box", "layout": "horizontal", "spacing": "md",
             "alignItems": "center", "margin": "md",
             "contents": [
@@ -444,7 +529,7 @@ def calendar_day_bubble(events: list[CalEvent], date_label: str) -> dict[str, An
         "type": "bubble", "size": "giga",
         "header": _header("📅 Economic Calendar", date_label, COLOR["digest"]),
         "body": {"type": "box", "layout": "vertical", "spacing": "sm",
-                 "contents": rows, "paddingAll": "16px"},
+                 "contents": body_contents, "paddingAll": "16px"},
     }
 
 
@@ -466,6 +551,7 @@ def post_release_bubble(
     actual_text: str | None = None,
     surprise: str | None = None,
     verdict: str | None = None,
+    xau_return_pct: float | None = None,
 ) -> dict[str, Any]:
     """Released-news bubble — title-led, no time field, single-word verdict.
 
@@ -524,6 +610,15 @@ def post_release_bubble(
             "size": "sm", "weight": "bold",
             "color": "#111827", "margin": "xs",
         })
+        # Live XAU reaction (price-feed Phase 3 — when available)
+        if xau_return_pct is not None:
+            color = "#059669" if xau_return_pct > 0 else "#DC2626" if xau_return_pct < 0 else "#6B7280"
+            sign = "+" if xau_return_pct > 0 else ""
+            body_contents.append({
+                "type": "text",
+                "text": f"XAU reacted {sign}{xau_return_pct:.2f}% in the next 5 min",
+                "size": "xs", "color": color, "margin": "sm",
+            })
     else:
         # Directional-only path
         body_contents.append({

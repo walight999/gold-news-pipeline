@@ -8,11 +8,20 @@ from src.normalizer import Item
 from src.router import Route, decide
 
 
-def _make_event(eid: str, topic: str, sources: list[str], age_min: int = 1) -> tuple[Event, float]:
+def _make_event(eid: str, topic: str, sources: list[str], age_min: int = 1,
+                source_classes: list[str] | None = None) -> tuple[Event, float]:
+    """Helper: each source string `s` gets source_class from source_classes
+    (same index) or defaults to a unique class per source so multiple
+    sources count as independent."""
     anchor = datetime.now(timezone.utc) - timedelta(minutes=age_min)
-    items = [Item(source_id=s, tier=1, role="macro", title=f"hot {topic} from {s}",
-                  summary="", url=f"https://x/{s}/{eid}", published_ts=anchor,
-                  first_seen_ts=anchor) for s in sources]
+    items = []
+    for i, s in enumerate(sources):
+        sc = source_classes[i] if source_classes else f"class_{s}"
+        items.append(Item(source_id=s, tier=1, role="macro",
+                          title=f"hot {topic} from {s}",
+                          summary="", url=f"https://x/{s}/{eid}",
+                          published_ts=anchor, first_seen_ts=anchor,
+                          source_class=sc))
     ev = Event(event_id=eid, cluster_key=f"k{eid}", topic_bucket=topic,
                entity="us", direction_label="neutral", items=items)
     return ev, 5.0  # forced score for routing logic

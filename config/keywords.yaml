@@ -1,39 +1,225 @@
 topics:
   inflation:
     base_impact: 5
-    keywords: [cpi, "core cpi", pce, inflation]
-    entities:  [us, bls, fed]
+    keywords:
+      - cpi
+      - "core cpi"
+      - pce
+      - "core pce"
+      - ppi
+      - "core ppi"
+      - inflation
+      - "inflation expectations"
+      - "consumer prices"
+      - "wage growth"
+      - wages
+      - disinflation
+      - stagflation
+    entities:  [us, bls, fed, eurozone, uk, japan]
+
   jobs:
     base_impact: 5
-    keywords: [nfp, nonfarm, payrolls, unemployment, "jobs report"]
-    entities:  [us, bls]
+    keywords:
+      - nfp
+      - "non-farm"
+      - nonfarm
+      - payrolls
+      - "employment change"
+      - "jobs report"
+      - "unemployment rate"
+      - unemployment
+      - "jobless claims"
+      - "initial claims"
+      - "continuing claims"
+      - "labor market"
+      - "labour market"
+      - "wage growth"
+      - "average hourly earnings"
+    entities:  [us, bls, eurozone, uk]
+
   rate_policy:
     base_impact: 4
-    keywords: [fed, powell, fomc, "rate cut", "higher for longer", dots]
-    entities:  [fed, ecb, boj]
+    keywords:
+      - fed
+      - powell
+      - fomc
+      - "rate cut"
+      - "rate hike"
+      - "higher for longer"
+      - "restrictive"
+      - "accommodative"
+      - dots
+      - "dot plot"
+      - "rate decision"
+      - "federal funds"
+      - ecb
+      - lagarde
+      - "deposit facility"
+      - boj
+      - ueda
+      - boe
+      - bailey
+      # named Fed officials commonly quoted
+      - williams
+      - bostic
+      - goolsbee
+      - waller
+      - kashkari
+      - brainard
+      - daly
+      - mester
+      - barr
+    entities:  [fed, ecb, boj, boe]
+
   geopolitics:
     base_impact: 4
-    keywords: [iran, israel, hormuz, missile, war, ceasefire, tariff]
-    entities:  [mideast, us, china]
+    keywords:
+      - iran
+      - israel
+      - hormuz
+      - missile
+      - drone
+      - war
+      - ceasefire
+      - "trade war"
+      - tariff
+      - tariffs
+      - sanctions
+      - "safe haven"
+      - russia
+      - ukraine
+      - "north korea"
+      - taiwan
+      - "south china sea"
+      - escalation
+      - "de-escalation"
+      - retaliation
+      - evacuation
+    entities:  [mideast, us, china, russia]
+
   usd_yields:
     base_impact: 3
-    # known under-scoring: real yield / DXY breakout impact ~4 but needs price context.
-    # Phase 3 calibrates — do not guess from keyword alone.
-    keywords: [dxy, dollar, yields, treasury, "10-year"]
+    # Known under-scoring: real-yield / DXY breakout impact really sits at ~4
+    # but needs price context. Phase 3 calibrates from xau_return_*. Don't
+    # raise the static weight here without that data.
+    keywords:
+      - dxy
+      - "dollar index"
+      - dollar
+      - greenback
+      - yields
+      - "real yields"
+      - "real-yield"
+      - treasury
+      - "10-year"
+      - "10y yield"
+      - "2-year"
+      - "yield curve"
+      - "bond auction"
+      - tnx
     entities:  [us]
+
   gold_flow:
     base_impact: 3
-    keywords: [gold, xau, bullion, "central bank buying"]
+    keywords:
+      - gold
+      - xau
+      - bullion
+      - "central bank buying"
+      - "central-bank buying"
+      - pboc
+      - "gold reserves"
+      - "etf inflows"
+      - "etf outflows"
+      - wgc
+      - "world gold council"
+      - "spot gold"
     entities:  [wgc, pboc]
 
+  growth:
+    base_impact: 2
+    keywords:
+      - gdp
+      - recession
+      - "retail sales"
+      - "consumer confidence"
+      - "consumer sentiment"
+      - "durable goods"
+      - ism
+      - pmi
+      - "industrial production"
+      - "manufacturing pmi"
+      - "services pmi"
+      - "leading index"
+    entities:  [us, eurozone, uk, china, japan]
+
 direction_keywords:
-  # Phase 1: keyword-based only (no LLM). Expect to miss some phrasings — adjust after 1-2 weeks of run logs.
-  hawkish:  ["higher for longer", "sticky inflation", "not ready to cut", "restrictive", "restrictive stance", "hike", "inflation remains elevated", "upside risks", "no rush", "hold rates steady"]
-  dovish:   ["rate cut", "cooling inflation", "labor weakness", "slowdown", "easing", "disinflation", "soft landing", "labor market cooling", "downside risks"]
-  risk_off: ["missile", "attack", "war", "hormuz", "strike", "safe haven", "explosion", "drone", "retaliation", "sanctions", "evacuation"]
-  risk_on:  ["ceasefire", "deal", "de-escalation", "truce"]
-  # no match = neutral
+  # Keep keyword-based only in Phase 1. Adjust after a couple weeks of
+  # run-log calibration once we see which phrasings are common.
+  hawkish:
+    - "higher for longer"
+    - "sticky inflation"
+    - "not ready to cut"
+    - "restrictive"
+    - "restrictive stance"
+    - "rate hike"
+    - hike
+    - "inflation remains elevated"
+    - "upside risks"
+    - "no rush"
+    - "hold rates steady"
+    - "stay the course"
+    - "more work to do"
+    - "data dependent"
+    - "above target"
+    - tightening
+  dovish:
+    - "rate cut"
+    - "rate cuts"
+    - "cooling inflation"
+    - "labor weakness"
+    - "labour weakness"
+    - "labor market cooling"
+    - slowdown
+    - easing
+    - disinflation
+    - "soft landing"
+    - "downside risks"
+    - "weaker than expected"
+    - "patient stance"
+    - "pause hikes"
+    - "policy easing"
+    - "accommodative"
+  risk_off:
+    - missile
+    - attack
+    - war
+    - hormuz
+    - strike
+    - "safe haven"
+    - explosion
+    - drone
+    - retaliation
+    - sanctions
+    - evacuation
+    - escalation
+    - "flight to safety"
+    - "stocks plunge"
+    - "stocks tumble"
+    - "VIX spikes"
+    - "bond bid"
+    - "yields drop"
+  risk_on:
+    - ceasefire
+    - deal
+    - "de-escalation"
+    - truce
+    - "stocks rally"
+    - "risk on"
+    - "yields jump"
+    - "stocks surge"
+    - "all-time high"
+  # No match → neutral.
 
 # Thai-name mapping disabled (user prefers pure English output).
-# Re-enable by populating this map; line_flex no longer reads it.
 name_map: {}

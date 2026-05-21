@@ -52,21 +52,21 @@ def _is_official(ev: Event) -> bool:
 
 
 def _is_confirmed(ev: Event) -> bool:
-    """Phase 1 definition: official source OR source_count >= 2.
-    NOTE: source_count counts feeds, not independent sources (syndication
-    may inflate). Phase 2 replaces with independent_source_count."""
-    return _is_official(ev) or ev.source_count >= 2
+    """Phase 2: official source OR independent_source_count >= 2.
+    A single ForexLive wire counted twice doesn't count as confirmation;
+    BBC + ForexLive (aggregator + wire) does."""
+    return _is_official(ev) or ev.independent_source_count >= 2
 
 
 def base_route(ev: Event, score: float, require_breaking_confirmation: bool = False) -> tuple[Route, str]:
     if score >= 4.5:
-        if require_breaking_confirmation and not (_is_official(ev) or ev.source_count >= 2):
+        if require_breaking_confirmation and not _is_confirmed(ev):
             # Phase 2 hint: downgrade single-source BREAKING to ALERT.
             return Route.ALERT, "score>=4.5 but single-source → tightened to alert"
         return Route.BREAKING, "score>=4.5"
     if score >= 3.5:
-        if _is_official(ev) or ev.source_count >= 2:
-            return Route.ALERT, "score>=3.5 & (official or confirmed)"
+        if _is_confirmed(ev):
+            return Route.ALERT, "score>=3.5 & (official or independent>=2)"
         return Route.ARCHIVE, "score>=3.5 but unconfirmed"
     if score >= 2.5:
         return Route.DIGEST, "2.5<=score<3.5"

@@ -22,7 +22,7 @@ from typing import Any
 import yaml
 
 from . import calendar as cal
-from . import dedup, digest, fred, health, scorer
+from . import dedup, digest, fred, health, price_feed, scorer
 from .fetcher import fetch_all, plan_fetch
 from .line_client import LineClient
 from .line_flex import (
@@ -31,6 +31,7 @@ from .line_flex import (
     breaking_bubble,
     calendar_day_bubble,
     digest_carousel,
+    eod_recap_bubble,
     health_bubble,
     health_recovered_bubble,
     post_release_bubble,
@@ -41,7 +42,29 @@ from .normalizer import normalize
 from .parser import parse_feed
 from .router import Route, decide
 from .store import Store
-from .utils_time import ICT, is_weekend_ict, iso_utc, now_ict, now_utc, within_digest_slot
+from .utils_time import (
+    ICT,
+    is_quiet_hours_ict,
+    is_weekend_ict,
+    iso_utc,
+    now_ict,
+    now_utc,
+    within_digest_slot,
+)
+
+
+def _quiet_hours_cfg(sched_cfg):
+    return sched_cfg.get("quiet_hours") or {}
+
+
+def _push_or_skip(line, target, alt, bubble, sched_cfg, label=""):
+    """LINE push wrapped in the quiet-hours gate. Returns the response dict
+    on actual push, or a synthetic {status: 0, body: 'quiet_hours'} when
+    suppressed so callers can keep idempotency logic clean."""
+    if is_quiet_hours_ict(_quiet_hours_cfg(sched_cfg)):
+        log.info("quiet hours — suppressing push (%s)", label or "")
+        return {"status": 0, "body": "quiet_hours"}
+    return line.push_flex(target, alt, bubble)
 
 log = logging.getLogger("gold-news")
 CFG_DIR = Path(__file__).resolve().parent.parent / "config"
@@ -144,7 +167,7 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
             else:
                 bubble = alert_bubble(ev, d.score, kw_cfg)
                 alt = alt_text_for_event("🔔 ALERT", ev, d.score)
-            resp = line.push_flex(news_target, alt, bubble)
+            resp = _push_or_skip(line, news_target, alt, bubble, sched_cfg, label=d.route.value)
             if resp["status"] == 200:
                 store.upsert("sent_log", {
                     "event_id": ev.event_id,
@@ -199,14 +222,14 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
         if emitted_warnings:
             bubble = health_bubble(emitted_warnings)
             alt = f"⚠️ Health Check — {len(emitted_warnings)} warning(s)"
-            line.push_flex(health_target, alt, bubble)
+            _push_or_skip(line, health_target, alt, bubble, sched_cfg, label="health")
 
     # Push recoveries
     if recovered and health_target:
         line = line or LineClient.from_env()
         bubble = health_recovered_bubble(recovered)
         alt = f"✅ Health Recovered — {len(recovered)} item(s)"
-        line.push_flex(health_target, alt, bubble)
+        _push_or_skip(line, health_target, alt, bubble, sched_cfg, label="health_recovered")
 
     # 7. Digest if in slot
     if mode in ("cron", "digest"):
@@ -233,7 +256,7 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
             if carousel and news_target:
                 line = line or LineClient.from_env()
                 alt = f"📰 Digest {slot} ICT — {len(ranked)} event(s)"
-                resp = line.push_flex(news_target, alt, carousel)
+                resp = _push_or_skip(line, news_target, alt, carousel, sched_cfg, label="digest")
                 digest.mark_sent(store, slot, resp["status"])
 
     # 8. Flush state
@@ -243,6 +266,154 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
 
 
 # --------------- Event-mode loop ---------------
+
+async def run_verify_sources() -> int:
+    """Weekly probe — checks every enabled source URL + FF JSON + FF HTML
+    parser. Pushes a health alert if anything broke (and the failure
+    isn't already in health_log within cooldown)."""
+    import asyncio as _aio
+    import httpx
+    src_cfg, _, sched_cfg = _load_configs()
+    sources = [s for s in src_cfg.get("sources", []) if s.get("enabled")]
+
+    store = Store.from_env()
+    store.connect()
+    store.load_all()
+    failures: list[tuple[str, str]] = []
+
+    async def _probe(s):
+        url = s.get("url")
+        if not url:
+            return s["id"], "no_url"
+        try:
+            async with httpx.AsyncClient(timeout=15, follow_redirects=True,
+                                          headers={"User-Agent": "gold-news-pipeline/verify"}) as c:
+                r = await c.get(url)
+            if r.status_code >= 400:
+                return s["id"], f"http_{r.status_code}"
+            return s["id"], "ok"
+        except Exception as e:
+            return s["id"], f"err_{type(e).__name__}"
+
+    results = await _aio.gather(*[_probe(s) for s in sources])
+    for sid, status in results:
+        if status != "ok":
+            failures.append((sid, f"verify_{status}"))
+
+    # FF JSON
+    try:
+        events = cal.fetch_calendar()
+        if not events:
+            failures.append(("forexfactory_json", "verify_empty"))
+    except Exception as e:
+        failures.append(("forexfactory_json", f"verify_err_{type(e).__name__}"))
+
+    # FF HTML scraper
+    try:
+        from . import ff_scraper
+        scraped = ff_scraper.scrape_ff_html()
+        if not scraped:
+            failures.append(("forexfactory_html", "verify_scrape_empty"))
+    except Exception as e:
+        failures.append(("forexfactory_html", f"verify_scrape_err_{type(e).__name__}"))
+
+    log.info("verify_sources: %d sources checked, %d failures",
+             len(sources) + 2, len(failures))
+
+    health_target = os.environ.get("LINE_HEALTH_TARGET", "")
+    if failures and health_target:
+        cooldown = int(sched_cfg.get("health", {}).get("alert_cooldown_minutes", 60))
+        emitted: list[tuple[str, str]] = []
+        for sid, wtype in failures:
+            if health.raise_warning(store, sid, wtype, cooldown):
+                emitted.append((sid, wtype))
+        if emitted:
+            line = LineClient.from_env()
+            bubble = health_bubble(emitted)
+            alt = f"⚠️ Verify — {len(emitted)} source issue(s)"
+            _push_or_skip(line, health_target, alt, bubble, sched_cfg, label="verify")
+    store.flush()
+    return 0
+
+
+async def run_eod_recap() -> int:
+    """End-of-day recap @ 23:00 ICT. Idempotent per ICT date."""
+    if is_weekend_ict():
+        log.info("weekend (ICT) — skipping eod_recap")
+        return 0
+    _, _, sched_cfg = _load_configs()
+    store = Store.from_env()
+    store.connect()
+    store.load_all()
+
+    from datetime import timedelta
+    today_ict = now_ict().strftime("%Y-%m-%d")
+    sent_key = f"eod:{today_ict}"
+    if store.get("sent_log", (sent_key, "eod_recap")):
+        log.info("eod_recap already sent for %s — skipping", today_ict)
+        store.flush()
+        return 0
+
+    # Count today's pushes from sent_log
+    today_start = now_utc().replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(hours=7)
+    breaking_n = alert_n = cal_pre_n = cal_post_n = 0
+    from .utils_time import parse_iso
+    for row in store.all_rows("sent_log"):
+        ts = parse_iso(row.get("sent_ts"))
+        if not ts or ts < today_start:
+            continue
+        rt = row.get("route_type", "")
+        if rt == "breaking": breaking_n += 1
+        elif rt == "alert": alert_n += 1
+        elif rt == "calendar_pre": cal_pre_n += 1
+        elif rt == "calendar_post": cal_post_n += 1
+
+    # Top topics from today's event_state (score >= 1.5)
+    topic_stats: dict[str, list[float]] = {}
+    for row in store.all_rows("event_state"):
+        ts = parse_iso(row.get("first_seen_ts"))
+        if not ts or ts < today_start:
+            continue
+        sc = float(row.get("score") or 0)
+        if sc < 1.5:
+            continue
+        topic = row.get("topic_bucket", "other")
+        topic_stats.setdefault(topic, []).append(sc)
+
+    top_topics = [
+        (topic, len(scores), max(scores))
+        for topic, scores in topic_stats.items()
+    ]
+    top_topics.sort(key=lambda x: (-x[2], -x[1]))
+    digest_events_n = sum(len(s) for s in topic_stats.values())
+
+    stats = {
+        "breaking_n": breaking_n,
+        "alert_n": alert_n,
+        "digest_events_n": digest_events_n,
+        "calendar_pre_n": cal_pre_n,
+        "calendar_post_n": cal_post_n,
+        "top_topics": top_topics,
+    }
+    target = os.environ.get("LINE_NEWS_TARGET", "")
+    if not target:
+        log.warning("LINE_NEWS_TARGET not set — skipping eod_recap push")
+        store.flush()
+        return 0
+    line = LineClient.from_env()
+    bubble = eod_recap_bubble(stats, now_ict().strftime("%a %d %b %Y"))
+    alt = (f"🌙 EoD — {breaking_n} breaking, {alert_n} alert, "
+           f"{cal_pre_n}+{cal_post_n} calendar")
+    resp = _push_or_skip(line, target, alt, bubble, sched_cfg, label="eod_recap")
+    if resp["status"] == 200:
+        store.upsert("sent_log", {
+            "event_id": sent_key, "route_type": "eod_recap",
+            "sent_ts": iso_utc(now_utc()), "line_status": 200,
+        })
+    store.flush()
+    log.info("eod_recap done: %s", stats)
+    return 0
+
 
 async def run_maintain() -> int:
     """Purge stale rows so the Sheet doesn't grow unbounded.
@@ -345,7 +516,8 @@ async def run_weekly_preview() -> int:
         store.flush()
         return 0
     line = LineClient.from_env()
-    resp = line.push_flex(target, f"📅 Week Ahead — {len(filtered)} events", bubble)
+    resp = _push_or_skip(line, target, f"📅 Week Ahead — {len(filtered)} events",
+                          bubble, sched_cfg, label="weekly_preview")
     if resp["status"] == 200:
         store.upsert("sent_log", {
             "event_id": sent_key, "route_type": "weekly_preview",
@@ -398,12 +570,18 @@ async def run_calendar_daily() -> int:
         return 0
 
     date_label = now_ict().strftime("%a %d %b %Y")
-    bubble = calendar_day_bubble(filtered, date_label)
+    # Market pulse — yfinance call wrapped in try (skip on failure).
+    xau_snap = price_feed.get_xau_snapshot()
+    dxy_snap = price_feed.get_dxy_snapshot()
+    xau_tuple = (xau_snap.last, xau_snap.pct_change_day) if xau_snap else None
+    dxy_tuple = (dxy_snap.last, dxy_snap.pct_change_day) if dxy_snap else None
+    bubble = calendar_day_bubble(filtered, date_label, xau_tuple, dxy_tuple)
     if bubble is None:
         store.flush()
         return 0
     line = LineClient.from_env()
-    resp = line.push_flex(target, f"📅 Calendar — {len(filtered)} events today", bubble)
+    resp = _push_or_skip(line, target, f"📅 Calendar — {len(filtered)} events today",
+                          bubble, sched_cfg, label="calendar_daily")
     if resp["status"] == 200:
         store.upsert("sent_log", {
             "event_id": sent_key, "route_type": "calendar_daily",
@@ -472,7 +650,7 @@ async def run_calendar_check() -> int:
             effect_info = cal.forecast_vs_previous_effect(ev)
             bubble = pre_release_bubble(ev, mins_to, impact_info, effect_info)
             alt = f"⏰ T-{mins_to}min · {ev.country} {ev.title}"
-            resp = line.push_flex(target, alt, bubble)
+            resp = _push_or_skip(line, target, alt, bubble, sched_cfg, label="calendar")
             if resp["status"] == 200:
                 store.upsert("sent_log", {
                     "event_id": sent_key, "route_type": "calendar_pre",
@@ -500,12 +678,16 @@ async def run_calendar_check() -> int:
                         verdict = fred.reconcile_with_impact(surprise, impact_info)
                     else:
                         verdict = None
+            # XAU reaction since release (Phase 3 — when intraday data is
+            # available; off-hours / 429s gracefully return None).
+            xau_reaction = price_feed.xau_return_pct(ev.dt_utc, minutes_after=5)
             bubble = post_release_bubble(ev, impact_info,
                                          actual_text=actual_text,
-                                         surprise=surprise, verdict=verdict)
+                                         surprise=surprise, verdict=verdict,
+                                         xau_return_pct=xau_reaction)
             alt_extra = f" · actual {actual_text}" if actual_text else ""
             alt = f"📊 Released · {ev.country} {ev.title}{alt_extra}"
-            resp = line.push_flex(target, alt, bubble)
+            resp = _push_or_skip(line, target, alt, bubble, sched_cfg, label="calendar")
             if resp["status"] == 200:
                 store.upsert("sent_log", {
                     "event_id": sent_key, "route_type": "calendar_post",
@@ -542,7 +724,7 @@ def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser()
     p.add_argument("--mode", choices=(
         "cron", "event", "digest", "calendar_daily", "calendar_check",
-        "weekly_preview", "maintain",
+        "weekly_preview", "eod_recap", "verify_sources", "maintain",
     ), default="cron")
     p.add_argument("--event-duration-min", type=int, default=30)
     p.add_argument("--event-sleep-sec", type=int, default=60)
@@ -555,6 +737,10 @@ def main(argv: list[str] | None = None) -> int:
         return asyncio.run(run_calendar_check())
     if args.mode == "weekly_preview":
         return asyncio.run(run_weekly_preview())
+    if args.mode == "eod_recap":
+        return asyncio.run(run_eod_recap())
+    if args.mode == "verify_sources":
+        return asyncio.run(run_verify_sources())
     if args.mode == "maintain":
         return asyncio.run(run_maintain())
     return asyncio.run(run_once(mode=args.mode))

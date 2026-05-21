@@ -56,6 +56,14 @@ class Event:
         return len(self.source_list)
 
     @property
+    def independent_source_count(self) -> int:
+        """Count of DISTINCT source classes (official / wire / aggregator / ...).
+        Two ForexLive endpoints reporting the same wire don't count as two
+        independent sources. Phase-2 confirmation logic uses this instead
+        of the raw source_count."""
+        return len({i.source_class for i in self.items if i.source_class})
+
+    @property
     def representative_title(self) -> str:
         # Prefer Tier 0 → 1 → 2 → 3, then earliest first_seen.
         ranked = sorted(self.items, key=lambda i: (i.tier, i.first_seen_ts))

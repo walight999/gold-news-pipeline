@@ -1,14 +1,19 @@
 sources:
-  # enabled: true  = path stable enough to attempt; still gated by validator on first run / after failures
-  # enabled: false = candidate URL only — verify manually before flipping to true
-  - {id: fed,         tier: 0, role: policy,       url: "https://www.federalreserve.gov/feeds/press_all.xml", poll_min: 15, enabled: true}
-  - {id: bls,         tier: 0, role: data_release, url: "https://www.bls.gov/feed/bls_latest.rss",            poll_min: 15, enabled: true,  note: "verified 2026-05-20: HTTP 200, 1 item, parses OK"}
-  - {id: ecb,         tier: 0, role: policy,       url: "https://www.ecb.europa.eu/rss/press.xml",            poll_min: 15, enabled: true,  note: "verified 2026-05-20: HTTP 200, 15 items, parses OK"}
-  - {id: treasury,    tier: 0, role: yields,       url: "",                                                   poll_min: 15, enabled: false, note: "2026-05-20: no public RSS endpoint found; treasury.gov returns 404/503, federalregister malformed XML. Phase 2: scrape or use Treasury API."}
-  - {id: bbc_world,   tier: 1, role: geopolitics,  url: "https://feeds.bbci.co.uk/news/world/rss.xml",        poll_min: 15, enabled: true}
-  - {id: aljazeera,   tier: 1, role: geopolitics,  url: "https://www.aljazeera.com/xml/rss/all.xml",          poll_min: 15, enabled: true}
-  - {id: cnbc,        tier: 1, role: macro,        url: "https://www.cnbc.com/id/100003114/device/rss/rss.html", poll_min: 10, enabled: true,  note: "verified 2026-05-20: HTTP 200, 30 items, fresh within minutes"}
-  - {id: marketwatch, tier: 1, role: macro,        url: "https://feeds.marketwatch.com/marketwatch/topstories/", poll_min: 10, enabled: true}
-  - {id: forexlive,   tier: 2, role: trader_macro, url: "https://www.forexlive.com/feed/",                    poll_min: 5,  enabled: true}
-  - {id: fxstreet,    tier: 2, role: gold_bias,    url: "https://www.fxstreet.com/rss",                       poll_min: 5,  enabled: true,  note: "verified 2026-05-20: HTTP 200, 30 items, fresh within minutes"}
-  - {id: kitco,       tier: 3, role: gold_context, url: "https://www.kitco.com/rss/",                         poll_min: 60, enabled: false, note: "2026-05-20: HTTP 404 — Kitco discontinued free RSS. Skip until paid feed or scraping path."}
+  # source_class: used by Phase-2 independent_source_count for breaking/alert
+  # confirmation logic. Different classes = independent. Two ForexLive
+  # syndication paths are not "two sources".
+  #   official    — primary releaser (Fed, BLS, ECB, Treasury)
+  #   aggregator  — mainstream news desk (BBC, AlJazeera, CNBC, MarketWatch)
+  #   wire        — trader newswire (ForexLive, FXStreet)
+  #   gold_blog   — gold-specific commentary (Kitco)
+  - {id: fed,         tier: 0, source_class: official,   role: policy,       url: "https://www.federalreserve.gov/feeds/press_all.xml", poll_min: 15, enabled: true}
+  - {id: bls,         tier: 0, source_class: official,   role: data_release, url: "https://www.bls.gov/feed/bls_latest.rss",            poll_min: 15, enabled: true,  note: "verified 2026-05-20: HTTP 200, parses OK"}
+  - {id: ecb,         tier: 0, source_class: official,   role: policy,       url: "https://www.ecb.europa.eu/rss/press.xml",            poll_min: 15, enabled: true,  note: "verified 2026-05-20"}
+  - {id: treasury,    tier: 0, source_class: official,   role: yields,       url: "",                                                   poll_min: 15, enabled: false, note: "2026-05-20: no public RSS endpoint found"}
+  - {id: bbc_world,   tier: 1, source_class: aggregator, role: geopolitics,  url: "https://feeds.bbci.co.uk/news/world/rss.xml",        poll_min: 15, enabled: true}
+  - {id: aljazeera,   tier: 1, source_class: aggregator, role: geopolitics,  url: "https://www.aljazeera.com/xml/rss/all.xml",          poll_min: 15, enabled: true}
+  - {id: cnbc,        tier: 1, source_class: aggregator, role: macro,        url: "https://www.cnbc.com/id/100003114/device/rss/rss.html", poll_min: 10, enabled: true,  note: "verified 2026-05-20"}
+  - {id: marketwatch, tier: 1, source_class: aggregator, role: macro,        url: "https://feeds.marketwatch.com/marketwatch/topstories/", poll_min: 10, enabled: true}
+  - {id: forexlive,   tier: 2, source_class: wire,       role: trader_macro, url: "https://www.forexlive.com/feed/",                    poll_min: 5,  enabled: true}
+  - {id: fxstreet,    tier: 2, source_class: wire,       role: gold_bias,    url: "https://www.fxstreet.com/rss",                       poll_min: 5,  enabled: true,  note: "verified 2026-05-20"}
+  - {id: kitco,       tier: 3, source_class: gold_blog,  role: gold_context, url: "https://www.kitco.com/rss/",                         poll_min: 60, enabled: false, note: "2026-05-20: HTTP 404"}

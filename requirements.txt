@@ -12,3 +12,5 @@ tenacity>=8.2.3
 curl-cffi>=0.7.0
 beautifulsoup4>=4.12.0
 lxml>=5.0.0
+# XAU + DXY intraday for post-release reaction + daily-calendar snapshot.
+yfinance>=0.2.40

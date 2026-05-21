@@ -72,6 +72,33 @@ def is_weekend_ict(dt: datetime | None = None) -> bool:
     return dt_ict.weekday() in (5, 6)  # Mon=0 ... Sat=5, Sun=6
 
 
+def is_quiet_hours_ict(cfg: dict | None, dt: datetime | None = None) -> bool:
+    """True if now (ICT) falls inside the configured quiet-hours window.
+
+    cfg shape:
+        {enabled: bool, start_ict: "HH:MM", end_ict: "HH:MM"}
+    Cross-midnight windows (e.g. 23:00-05:00) are supported.
+    """
+    cfg = cfg or {}
+    if not cfg.get("enabled"):
+        return False
+    dt_ict = to_ict(dt) if dt else now_ict()
+    try:
+        sh, sm = (int(x) for x in str(cfg.get("start_ict", "00:00")).split(":"))
+        eh, em = (int(x) for x in str(cfg.get("end_ict",   "00:00")).split(":"))
+    except (ValueError, AttributeError):
+        return False
+    now_min = dt_ict.hour * 60 + dt_ict.minute
+    start = sh * 60 + sm
+    end = eh * 60 + em
+    if start == end:
+        return False
+    if start < end:
+        return start <= now_min < end
+    # cross-midnight: e.g., 23:00 → 05:00
+    return now_min >= start or now_min < end
+
+
 def freshness_factor(anchor_utc: datetime, ref_utc: datetime | None = None) -> float:
     """0–3m=1.0 | 3–10m=0.6 | 10–30m=0.3 | >30m=0.1"""
     ref = ref_utc or now_utc()

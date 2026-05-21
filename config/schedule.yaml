@@ -18,6 +18,14 @@ rate_limit:
   breaking_alert_window_minutes: 15
   breaking_alert_max: 5
 
+quiet_hours:
+  # When enabled, all LINE pushes (breaking/alert/digest/calendar/health)
+  # are suppressed inside the window. Sheet still records everything —
+  # state isn't lost, just no LINE notifications during sleep.
+  enabled: true
+  start_ict: "00:00"
+  end_ict:   "05:00"
+
 routing:
   # When true, BREAKING (score >= 4.5) requires either an official source
   # (fed/bls/ecb/treasury) OR source_count >= 2. Suppresses single-source
