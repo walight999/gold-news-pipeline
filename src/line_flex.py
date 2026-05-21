@@ -577,24 +577,24 @@ def post_release_bubble(
     ]
 
     if actual_text:
-        # 3-col data strip
+        # 3-col data strip — all centered for equal visual spacing.
         body_contents.append({
             "type": "box", "layout": "horizontal", "margin": "lg",
             "contents": [
-                {"type": "text", "text": "Actual",   "size": "xxs", "color": "#9CA3AF", "flex": 1},
+                {"type": "text", "text": "Actual",   "size": "xxs", "color": "#9CA3AF", "flex": 1, "align": "center"},
                 {"type": "text", "text": "Forecast", "size": "xxs", "color": "#9CA3AF", "flex": 1, "align": "center"},
-                {"type": "text", "text": "Previous", "size": "xxs", "color": "#9CA3AF", "flex": 1, "align": "end"},
+                {"type": "text", "text": "Previous", "size": "xxs", "color": "#9CA3AF", "flex": 1, "align": "center"},
             ],
         })
         body_contents.append({
             "type": "box", "layout": "horizontal",
             "contents": [
                 {"type": "text", "text": actual_text, "size": "md", "weight": "bold",
-                 "color": "#111827", "flex": 1},
+                 "color": "#111827", "flex": 1, "align": "center"},
                 {"type": "text", "text": event.forecast or "-", "size": "sm",
                  "color": "#374151", "flex": 1, "align": "center"},
                 {"type": "text", "text": event.previous or "-", "size": "sm",
-                 "color": "#374151", "flex": 1, "align": "end"},
+                 "color": "#374151", "flex": 1, "align": "center"},
             ],
         })
         body_contents.append({"type": "separator", "margin": "lg"})
@@ -628,22 +628,22 @@ def post_release_bubble(
             "type": "box", "layout": "horizontal", "margin": "lg",
             "contents": [
                 {"type": "text", "text": "Forecast", "size": "xxs",
-                 "color": "#9CA3AF", "flex": 1},
+                 "color": "#9CA3AF", "flex": 1, "align": "center"},
                 {"type": "text", "text": "Previous", "size": "xxs",
                  "color": "#9CA3AF", "flex": 1, "align": "center"},
                 {"type": "text", "text": "GOLD IMPACT", "size": "xxs",
-                 "color": "#9CA3AF", "flex": 1, "align": "end"},
+                 "color": "#9CA3AF", "flex": 1, "align": "center"},
             ],
         })
         body_contents.append({
             "type": "box", "layout": "horizontal",
             "contents": [
                 {"type": "text", "text": event.forecast or "-", "size": "sm",
-                 "weight": "bold", "color": "#111827", "flex": 1},
+                 "weight": "bold", "color": "#111827", "flex": 1, "align": "center"},
                 {"type": "text", "text": event.previous or "-", "size": "sm",
                  "color": "#374151", "flex": 1, "align": "center"},
                 {"type": "text", "text": eff["emoji"], "size": "md",
-                 "flex": 1, "align": "end"},
+                 "flex": 1, "align": "center"},
             ],
         })
 
@@ -737,20 +737,20 @@ def pre_release_bubble(event: CalEvent, minutes_to_release: int,
         {"type": "box", "layout": "horizontal", "margin": "lg",
          "contents": [
              {"type": "text", "text": "Forecast", "size": "xxs",
-              "color": "#9CA3AF", "flex": 1},
+              "color": "#9CA3AF", "flex": 1, "align": "center"},
              {"type": "text", "text": "Previous", "size": "xxs",
               "color": "#9CA3AF", "flex": 1, "align": "center"},
              {"type": "text", "text": "GOLD IMPACT", "size": "xxs",
-              "color": "#9CA3AF", "flex": 1, "align": "end"},
+              "color": "#9CA3AF", "flex": 1, "align": "center"},
         ]},
         {"type": "box", "layout": "horizontal",
          "contents": [
              {"type": "text", "text": event.forecast or "-", "size": "sm",
-              "weight": "bold", "color": "#111827", "flex": 1},
+              "weight": "bold", "color": "#111827", "flex": 1, "align": "center"},
              {"type": "text", "text": event.previous or "-", "size": "sm",
               "color": "#374151", "flex": 1, "align": "center"},
              {"type": "text", "text": eff["emoji"], "size": "md",
-              "flex": 1, "align": "end"},
+              "flex": 1, "align": "center"},
         ]},
     ]
     # Header sub-label dropped — bubble timing in LINE already conveys
