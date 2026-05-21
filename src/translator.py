@@ -77,6 +77,37 @@ def _get_google():
     return _google_instance
 
 
+def _has_cjk(text: str | None) -> bool:
+    """True if `text` contains any Chinese / Japanese / Korean script
+    characters. We want Thai-only output — Chinese leaks via Google
+    Translate when the source RSS item carries Chinese names of officials
+    or places (Reuters/Yahoo Finance does this a lot)."""
+    if not text:
+        return False
+    for c in text:
+        if "一" <= c <= "鿿":            # CJK Unified Ideographs
+            return True
+        if "぀" <= c <= "ヿ":            # Japanese Hiragana + Katakana
+            return True
+        if "가" <= c <= "힯":            # Korean Hangul
+            return True
+    return False
+
+
+def _clean_translation(out: str | None) -> str | None:
+    """Reject empty / CJK-leaked outputs. Caller falls back to next
+    backend (or English original) when this returns None."""
+    if not out:
+        return None
+    out = out.strip()
+    if not out:
+        return None
+    if _has_cjk(out):
+        log.info("translation rejected — CJK leak detected")
+        return None
+    return out
+
+
 def _translate_claude(text: str) -> str | None:
     client = _get_anthropic_client()
     if not client:
@@ -87,8 +118,7 @@ def _translate_claude(text: str) -> str | None:
             max_tokens=512,
             messages=[{"role": "user", "content": _LLM_PROMPT.format(text=text)}],
         )
-        out = resp.content[0].text.strip()
-        return out or None
+        return _clean_translation(resp.content[0].text)
     except Exception as e:
         log.warning("claude translate failed: %s", e)
         return None
@@ -99,8 +129,7 @@ def _translate_google(text: str) -> str | None:
     if not g:
         return None
     try:
-        out = g.translate(text)
-        return out.strip() if out else None
+        return _clean_translation(g.translate(text))
     except Exception as e:
         log.warning("google translate failed: %s", e)
         return None
@@ -109,7 +138,11 @@ def _translate_google(text: str) -> str | None:
 def to_thai(text: str | None, max_len: int = 600) -> str | None:
     """Translate English to Thai. Tries Claude first (when key is set),
     falls back to Google. Returns None if both fail so callers can show
-    the English original."""
+    the English original.
+
+    Output is validated to ensure no Chinese / Japanese / Korean script
+    leaks through (Google Translate passes through Chinese names from
+    Reuters-style sources; Claude transliterates them properly to Thai)."""
     if not text:
         return None
     text = re.sub(r"\s+", " ", text).strip()[:max_len]
