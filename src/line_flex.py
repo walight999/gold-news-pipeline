@@ -305,9 +305,10 @@ def _digest_event_row(ev: Event, score: float, kw_cfg: dict[str, Any],
         ]},
     ]
     if summary_th:
+        # Allow 3-4 lines of Thai context. 500 chars ≈ 4 lines on a phone.
         contents.append({
-            "type": "text", "text": _trim(summary_th, 280),
-            "size": "xxs", "color": "#4B5563", "wrap": True, "margin": "xs",
+            "type": "text", "text": _trim(summary_th, 500),
+            "size": "xxs", "color": "#374151", "wrap": True, "margin": "sm",
         })
     contents.append(_source_link(src_name, age, url))
 
@@ -315,36 +316,28 @@ def _digest_event_row(ev: Event, score: float, kw_cfg: dict[str, Any],
             "margin": "md", "contents": contents}
 
 
-def digest_carousel(
-    events: list[Event],
+def _build_digest_bubble(
+    chunk: list[Event],
     scores: dict[str, float],
     slot: str,
     kw_cfg: dict[str, Any],
-    translations: dict[str, dict[str, str | None]] | None = None,
-) -> dict[str, Any] | None:
-    """Single LONG bubble: header then per-topic sections (no carousel).
-
-    Name retained for backward compat with main.py — returns a bubble dict,
-    LINE renders the same regardless of bubble vs carousel at this level.
-    """
-    if not events:
-        return None
+    translations: dict[str, dict[str, str | None]] | None,
+    header_label: str,
+    header_sub: str,
+) -> dict[str, Any]:
+    """One bubble with its own topic grouping for the events in `chunk`."""
     groups: dict[str, list[Event]] = {}
-    for ev in events:
+    for ev in chunk:
         groups.setdefault(ev.topic_bucket, []).append(ev)
     sorted_topics = sorted(
         groups.keys(),
         key=lambda t: -max(scores.get(e.event_id, 0) for e in groups[t]),
     )
-
-    total_events = 0
     sections: list[dict[str, Any]] = []
     for i, topic in enumerate(sorted_topics):
-        evs = sorted(groups[topic], key=lambda e: -scores.get(e.event_id, 0))[:5]
-        total_events += len(evs)
+        evs = sorted(groups[topic], key=lambda e: -scores.get(e.event_id, 0))
         if i > 0:
             sections.append({"type": "separator", "margin": "lg"})
-        # Topic section heading
         sections.append({
             "type": "box", "layout": "horizontal", "margin": "lg",
             "alignItems": "center",
@@ -362,15 +355,57 @@ def digest_carousel(
                 title_th=tr.get("title_th"),
                 summary_th=tr.get("summary_th"),
             ))
-
     return {
         "type": "bubble", "size": "giga",
-        "header": _header("📰 Latest News Update",
-                          f"{slot} ICT · {total_events} event(s)",
-                          COLOR["digest"]),
+        "header": _header(header_label, header_sub, COLOR["digest"]),
         "body": {"type": "box", "layout": "vertical", "spacing": "sm",
                  "contents": sections, "paddingAll": "16px"},
     }
+
+
+# Above this many events, split the digest into a 2-bubble carousel.
+DIGEST_SPLIT_THRESHOLD = 5
+
+
+def digest_carousel(
+    events: list[Event],
+    scores: dict[str, float],
+    slot: str,
+    kw_cfg: dict[str, Any],
+    translations: dict[str, dict[str, str | None]] | None = None,
+) -> dict[str, Any] | None:
+    """Build the Latest News Update.
+
+    ≤ 5 events: single giga bubble.
+    > 5 events: 2-bubble carousel, split into halves by score order
+                (6→3/3, 8→4/4, 10→5/5, etc). Each bubble re-runs its own
+                topic grouping for the events it carries.
+    """
+    if not events:
+        return None
+    # Sort by score (highest first) so the first bubble has the most
+    # important events.
+    ranked = sorted(events, key=lambda e: -scores.get(e.event_id, 0))
+    n = len(ranked)
+
+    if n <= DIGEST_SPLIT_THRESHOLD:
+        return _build_digest_bubble(
+            ranked, scores, slot, kw_cfg, translations,
+            header_label="📰 Latest News Update",
+            header_sub=f"{slot} ICT · {n} event(s)",
+        )
+
+    # Split into two halves — first bubble gets the ceiling (top scores).
+    mid = (n + 1) // 2
+    chunks = [ranked[:mid], ranked[mid:]]
+    bubbles = []
+    for i, chunk in enumerate(chunks, start=1):
+        bubbles.append(_build_digest_bubble(
+            chunk, scores, slot, kw_cfg, translations,
+            header_label=f"📰 News Update {i}/{len(chunks)}",
+            header_sub=f"{slot} ICT · {len(chunk)}/{n} events",
+        ))
+    return {"type": "carousel", "contents": bubbles}
 
 
 # ---------- health ----------
