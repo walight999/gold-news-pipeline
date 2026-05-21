@@ -6,3 +6,9 @@ gspread>=6.0.0
 google-auth>=2.27.0
 python-dateutil>=2.8.2
 tenacity>=8.2.3
+# For weekly_preview HTML scrape (FF JSON only ships this-week data;
+# Cloudflare blocks plain httpx so curl_cffi with chrome impersonation
+# is required for the calendar?week=next page).
+curl-cffi>=0.7.0
+beautifulsoup4>=4.12.0
+lxml>=5.0.0

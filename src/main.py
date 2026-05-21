@@ -302,6 +302,23 @@ async def run_weekly_preview() -> int:
         return 1
 
     next_week = cal.filter_next_week_ict(events)
+
+    # FF JSON only ships ISO-week-current; Sat-morning runs find nothing.
+    # Fall back to HTML scrape (curl_cffi bypasses Cloudflare) so the
+    # Saturday preview actually works.
+    if not next_week:
+        log.info("FF JSON has no next-week data — trying HTML scrape fallback")
+        try:
+            from . import ff_scraper
+            scraped_raw = ff_scraper.scrape_ff_html()
+            if scraped_raw:
+                scraped_events = cal.parse_ff_payload(scraped_raw)
+                next_week = cal.filter_next_week_ict(scraped_events)
+                log.info("HTML scrape yielded %d events, %d in next week",
+                         len(scraped_events), len(next_week))
+        except Exception as e:
+            log.warning("FF HTML scrape failed: %s", e)
+
     countries = tuple(cal_cfg.get("daily_currencies", cal.DEFAULT_DAILY_COUNTRIES))
     impacts   = tuple(cal_cfg.get("daily_impacts",    cal.DEFAULT_DAILY_IMPACTS))
     filtered = cal.filter_by_impact(cal.filter_by_country(next_week, countries), impacts)
