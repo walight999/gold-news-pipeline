@@ -554,7 +554,17 @@ async def run_weekly_preview() -> int:
 
 
 async def run_calendar_daily() -> int:
-    """Push today's economic calendar to LINE_NEWS_TARGET. Idempotent per ICT day."""
+    """Push today's economic calendar to LINE_NEWS_TARGET.
+
+    Two pushes per ICT day, idempotent per slot:
+      `early` at 00:05 ICT — start-of-day briefing. Catches events that
+                              fire between 00:00 and the 04:40 push that
+                              would otherwise have only ~minutes warning
+                              from calendar_check.
+      `main`  at 04:40 ICT — pre-session briefing (the existing one).
+                              Sits inside the 04:00-05:00 quiet window
+                              but bypasses it.
+    Slot is detected from the ICT hour so the same code handles both."""
     if is_weekend_ict():
         log.info("weekend (ICT) — skipping calendar_daily")
         return 0
@@ -565,10 +575,12 @@ async def run_calendar_daily() -> int:
     store.connect()
     store.load_all()
 
+    hour_ict = now_ict().hour
+    slot = "early" if hour_ict < 4 else "main"
     today_key = now_ict().strftime("%Y-%m-%d")
-    sent_key = f"cal_daily:{today_key}"
+    sent_key = f"cal_daily:{today_key}:{slot}"
     if store.get("sent_log", (sent_key, "calendar_daily")):
-        log.info("calendar_daily already sent for %s — skipping", today_key)
+        log.info("calendar_daily (%s) already sent for %s — skipping", slot, today_key)
         store.flush()
         return 0
 

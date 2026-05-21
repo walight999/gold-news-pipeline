@@ -32,7 +32,7 @@ python -m src.main --mode maintain          # daily — purge stale event_state 
 |---|---|---|
 | `news-cron` | `*/5 * * * *` | RSS fetch + cluster + Flex push |
 | `event-mode` | `repository_dispatch` type=`news-event-mode` | Tier-0 hot poll (30 min, fired ~5 min before CPI/NFP/FOMC) |
-| `calendar-daily` | `30 23 * * *` (= 06:30 ICT) | Today's calendar Flex with XAU/DXY snapshot |
+| `calendar-daily` | `5 17 * * *` (= 00:05 ICT) + `40 21 * * *` (= 04:40 ICT) | Today's calendar Flex with XAU/DXY snapshot — pushed twice/day (start-of-day + pre-session) so you never miss 00:00-04:00 events |
 | `calendar-check` | `*/10 * * * 1-5` | Pre-release (T-15) + post-release alerts with FRED actuals |
 | `weekly-preview` | `30 23 * * 5` (= Sat 06:30 ICT) | Next week's high-impact calendar |
 | `eod-recap` | `0 15 * * 1-5` (= 22:00 ICT) | Daily news + price summary |
