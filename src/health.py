@@ -12,7 +12,7 @@ unless it was resolved, then re-fired.
 from __future__ import annotations
 
 import logging
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any
 
 from .store import Store
@@ -42,16 +42,34 @@ def mark_validated(store: Store, source_id: str) -> None:
 
 
 def _recent_alert_for(store: Store, source_id: str, warning_type: str, cooldown_min: int) -> bool:
+    """Cooldown lookup. Applies REGARDLESS of resolution status — without
+    this, oscillating conditions (e.g. ForexLive going 28-32min between
+    posts) bypass the cooldown by resolving and re-firing every cycle."""
     cutoff = now_utc() - timedelta(minutes=cooldown_min)
     for row in store.all_rows("health_log"):
         if row.get("source_id") != source_id or row.get("warning_type") != warning_type:
             continue
-        if row.get("resolved_ts"):
-            continue  # resolved means the next warning is allowed
         ts = parse_iso(row.get("warning_ts"))
         if ts and ts >= cutoff:
             return True
     return False
+
+
+def warning_open_minutes(store: Store, source_id: str, warning_type: str) -> float:
+    """Returns how many minutes the most recent (still-open) warning for this
+    (source, type) has been open. 0.0 if no open warning."""
+    most_recent_open_ts: datetime | None = None
+    for row in store.all_rows("health_log"):
+        if row.get("source_id") != source_id or row.get("warning_type") != warning_type:
+            continue
+        if row.get("resolved_ts"):
+            continue
+        ts = parse_iso(row.get("warning_ts"))
+        if ts and (most_recent_open_ts is None or ts > most_recent_open_ts):
+            most_recent_open_ts = ts
+    if most_recent_open_ts is None:
+        return 0.0
+    return (now_utc() - most_recent_open_ts).total_seconds() / 60.0
 
 
 def raise_warning(store: Store, source_id: str, warning_type: str, cooldown_min: int = 60) -> bool:

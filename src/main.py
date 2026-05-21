@@ -164,6 +164,9 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
     current_set = set(current_warnings)
 
     # Recoveries: warnings open in store but no longer in current_set.
+    # Only PUSH the recovery if the warning was actually open >= 15 min —
+    # quick oscillations (cron jitter, source briefly idle) resolve silently.
+    MIN_OPEN_MIN_FOR_RECOVERY_PUSH = 15
     recovered: list[tuple[str, str]] = []
     for row in list(store.all_rows("health_log")):
         if row.get("resolved_ts"):
@@ -172,9 +175,11 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
         wtype = row.get("warning_type")
         if sid not in sources_checked:
             continue
-        if (sid, wtype) not in current_set:
-            if health.resolve_warning(store, sid, wtype) > 0:
-                recovered.append((sid, wtype))
+        if (sid, wtype) in current_set:
+            continue
+        open_min = health.warning_open_minutes(store, sid, wtype)
+        if health.resolve_warning(store, sid, wtype) > 0 and open_min >= MIN_OPEN_MIN_FOR_RECOVERY_PUSH:
+            recovered.append((sid, wtype))
 
     # Push new warnings (gated by raise_warning cooldown)
     if current_warnings and health_target:
@@ -202,7 +207,17 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
         window = int(sched_cfg["digest"]["window_minutes"])
         slot = within_digest_slot(slots_ict, window)
         if slot and not digest.already_sent(store, slot):
-            digest_events = [d.event for d in decisions if d.route == Route.DIGEST]
+            # Spec §4.5 routes score 1.5–2.4 to ARCHIVE (no push). In practice
+            # most RSS items are hours-stale by the time we fetch, so very
+            # little ever clears the 2.5 digest threshold. Include the upper
+            # archive band here too so the slot digest actually has content
+            # — they still don't trigger LINE alerts on their own.
+            digest_floor = float(sched_cfg["digest"].get("min_score", 1.5))
+            digest_events = [
+                d.event for d in decisions
+                if scores.get(d.event.event_id, 0) >= digest_floor
+                and d.route not in (Route.BREAKING, Route.ALERT)
+            ]
             max_events = int(sched_cfg["digest"].get("max_events", 10))
             ranked = sorted(digest_events, key=lambda e: -scores.get(e.event_id, 0))[:max_events]
             carousel = digest_carousel(ranked, scores, slot, kw_cfg)

@@ -3,6 +3,8 @@ digest:
   slots_ict: ["05:30", "13:30", "21:30"]
   window_minutes: 5
   max_events: 10
+  # Lower than spec §4.5's 2.5 — see main.run_once digest section for why.
+  min_score: 1.5
 
 session:
   # Active-session gate (ICT). London open → NY close.

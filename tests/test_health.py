@@ -12,11 +12,24 @@ def test_cooldown_suppresses_repeat(store):
     assert raise_warning(store, "forexlive", "tier2_no_item", cooldown_min=60) is False
 
 
-def test_resolved_then_can_fire_again(store):
-    raise_warning(store, "forexlive", "tier2_no_item", cooldown_min=60)
+def test_resolved_warning_still_suppressed_by_cooldown(store):
+    """After fix: cooldown applies even to resolved warnings — prevents the
+    flap-loop where a brief oscillating condition bypasses the cooldown by
+    resolving and instantly re-firing."""
+    assert raise_warning(store, "forexlive", "tier2_no_item", cooldown_min=60) is True
     resolved = resolve_warning(store, "forexlive", "tier2_no_item")
     assert resolved >= 1
+    # Cooldown is still active for this (source, type) — second raise within
+    # the window is suppressed regardless of resolution status.
+    assert raise_warning(store, "forexlive", "tier2_no_item", cooldown_min=60) is False
+
+
+def test_cooldown_expires_then_can_fire(store):
+    """After the cooldown window passes, a new warning IS allowed."""
     assert raise_warning(store, "forexlive", "tier2_no_item", cooldown_min=60) is True
+    resolve_warning(store, "forexlive", "tier2_no_item")
+    # With 0-minute cooldown the warning is no longer suppressed.
+    assert raise_warning(store, "forexlive", "tier2_no_item", cooldown_min=0) is True
 
 
 def test_tier1_no_success_flagged(store):
