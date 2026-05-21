@@ -99,6 +99,70 @@ def resolve_warning(store: Store, source_id: str, warning_type: str) -> int:
     return n
 
 
+# ---------------- Pipeline-level self-monitoring ----------------
+#
+# Per-source health (above) detects upstream breakage. The heartbeat below
+# detects pipeline-level breakage: cron not firing, Sheet writes failing,
+# all sources returning 0 items, etc. Watchdog mode reads the heartbeat
+# every 30 min and alerts when stale.
+
+HEARTBEAT_SOURCE_ID = "_pipeline_heartbeat"
+
+
+def write_heartbeat(store: Store, items_seen: int = 0) -> None:
+    """Stamp a liveness marker into source_state. Called from run_once at
+    end of every successful run. The row's `last_success_ts` is the last
+    successful pipeline iteration; `last_item_ts` is the last iteration
+    that actually saw items > 0 (distinguishes silent crash vs. quiet news
+    day)."""
+    ts = iso_utc(now_utc())
+    prev = store.get("source_state", (HEARTBEAT_SOURCE_ID,)) or {}
+    last_item_ts = ts if items_seen > 0 else (prev.get("last_item_ts") or "")
+    store.upsert("source_state", {
+        "source_id": HEARTBEAT_SOURCE_ID,
+        "last_success_ts": ts,
+        "last_item_ts": last_item_ts,
+        "items_last_hour": str(items_seen),
+        "updated_at": ts,
+    })
+
+
+def check_pipeline_health(
+    store: Store,
+    max_silence_min: int = 25,
+    max_no_items_min: int = 180,
+) -> list[tuple[str, str]]:
+    """Returns (warning_type, human_message) pairs. Empty list = healthy.
+    Used by --mode watchdog.
+
+    Two failure modes:
+      `watchdog_silence`  — heartbeat hasn't ticked in >max_silence_min.
+                            Cron stopped firing OR Sheet writes broken.
+      `watchdog_no_items` — heartbeat ticking but 0 items for >max_no_items_min
+                            during market hours. All sources dead simultaneously
+                            (unlikely random, likely scraper / network issue)."""
+    out: list[tuple[str, str]] = []
+    row = store.get("source_state", (HEARTBEAT_SOURCE_ID,)) or {}
+    last_hb = parse_iso(row.get("last_success_ts"))
+    if not last_hb:
+        out.append(("watchdog_silence",
+                    "No heartbeat ever recorded — pipeline has never run successfully"))
+        return out
+    silence_min = (now_utc() - last_hb).total_seconds() / 60.0
+    if silence_min > max_silence_min:
+        out.append(("watchdog_silence",
+                    f"Pipeline silent for {silence_min:.0f} min "
+                    f"(last heartbeat {row.get('last_success_ts')})"))
+    last_item = parse_iso(row.get("last_item_ts"))
+    if last_item:
+        no_item_min = (now_utc() - last_item).total_seconds() / 60.0
+        if no_item_min > max_no_items_min:
+            out.append(("watchdog_no_items",
+                        f"No items fetched across all sources for {no_item_min:.0f} min — "
+                        "scraper or network may be down"))
+    return out
+
+
 def check_source_health(
     store: Store,
     source: dict[str, Any],

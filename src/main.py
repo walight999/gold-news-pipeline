@@ -278,7 +278,12 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
                 resp = _push_or_skip(line, news_target, alt, carousel, sched_cfg, label="digest")
                 digest.mark_sent(store, slot, resp["status"])
 
-    # 8. Flush state
+    # 8. Heartbeat — stamp pipeline liveness before flush so the watchdog
+    # can distinguish "cron stopped" from "cron ran but no news today".
+    if mode in ("cron", "event"):
+        health.write_heartbeat(store, items_seen=len(items))
+
+    # 9. Flush state
     store.flush()
     log.info("done. sheets API calls=%d", store.api_calls)
     return 0
@@ -743,6 +748,69 @@ async def run_calendar_check() -> int:
     return 0
 
 
+async def run_watchdog() -> int:
+    """Pipeline-level self-monitor. Runs every 30 min (via watchdog.yml).
+    Reads the heartbeat written by run_once; pushes a LINE health alert
+    when the pipeline goes silent (cron stopped firing or Sheet writes
+    broken) or when no items have been fetched across all sources for
+    hours (likely scraper / network issue).
+
+    Cooldown-aware: won't repeat the same warning inside 120 min. Pushes a
+    `recovered` bubble when the warning clears."""
+    store = Store.from_env()
+    store.connect()
+    store.load_all()
+
+    warnings = health.check_pipeline_health(store)
+    warning_types = {wt for wt, _ in warnings}
+
+    line = None
+    health_target = os.environ.get("LINE_HEALTH_TARGET", "")
+
+    # Resolve any open watchdog warnings that are no longer in the warning
+    # set — and notify on transition.
+    recovered: list[tuple[str, str]] = []
+    for warning_type in ("watchdog_silence", "watchdog_no_items"):
+        if warning_type in warning_types:
+            continue
+        # Open warning that no longer applies → resolve + push recovered.
+        if health.warning_open_minutes(store, health.HEARTBEAT_SOURCE_ID, warning_type) > 0:
+            health.resolve_warning(store, health.HEARTBEAT_SOURCE_ID, warning_type)
+            recovered.append((health.HEARTBEAT_SOURCE_ID, warning_type))
+
+    # Raise fresh warnings (cooldown-gated).
+    fresh: list[tuple[str, str]] = []
+    for warning_type, message in warnings:
+        new_row = health.raise_warning(
+            store, health.HEARTBEAT_SOURCE_ID, warning_type, cooldown_min=120,
+        )
+        if new_row:
+            fresh.append((warning_type, message))
+
+    if fresh and health_target:
+        line = line or LineClient.from_env()
+        # Reuse the per-source health bubble — labelled "Pipeline" via the
+        # SOURCE_NAMES alias for _pipeline_heartbeat. WARNING_MESSAGES has
+        # entries for watchdog_silence / watchdog_no_items so the bubble
+        # renders human-readable lines without extra plumbing.
+        warning_pairs = [(health.HEARTBEAT_SOURCE_ID, wt) for wt, _ in fresh]
+        bubble = health_bubble(warning_pairs)
+        alt = f"🚨 Pipeline alert — {len(fresh)} issue(s)"
+        line.push_flex(health_target, alt, bubble)
+        for wt, msg in fresh:
+            log.warning("watchdog: %s — %s", wt, msg)
+
+    if recovered and health_target:
+        line = line or LineClient.from_env()
+        bubble = health_recovered_bubble(recovered)
+        alt = f"✅ Pipeline recovered — {len(recovered)} item(s)"
+        line.push_flex(health_target, alt, bubble)
+
+    log.info("watchdog: fresh=%d recovered=%d", len(fresh), len(recovered))
+    store.flush()
+    return 0
+
+
 async def run_event_mode(duration_min: int = 30, sleep_sec: int = 60) -> int:
     deadline = _time.time() + duration_min * 60
     iteration = 0
@@ -768,6 +836,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--mode", choices=(
         "cron", "event", "digest", "calendar_daily", "calendar_check",
         "weekly_preview", "eod_recap", "verify_sources", "maintain",
+        "watchdog",
     ), default="cron")
     p.add_argument("--event-duration-min", type=int, default=30)
     p.add_argument("--event-sleep-sec", type=int, default=60)
@@ -786,6 +855,8 @@ def main(argv: list[str] | None = None) -> int:
         return asyncio.run(run_verify_sources())
     if args.mode == "maintain":
         return asyncio.run(run_maintain())
+    if args.mode == "watchdog":
+        return asyncio.run(run_watchdog())
     return asyncio.run(run_once(mode=args.mode))
 
 

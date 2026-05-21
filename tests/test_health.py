@@ -3,7 +3,14 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 
-from src.health import check_source_health, raise_warning, resolve_warning
+from src.health import (
+    HEARTBEAT_SOURCE_ID,
+    check_pipeline_health,
+    check_source_health,
+    raise_warning,
+    resolve_warning,
+    write_heartbeat,
+)
 from src.utils_time import iso_utc
 
 
@@ -45,6 +52,91 @@ def test_tier1_no_success_flagged(store):
                                                 "tier2_no_item_minutes": 30,
                                                 "http_consecutive_errors_threshold": 3})
     assert (sid, "tier1_no_success") in warns
+
+
+# ---------------- Pipeline self-monitoring (watchdog) ----------------
+
+
+def test_watchdog_flags_silence_when_no_heartbeat(store):
+    """Cold start / first run scenario: no heartbeat row at all → silence
+    warning fires immediately."""
+    warns = check_pipeline_health(store)
+    types = [wt for wt, _ in warns]
+    assert "watchdog_silence" in types
+
+
+def test_watchdog_flags_silence_when_heartbeat_stale(store):
+    """Heartbeat from 60 min ago → triggers silence warning (default
+    threshold = 25 min)."""
+    stale = datetime.now(timezone.utc) - timedelta(minutes=60)
+    store.upsert("source_state", {
+        "source_id": HEARTBEAT_SOURCE_ID,
+        "last_success_ts": iso_utc(stale),
+        "last_item_ts": iso_utc(stale),
+    })
+    warns = check_pipeline_health(store)
+    types = [wt for wt, _ in warns]
+    assert "watchdog_silence" in types
+
+
+def test_watchdog_healthy_when_heartbeat_fresh(store):
+    """Fresh heartbeat + recent items → no warnings."""
+    fresh = datetime.now(timezone.utc) - timedelta(minutes=2)
+    store.upsert("source_state", {
+        "source_id": HEARTBEAT_SOURCE_ID,
+        "last_success_ts": iso_utc(fresh),
+        "last_item_ts": iso_utc(fresh),
+    })
+    assert check_pipeline_health(store) == []
+
+
+def test_watchdog_flags_no_items_during_market_hours(store):
+    """Heartbeat ticking (cron is fine) but no items for 4 hours → scraper
+    or network suspected."""
+    fresh = datetime.now(timezone.utc) - timedelta(minutes=2)
+    stale_items = datetime.now(timezone.utc) - timedelta(minutes=240)
+    store.upsert("source_state", {
+        "source_id": HEARTBEAT_SOURCE_ID,
+        "last_success_ts": iso_utc(fresh),
+        "last_item_ts": iso_utc(stale_items),
+    })
+    warns = check_pipeline_health(store)
+    types = [wt for wt, _ in warns]
+    assert "watchdog_no_items" in types
+    # Silence should NOT also fire — heartbeat is fresh.
+    assert "watchdog_silence" not in types
+
+
+def test_write_heartbeat_preserves_last_item_when_zero(store):
+    """A quiet-news iteration (items_seen=0) must NOT clobber the prior
+    last_item_ts — otherwise the no-items watchdog never fires."""
+    old_item = datetime.now(timezone.utc) - timedelta(minutes=200)
+    store.upsert("source_state", {
+        "source_id": HEARTBEAT_SOURCE_ID,
+        "last_success_ts": iso_utc(old_item),
+        "last_item_ts": iso_utc(old_item),
+    })
+    write_heartbeat(store, items_seen=0)
+    row = store.get("source_state", (HEARTBEAT_SOURCE_ID,))
+    # last_item_ts unchanged
+    assert row["last_item_ts"] == iso_utc(old_item)
+    # last_success_ts bumped to now (within a second of now)
+    assert row["last_success_ts"] != iso_utc(old_item)
+
+
+def test_write_heartbeat_bumps_last_item_when_nonzero(store):
+    """An iteration that sees items DOES bump last_item_ts (resolves any
+    open no-items warning the next time watchdog runs)."""
+    old = datetime.now(timezone.utc) - timedelta(minutes=200)
+    store.upsert("source_state", {
+        "source_id": HEARTBEAT_SOURCE_ID,
+        "last_success_ts": iso_utc(old),
+        "last_item_ts": iso_utc(old),
+    })
+    write_heartbeat(store, items_seen=7)
+    row = store.get("source_state", (HEARTBEAT_SOURCE_ID,))
+    assert row["last_item_ts"] != iso_utc(old)
+    assert row["items_last_hour"] == "7"
 
 
 def test_tier0_event_day_no_success(store):

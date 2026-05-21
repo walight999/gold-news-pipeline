@@ -46,6 +46,7 @@ SOURCE_NAMES: dict[str, str] = {
     "investing_commodities":"Investing Commodities",
     "investing_general":    "Investing.com",
     "benzinga":             "Benzinga",
+    "_pipeline_heartbeat":  "Pipeline",
     "yahoo_finance":        "Yahoo Finance",
 }
 
@@ -55,6 +56,8 @@ WARNING_MESSAGES: dict[str, str] = {
     "tier0_event_day_no_success":  "Tier-0 fetch failed during event window (>15 min)",
     "tier1_no_success":            "No successful fetch in 60+ min",
     "tier2_no_item":               "No new items in 30+ min",
+    "watchdog_silence":            "Pipeline silent — cron may have stopped firing",
+    "watchdog_no_items":           "All sources returned 0 items for hours — scraper/network down?",
 }
 
 
