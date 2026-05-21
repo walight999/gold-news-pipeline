@@ -4,7 +4,10 @@ digest:
   window_minutes: 5
   max_events: 10
   # Lower than spec §4.5's 2.5 — see main.run_once digest section for why.
-  min_score: 1.5
+  # Most RSS items have published_ts that's hours old by the time we
+  # fetch, so freshness_factor drops to 0.1 and even base-5 inflation
+  # articles only score 0.5. 0.5 gives us a usable digest pool.
+  min_score: 0.5
 
 session:
   # Active-session gate (ICT). London open → NY close.
@@ -33,8 +36,12 @@ health:
   # Cooldown for repeating the same (source_id, warning_type) warning.
   alert_cooldown_minutes: 60
   validator_revalidate_hours: 24
-  tier1_no_success_minutes: 60
-  tier2_no_item_minutes: 30
+  # Bumped from 60/30 — Tier 1-2 sources naturally go quiet during slow
+  # hours; tighter thresholds were producing 2-3 sources flapping at
+  # different cadences. Real outages (HTTP errors) still escalate via
+  # http_consecutive_errors_threshold without needing these to be tight.
+  tier1_no_success_minutes: 120
+  tier2_no_item_minutes: 60
   http_consecutive_errors_threshold: 3
 
 calendar:
