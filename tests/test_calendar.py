@@ -155,7 +155,8 @@ def test_post_release_bubble_with_fred_actual():
     texts = _all_texts(b["body"])
     assert any("+0.5%" in t for t in texts)
     assert any("BEAT" in t for t in texts)
-    assert any("Bearish" in t for t in texts)
+    # Verdict is reduced to single uppercase word in v3 layout
+    assert any("BEARISH" in t for t in texts)
 
 
 # ---------- FRED unit tests (no network) ----------
@@ -215,3 +216,40 @@ def test_fetch_actual_returns_none_without_key():
     from src.fred import fetch_actual
     # Empty key → None
     assert fetch_actual("Core CPI m/m", "") is None
+
+
+def test_forecast_vs_previous_effect_cpi_lower_bullish():
+    """CPI forecast lower than previous = expected cooling = bullish gold."""
+    e = cal.parse_ff_payload([_ff_item("Core CPI m/m", "USD",
+                                       "2026-05-15T08:30:00-04:00", "High",
+                                       forecast="0.2%", previous="0.4%")])[0]
+    eff = cal.forecast_vs_previous_effect(e)
+    assert eff["emoji"] == "🟢"
+    assert eff["label"] == "bullish"
+
+
+def test_forecast_vs_previous_effect_cpi_higher_bearish():
+    """CPI forecast higher than previous = expected hotter = bearish gold."""
+    e = cal.parse_ff_payload([_ff_item("Core CPI m/m", "USD",
+                                       "2026-05-15T08:30:00-04:00", "High",
+                                       forecast="0.5%", previous="0.3%")])[0]
+    eff = cal.forecast_vs_previous_effect(e)
+    assert eff["emoji"] == "🔴"
+
+
+def test_forecast_vs_previous_effect_unemployment_inverse():
+    """Unemployment forecast HIGHER → bullish gold (inverse rule)."""
+    e = cal.parse_ff_payload([_ff_item("Unemployment Rate", "USD",
+                                       "2026-05-15T08:30:00-04:00", "High",
+                                       forecast="4.2%", previous="4.0%")])[0]
+    eff = cal.forecast_vs_previous_effect(e)
+    assert eff["emoji"] == "🟢"
+    assert eff["label"] == "bullish"
+
+
+def test_forecast_vs_previous_effect_equal_neutral():
+    e = cal.parse_ff_payload([_ff_item("Core CPI m/m", "USD",
+                                       "2026-05-15T08:30:00-04:00", "High",
+                                       forecast="0.3%", previous="0.3%")])[0]
+    eff = cal.forecast_vs_previous_effect(e)
+    assert eff["emoji"] == "🟡"

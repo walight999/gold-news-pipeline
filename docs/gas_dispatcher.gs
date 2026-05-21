@@ -23,10 +23,11 @@
  * That's it. The trigger runs scanAndFire() every 5 min thereafter.
  */
 
-var REPO          = "walight999/gold-news-pipeline";
-var WORKFLOW_FILE = "event_mode.yml";   // path-relative filename in .github/workflows/
-var WORKFLOW_REF  = "main";
-var DURATION_MIN  = 30;
+var REPO              = "walight999/gold-news-pipeline";
+var WORKFLOW_EVENT    = "event_mode.yml";   // fired ~5min before high-impact releases
+var WORKFLOW_NEWSCRON = "news_cron.yml";    // fired on a tight schedule from GAS
+var WORKFLOW_REF      = "main";
+var DURATION_MIN      = 30;
 
 // Fire when event is within this many minutes (inclusive..exclusive).
 // 5-min trigger cadence × 4-min window width = each event fires exactly once.
@@ -42,20 +43,25 @@ var FF_URL = "https://nfs.faireconomy.media/ff_calendar_thisweek.json";
 
 
 /**
- * Install/replace the 5-min trigger. Run once after setting GH_PAT_GOLD_NEWS.
+ * Install/replace both triggers. Run once after setting GH_PAT_GOLD_NEWS.
+ *
+ *   scanAndFire : every 5 min — fires event-mode if a high-impact USD/EUR
+ *                 release is in the T-4..T-8 min window.
+ *   fireNewsCron: every 5 min — drives news-cron at a tight cadence
+ *                 because GH Actions */5 schedule is unreliable for free
+ *                 public repos.
  */
 function setupTrigger() {
+  var handlers = ["scanAndFire", "fireNewsCron"];
   var existing = ScriptApp.getProjectTriggers();
   for (var i = 0; i < existing.length; i++) {
-    if (existing[i].getHandlerFunction() === "scanAndFire") {
+    if (handlers.indexOf(existing[i].getHandlerFunction()) !== -1) {
       ScriptApp.deleteTrigger(existing[i]);
     }
   }
-  ScriptApp.newTrigger("scanAndFire")
-    .timeBased()
-    .everyMinutes(5)
-    .create();
-  Logger.log("Trigger installed: scanAndFire every 5 min");
+  ScriptApp.newTrigger("scanAndFire").timeBased().everyMinutes(5).create();
+  ScriptApp.newTrigger("fireNewsCron").timeBased().everyMinutes(5).create();
+  Logger.log("Triggers installed: scanAndFire + fireNewsCron, every 5 min");
 }
 
 
@@ -103,15 +109,22 @@ function scanAndFire() {
  * /repos/<repo>/dispatches (Contents: Write) — matches the PAT permission
  * model documented in INTEGRATION_CALENDAR_BOT.md.
  */
-function fireEventModeDispatch(durationMin) {
+/**
+ * Generic workflow_dispatch call. Returns HTTP status (204 = success).
+ */
+function fireWorkflowDispatch(workflowFile, inputs) {
   var raw = PropertiesService.getScriptProperties().getProperty("GH_PAT_GOLD_NEWS");
   if (!raw) {
-    Logger.log("Missing GH_PAT_GOLD_NEWS script property — see setup step 4");
+    Logger.log("Missing GH_PAT_GOLD_NEWS script property");
     return 0;
   }
   var token = String(raw).trim();
   var url = "https://api.github.com/repos/" + REPO +
-            "/actions/workflows/" + WORKFLOW_FILE + "/dispatches";
+            "/actions/workflows/" + workflowFile + "/dispatches";
+  var payload = { ref: WORKFLOW_REF };
+  if (inputs && Object.keys(inputs).length > 0) {
+    payload.inputs = inputs;
+  }
   var res = UrlFetchApp.fetch(url, {
     method:      "post",
     contentType: "application/json",
@@ -120,17 +133,31 @@ function fireEventModeDispatch(durationMin) {
       Accept:                  "application/vnd.github+json",
       "X-GitHub-Api-Version":  "2022-11-28"
     },
-    payload: JSON.stringify({
-      ref:    WORKFLOW_REF,
-      inputs: { duration_min: String(durationMin || 30) }   // inputs must be strings
-    }),
+    payload: JSON.stringify(payload),
     muteHttpExceptions: true
   });
   var code = res.getResponseCode();
   if (code !== 204) {
-    Logger.log("dispatch HTTP " + code + " body=" + res.getContentText());
+    Logger.log(workflowFile + " dispatch HTTP " + code + " body=" + res.getContentText());
   }
   return code;
+}
+
+
+function fireEventModeDispatch(durationMin) {
+  return fireWorkflowDispatch(WORKFLOW_EVENT, {
+    duration_min: String(durationMin || 30)
+  });
+}
+
+
+/**
+ * Fires the news-cron workflow. Called every minute from a separate
+ * GAS trigger to bypass GitHub Actions' unreliable */5 cron scheduling
+ * for public repos (we've observed *2 hour* effective intervals).
+ */
+function fireNewsCron() {
+  return fireWorkflowDispatch(WORKFLOW_NEWSCRON, {});
 }
 
 

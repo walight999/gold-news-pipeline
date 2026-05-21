@@ -186,3 +186,29 @@ def gold_impact_directional(event: CalEvent) -> dict[str, str]:
         "lower_is":  "🟢 Bullish gold (dovish)",
         "rationale": "Watch official statement for tone",
     }
+
+
+def forecast_vs_previous_effect(event: "CalEvent") -> dict[str, str]:
+    """Given just forecast + previous (no actual yet), return the directional
+    gold-impact emoji + label the market is currently PRICING IN.
+
+    Returns {emoji, label}. Used by the pre-release bubble's Effect column.
+    """
+    if not event.forecast or not event.previous:
+        return {"emoji": "🟡", "label": "n/a"}
+    # Lazy import to avoid circular dep at module load
+    from .fred import parse_forecast_value
+    fc = parse_forecast_value(event.forecast)
+    pv = parse_forecast_value(event.previous)
+    if fc is None or pv is None:
+        return {"emoji": "🟡", "label": "n/a"}
+    diff = fc - pv
+    if abs(diff) < 0.01:
+        return {"emoji": "🟡", "label": "neutral"}
+    impact = gold_impact_directional(event)
+    side_text = impact["higher_is"] if diff > 0 else impact["lower_is"]
+    if "Bullish" in side_text:
+        return {"emoji": "🟢", "label": "bullish"}
+    if "Bearish" in side_text:
+        return {"emoji": "🔴", "label": "bearish"}
+    return {"emoji": "🟡", "label": "neutral"}

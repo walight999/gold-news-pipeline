@@ -145,13 +145,19 @@ def _earliest_ts(ev: Event) -> datetime | None:
 # ---------- visual primitives ----------
 
 def _header(title: str, sub_label: str, color: str) -> dict[str, Any]:
+    contents: list[dict[str, Any]] = [
+        {"type": "text", "text": title, "color": "#FFFFFF",
+         "weight": "bold", "size": "md", "flex": 4},
+    ]
+    if sub_label:
+        contents.append({
+            "type": "text", "text": sub_label, "color": "#FFFFFF",
+            "size": "sm", "align": "end", "flex": 3,
+        })
     return {
         "type": "box", "layout": "horizontal",
         "backgroundColor": color, "paddingAll": "12px",
-        "contents": [
-            {"type": "text", "text": title, "color": "#FFFFFF", "weight": "bold", "size": "md", "flex": 4},
-            {"type": "text", "text": sub_label, "color": "#FFFFFF", "size": "sm", "align": "end", "flex": 3},
-        ],
+        "contents": contents,
     }
 
 
@@ -414,20 +420,21 @@ def _impact_pill_calendar(impact: str) -> dict[str, Any]:
 def calendar_day_bubble(events: list[CalEvent], date_label: str) -> dict[str, Any] | None:
     """One long bubble listing today's events chronologically.
 
-    Each row: HH:MM · [Impact] · CCY · Title.
+    Each row: HH:MM · [Impact] · CCY · Title — generous spacing between
+    the four cells so the eye reads each segment as a discrete column.
     """
     if not events:
         return None
     rows: list[dict[str, Any]] = []
     for ev in events:
         rows.append({
-            "type": "box", "layout": "horizontal", "spacing": "sm",
-            "alignItems": "center", "margin": "sm",
+            "type": "box", "layout": "horizontal", "spacing": "md",
+            "alignItems": "center", "margin": "md",
             "contents": [
                 {"type": "text", "text": ev.hhmm_ict, "size": "sm",
                  "weight": "bold", "color": "#111827", "flex": 0},
                 _impact_pill_calendar(ev.impact),
-                {"type": "text", "text": f"{ev.country}", "size": "xs",
+                {"type": "text", "text": f"  {ev.country}  ", "size": "xs",
                  "weight": "bold", "color": "#374151", "flex": 0},
                 {"type": "text", "text": ev.title, "size": "sm",
                  "wrap": True, "color": "#111827", "flex": 1},
@@ -436,9 +443,21 @@ def calendar_day_bubble(events: list[CalEvent], date_label: str) -> dict[str, An
     return {
         "type": "bubble", "size": "giga",
         "header": _header("📅 Economic Calendar", date_label, COLOR["digest"]),
-        "body": {"type": "box", "layout": "vertical", "spacing": "xs",
-                 "contents": rows, "paddingAll": "14px"},
+        "body": {"type": "box", "layout": "vertical", "spacing": "sm",
+                 "contents": rows, "paddingAll": "16px"},
     }
+
+
+def _verdict_word(verdict: str | None) -> str:
+    """Reduce 'Bearish gold — strong jobs...' to just 'BEARISH'."""
+    if not verdict:
+        return "NEUTRAL"
+    v = verdict.upper()
+    if "BULLISH" in v:
+        return "BULLISH"
+    if "BEARISH" in v:
+        return "BEARISH"
+    return "NEUTRAL"
 
 
 def post_release_bubble(
@@ -448,32 +467,32 @@ def post_release_bubble(
     surprise: str | None = None,
     verdict: str | None = None,
 ) -> dict[str, Any]:
-    """Sent shortly after a high-impact release.
+    """Released-news bubble — title-led, no time field, single-word verdict.
 
     Modes:
-      - Without FRED: shows directional guidance (higher_is / lower_is map).
-      - With FRED:    shows ACTUAL value, surprise label (beat/miss/in-line),
-                      and a final verdict (e.g. "Bearish gold" + reason).
+      - Without FRED: directional ↑/↓ guide (when actual_text is None).
+      - With FRED:    Actual / Forecast / Previous row + surprise emoji +
+                      one-word Gold Impact (BULLISH / BEARISH / NEUTRAL).
     """
     header_color, _ = _impact_color(event.impact)
     body_contents: list[dict[str, Any]] = [
+        # Title leads (newspaper-style headline)
+        {"type": "text", "text": event.title, "size": "md", "weight": "bold",
+         "wrap": True, "color": "#111827"},
+        # Impact pill + country row
         {"type": "box", "layout": "horizontal", "spacing": "sm",
-         "alignItems": "center", "contents": [
-             {"type": "text", "text": event.hhmm_ict + " ICT",
-              "size": "xs", "color": "#6B7280", "weight": "bold", "flex": 0},
+         "alignItems": "center", "margin": "sm",
+         "contents": [
              _impact_pill_calendar(event.impact),
              {"type": "text", "text": event.country,
-              "size": "xs", "weight": "bold", "color": "#374151", "flex": 1},
+              "size": "xs", "weight": "bold", "color": "#374151", "flex": 0},
         ]},
-        {"type": "text", "text": event.title, "size": "md", "weight": "bold",
-         "wrap": True, "color": "#111827", "margin": "md"},
     ]
 
     if actual_text:
-        # FRED upgraded path: explicit actual + surprise + verdict
-        surprise_emoji = {"beat": "🟢", "miss": "🔴", "in-line": "⚪"}.get(surprise or "", "")
+        # 3-col data strip
         body_contents.append({
-            "type": "box", "layout": "horizontal", "margin": "md",
+            "type": "box", "layout": "horizontal", "margin": "lg",
             "contents": [
                 {"type": "text", "text": "Actual",   "size": "xxs", "color": "#9CA3AF", "flex": 1},
                 {"type": "text", "text": "Forecast", "size": "xxs", "color": "#9CA3AF", "flex": 1, "align": "center"},
@@ -493,77 +512,85 @@ def post_release_bubble(
         })
         body_contents.append({"type": "separator", "margin": "lg"})
         if surprise:
+            emoji = {"beat": "🟢", "miss": "🔴", "in-line": "⚪"}.get(surprise, "")
             body_contents.append({
-                "type": "text",
-                "text": f"{surprise_emoji} {surprise.upper()} vs forecast",
+                "type": "text", "text": f"{emoji} {surprise.upper()}",
                 "size": "sm", "weight": "bold",
                 "color": "#374151", "margin": "md",
             })
-        if verdict:
-            body_contents.append({
-                "type": "text", "text": "Gold Impact: " + verdict,
-                "size": "sm", "weight": "bold",
-                "color": "#111827", "margin": "xs", "wrap": True,
-            })
+        # Single-word verdict — no trailing rationale punchline
         body_contents.append({
-            "type": "text", "text": impact["rationale"],
-            "size": "xxs", "color": "#6B7280", "wrap": True, "margin": "sm",
+            "type": "text", "text": f"Gold Impact: {_verdict_word(verdict)}",
+            "size": "sm", "weight": "bold",
+            "color": "#111827", "margin": "xs",
         })
     else:
-        # Directional-only path (no FRED key configured)
+        # Directional-only path
         body_contents.append({
             "type": "text",
             "text": f"Forecast: {event.forecast or '-'}  ·  Previous: {event.previous or '-'}",
-            "size": "xs", "color": "#374151", "margin": "sm",
+            "size": "xs", "color": "#374151", "margin": "lg",
         })
         body_contents.append({"type": "separator", "margin": "lg"})
         body_contents.extend([
             {"type": "text", "text": "Gold Impact (directional)",
              "size": "xs", "color": "#9CA3AF", "weight": "bold", "margin": "md"},
-            {"type": "text", "text": "↑ Higher actual → " + impact["higher_is"],
+            {"type": "text", "text": "↑ Higher → " + impact["higher_is"],
              "size": "xs", "color": "#374151", "margin": "xs"},
-            {"type": "text", "text": "↓ Lower actual  → " + impact["lower_is"],
+            {"type": "text", "text": "↓ Lower  → " + impact["lower_is"],
              "size": "xs", "color": "#374151"},
-            {"type": "text", "text": impact["rationale"],
-             "size": "xxs", "color": "#6B7280", "wrap": True, "margin": "sm"},
-            {"type": "text", "text": "Watch news feed for the actual print + market reaction.",
-             "size": "xxs", "color": "#9CA3AF", "wrap": True, "margin": "md"},
         ])
 
     return {
         "type": "bubble", "size": "kilo",
-        "header": _header("📊 Released — Watch", "Just released", header_color),
+        "header": _header("📊 Released News", "", header_color),
         "body": {"type": "box", "layout": "vertical", "spacing": "sm",
                  "paddingAll": "16px", "contents": body_contents},
     }
 
 
 def pre_release_bubble(event: CalEvent, minutes_to_release: int,
-                       impact: dict[str, str] | None = None) -> dict[str, Any]:
-    """Single bubble: 'T-15min · CPI in 15 minutes'.
-    Header color tracks impact (red for High). Optional `impact` dict
-    appends directional gold-impact lines (see calendar.gold_impact_directional)."""
+                       impact: dict[str, str] | None = None,
+                       effect: dict[str, str] | None = None) -> dict[str, Any]:
+    """Pre-release bubble — title-led, 3-column Forecast/Previous/Effect.
+
+    Effect emoji (🟢/🔴/🟡) reflects what the market is pricing in based on
+    just the forecast vs previous comparison (no actual yet).
+    """
     header_color, _ = _impact_color(event.impact)
+    eff = effect or {"emoji": "🟡", "label": "n/a"}
+
     body_contents: list[dict[str, Any]] = [
+        # Title (lead the bubble)
+        {"type": "text", "text": event.title, "weight": "bold", "size": "md",
+         "wrap": True, "color": "#111827"},
+        # Impact pill + country row
         {"type": "box", "layout": "horizontal", "spacing": "sm",
-         "alignItems": "center", "contents": [
-             {"type": "text", "text": event.hhmm_ict + " ICT", "size": "xs",
-              "color": "#6B7280", "weight": "bold", "flex": 0},
+         "alignItems": "center", "margin": "sm",
+         "contents": [
              _impact_pill_calendar(event.impact),
              {"type": "text", "text": event.country, "size": "xs",
-              "weight": "bold", "color": "#374151", "flex": 1},
+              "weight": "bold", "color": "#374151", "flex": 0},
         ]},
-        {"type": "text", "text": event.title, "weight": "bold", "size": "md",
-         "wrap": True, "color": "#111827", "margin": "md"},
-        {"type": "separator", "margin": "lg"},
-        {"type": "box", "layout": "horizontal", "margin": "md",
+        # 3-column header
+        {"type": "box", "layout": "horizontal", "margin": "lg",
          "contents": [
-             {"type": "text",
-              "text": f"Forecast\n{event.forecast or '-'}",
-              "size": "xs", "color": "#374151", "wrap": True, "flex": 1},
-             {"type": "text",
-              "text": f"Previous\n{event.previous or '-'}",
-              "size": "xs", "color": "#374151", "wrap": True, "flex": 1, "align": "end"},
+             {"type": "text", "text": "Forecast", "size": "xxs",
+              "color": "#9CA3AF", "flex": 1},
+             {"type": "text", "text": "Previous", "size": "xxs",
+              "color": "#9CA3AF", "flex": 1, "align": "center"},
+             {"type": "text", "text": "Effect", "size": "xxs",
+              "color": "#9CA3AF", "flex": 1, "align": "end"},
+        ]},
+        # 3-column values
+        {"type": "box", "layout": "horizontal",
+         "contents": [
+             {"type": "text", "text": event.forecast or "-", "size": "sm",
+              "weight": "bold", "color": "#111827", "flex": 1},
+             {"type": "text", "text": event.previous or "-", "size": "sm",
+              "color": "#374151", "flex": 1, "align": "center"},
+             {"type": "text", "text": eff["emoji"], "size": "md",
+              "flex": 1, "align": "end"},
         ]},
     ]
     if impact:

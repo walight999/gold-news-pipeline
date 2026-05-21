@@ -356,7 +356,8 @@ async def run_calendar_check() -> int:
                 continue
             mins_to = cal.minutes_until(ev)
             impact_info = cal.gold_impact_directional(ev)
-            bubble = pre_release_bubble(ev, mins_to, impact_info)
+            effect_info = cal.forecast_vs_previous_effect(ev)
+            bubble = pre_release_bubble(ev, mins_to, impact_info, effect_info)
             alt = f"⏰ T-{mins_to}min · {ev.country} {ev.title}"
             resp = line.push_flex(target, alt, bubble)
             if resp["status"] == 200:
