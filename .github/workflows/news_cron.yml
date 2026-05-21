@@ -18,6 +18,9 @@ jobs:
       LINE_HEALTH_TARGET: ${{ secrets.LINE_HEALTH_TARGET }}
       GSHEET_ID: ${{ secrets.GSHEET_ID }}
       GSHEET_CREDS: ${{ secrets.GSHEET_CREDS }}
+      # Optional — Claude Haiku translator for breaking/alert/digest. Falls
+      # back to Google Translate (free) when unset.
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
       PYTHONUNBUFFERED: "1"
     steps:
       - uses: actions/checkout@v4
