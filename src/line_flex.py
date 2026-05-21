@@ -296,13 +296,10 @@ def _digest_event_row(ev: Event, score: float, kw_cfg: dict[str, Any],
     url = _pick_article_url(ev.items)
 
     contents: list[dict[str, Any]] = [
-        # Title row: fixed-width impact pill + bold title
-        {"type": "box", "layout": "horizontal", "spacing": "sm",
-         "alignItems": "center", "contents": [
-             _impact_pill_small(score),
-             {"type": "text", "text": display_title, "size": "sm",
-              "wrap": True, "color": "#111827", "flex": 1, "weight": "bold"},
-        ]},
+        # Title — no impact pill here; the topic-section header above
+        # already carries the max impact for this group.
+        {"type": "text", "text": display_title, "size": "sm",
+         "wrap": True, "color": "#111827", "weight": "bold"},
     ]
     if summary_th:
         # Allow 3-4 lines of Thai context. 500 chars ≈ 4 lines on a phone.
