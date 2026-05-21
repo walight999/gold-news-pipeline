@@ -64,6 +64,14 @@ def is_active_session(dt: datetime | None = None) -> bool:
     return t >= time(14, 0) or t < time(4, 0)
 
 
+def is_weekend_ict(dt: datetime | None = None) -> bool:
+    """True if `dt` (default: now) falls on Saturday or Sunday in ICT.
+    Markets close at Sat 04:00 ICT and reopen Mon 04:00 ICT, but for
+    simplicity we treat the entire ICT-day Sat + Sun as off-hours."""
+    dt_ict = to_ict(dt) if dt else now_ict()
+    return dt_ict.weekday() in (5, 6)  # Mon=0 ... Sat=5, Sun=6
+
+
 def freshness_factor(anchor_utc: datetime, ref_utc: datetime | None = None) -> float:
     """0–3m=1.0 | 3–10m=0.6 | 10–30m=0.3 | >30m=0.1"""
     ref = ref_utc or now_utc()

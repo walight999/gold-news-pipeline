@@ -35,12 +35,13 @@ from .line_flex import (
     health_recovered_bubble,
     post_release_bubble,
     pre_release_bubble,
+    weekly_preview_bubble,
 )
 from .normalizer import normalize
 from .parser import parse_feed
 from .router import Route, decide
 from .store import Store
-from .utils_time import ICT, iso_utc, now_ict, now_utc, within_digest_slot
+from .utils_time import ICT, is_weekend_ict, iso_utc, now_ict, now_utc, within_digest_slot
 
 log = logging.getLogger("gold-news")
 CFG_DIR = Path(__file__).resolve().parent.parent / "config"
@@ -59,6 +60,12 @@ def _load_configs() -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
 
 async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
     src_cfg, kw_cfg, sched_cfg = _load_configs()
+
+    # Skip ICT weekends. Forex/gold markets are closed Sat 04:00 ICT to
+    # Mon 04:00 ICT — no point burning Sheets writes / cron minutes.
+    if is_weekend_ict() and mode != "event":
+        log.info("weekend (ICT) — skipping %s run", mode)
+        return 0
 
     store = Store.from_env()
     store.connect()
@@ -265,8 +272,77 @@ async def run_maintain() -> int:
     return 0
 
 
+async def run_weekly_preview() -> int:
+    """Saturday-morning preview of next week's economic releases.
+
+    One Flex bubble per ISO week, sectioned by day, with per-event
+    forecast-vs-previous Effect emoji. Idempotent per ISO week via sent_log.
+    """
+    _, _, sched_cfg = _load_configs()
+    cal_cfg = sched_cfg.get("calendar", {})
+
+    store = Store.from_env()
+    store.connect()
+    store.load_all()
+
+    # Idempotency: key on the TARGET Monday so Sat/Sun/Mon retries all
+    # collapse to a single send once FF JSON has the next-week data.
+    target_mon = cal.next_workweek_monday_ict().strftime("%Y-%m-%d")
+    sent_key = f"weekly:{target_mon}"
+    if store.get("sent_log", (sent_key, "weekly_preview")):
+        log.info("weekly_preview already sent for week-of %s — skipping", target_mon)
+        store.flush()
+        return 0
+
+    try:
+        events = cal.fetch_calendar(cal_cfg.get("source_url", cal.FF_URL))
+    except Exception as e:
+        log.exception("fetch_calendar failed: %s", e)
+        store.flush()
+        return 1
+
+    next_week = cal.filter_next_week_ict(events)
+    countries = tuple(cal_cfg.get("daily_currencies", cal.DEFAULT_DAILY_COUNTRIES))
+    impacts   = tuple(cal_cfg.get("daily_impacts",    cal.DEFAULT_DAILY_IMPACTS))
+    filtered = cal.filter_by_impact(cal.filter_by_country(next_week, countries), impacts)
+    log.info("weekly_preview: %d total, %d in next week, %d after filter",
+             len(events), len(next_week), len(filtered))
+
+    if not filtered:
+        store.flush()
+        return 0
+
+    effects = {ev.event_id: cal.forecast_vs_previous_effect(ev) for ev in filtered}
+    from datetime import timedelta
+    start = min(e.dt_ict for e in filtered)
+    end = max(e.dt_ict for e in filtered)
+    week_label = f"{start.strftime('%a %d %b')} – {end.strftime('%a %d %b')}"
+
+    bubble = weekly_preview_bubble(filtered, effects, week_label)
+    if bubble is None:
+        store.flush()
+        return 0
+    target = os.environ.get("LINE_NEWS_TARGET", "")
+    if not target:
+        log.warning("LINE_NEWS_TARGET not set — skipping push")
+        store.flush()
+        return 0
+    line = LineClient.from_env()
+    resp = line.push_flex(target, f"📅 Week Ahead — {len(filtered)} events", bubble)
+    if resp["status"] == 200:
+        store.upsert("sent_log", {
+            "event_id": sent_key, "route_type": "weekly_preview",
+            "sent_ts": iso_utc(now_utc()), "line_status": 200,
+        })
+    store.flush()
+    return 0
+
+
 async def run_calendar_daily() -> int:
     """Push today's economic calendar to LINE_NEWS_TARGET. Idempotent per ICT day."""
+    if is_weekend_ict():
+        log.info("weekend (ICT) — skipping calendar_daily")
+        return 0
     _, _, sched_cfg = _load_configs()
     cal_cfg = sched_cfg.get("calendar", {})
 
@@ -327,6 +403,9 @@ async def run_calendar_check() -> int:
     Post-release: events released in [post_lo, post_hi) minutes — currently
     (-15, 0]. Both gated by sent_log idempotency per event_id.
     """
+    if is_weekend_ict():
+        log.info("weekend (ICT) — skipping calendar_check")
+        return 0
     _, _, sched_cfg = _load_configs()
     cal_cfg = sched_cfg.get("calendar", {})
 
@@ -445,7 +524,8 @@ def main(argv: list[str] | None = None) -> int:
     )
     p = argparse.ArgumentParser()
     p.add_argument("--mode", choices=(
-        "cron", "event", "digest", "calendar_daily", "calendar_check", "maintain",
+        "cron", "event", "digest", "calendar_daily", "calendar_check",
+        "weekly_preview", "maintain",
     ), default="cron")
     p.add_argument("--event-duration-min", type=int, default=30)
     p.add_argument("--event-sleep-sec", type=int, default=60)
@@ -456,6 +536,8 @@ def main(argv: list[str] | None = None) -> int:
         return asyncio.run(run_calendar_daily())
     if args.mode == "calendar_check":
         return asyncio.run(run_calendar_check())
+    if args.mode == "weekly_preview":
+        return asyncio.run(run_weekly_preview())
     if args.mode == "maintain":
         return asyncio.run(run_maintain())
     return asyncio.run(run_once(mode=args.mode))

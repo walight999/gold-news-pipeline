@@ -104,6 +104,30 @@ def filter_today_ict(events: list[CalEvent], ref: datetime | None = None) -> lis
     return [e for e in events if e.dt_ict.strftime("%Y-%m-%d") == today_str]
 
 
+def next_workweek_monday_ict(ref: datetime | None = None) -> datetime:
+    """Returns the Monday 00:00 ICT of the upcoming work-week.
+
+    Mon-Fri ref → this week's Monday (so a Monday-early run previews
+    today through Friday).
+    Sat-Sun ref → next week's Monday.
+    """
+    from datetime import timedelta
+    ref_ict = (ref or now_utc()).astimezone(ICT)
+    days_to_mon = (7 - ref_ict.weekday()) % 7   # Mon=0, Tue=6, ..., Sun=1
+    mon = (ref_ict + timedelta(days=days_to_mon)).replace(
+        hour=0, minute=0, second=0, microsecond=0
+    )
+    return mon
+
+
+def filter_next_week_ict(events: list[CalEvent], ref: datetime | None = None) -> list[CalEvent]:
+    """Returns events from the upcoming Mon 00:00 ICT through Fri 23:59 ICT."""
+    from datetime import timedelta
+    start = next_workweek_monday_ict(ref)
+    end = start + timedelta(days=5)   # Mon 00:00 .. Sat 00:00 = Mon-Fri inclusive
+    return [e for e in events if start <= e.dt_ict < end]
+
+
 def filter_by_country(events: list[CalEvent], countries: tuple[str, ...]) -> list[CalEvent]:
     cs = {c.upper() for c in countries}
     return [e for e in events if e.country in cs]

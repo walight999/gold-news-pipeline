@@ -24,8 +24,9 @@
  */
 
 var REPO              = "walight999/gold-news-pipeline";
-var WORKFLOW_EVENT    = "event_mode.yml";   // fired ~5min before high-impact releases
-var WORKFLOW_NEWSCRON = "news_cron.yml";    // fired on a tight schedule from GAS
+var WORKFLOW_EVENT    = "event_mode.yml";       // fired ~5min before high-impact releases
+var WORKFLOW_NEWSCRON = "news_cron.yml";        // fired on a tight schedule from GAS
+var WORKFLOW_CALCHECK = "calendar_check.yml";   // pre + post release sweep (every 10 min)
 var WORKFLOW_REF      = "main";
 var DURATION_MIN      = 30;
 
@@ -52,7 +53,7 @@ var FF_URL = "https://nfs.faireconomy.media/ff_calendar_thisweek.json";
  *                 public repos.
  */
 function setupTrigger() {
-  var handlers = ["scanAndFire", "fireNewsCron"];
+  var handlers = ["scanAndFire", "fireNewsCron", "fireCalendarCheck"];
   var existing = ScriptApp.getProjectTriggers();
   for (var i = 0; i < existing.length; i++) {
     if (handlers.indexOf(existing[i].getHandlerFunction()) !== -1) {
@@ -61,7 +62,8 @@ function setupTrigger() {
   }
   ScriptApp.newTrigger("scanAndFire").timeBased().everyMinutes(5).create();
   ScriptApp.newTrigger("fireNewsCron").timeBased().everyMinutes(5).create();
-  Logger.log("Triggers installed: scanAndFire + fireNewsCron, every 5 min");
+  ScriptApp.newTrigger("fireCalendarCheck").timeBased().everyMinutes(10).create();
+  Logger.log("Triggers installed: scanAndFire(5m) + fireNewsCron(5m) + fireCalendarCheck(10m)");
 }
 
 
@@ -152,12 +154,22 @@ function fireEventModeDispatch(durationMin) {
 
 
 /**
- * Fires the news-cron workflow. Called every minute from a separate
- * GAS trigger to bypass GitHub Actions' unreliable */5 cron scheduling
- * for public repos (we've observed *2 hour* effective intervals).
+ * Fires the news-cron workflow. Called every 5 min from a separate GAS
+ * trigger to bypass GitHub Actions' unreliable */5 cron scheduling for
+ * public repos (we've observed *2 hour* effective intervals).
  */
 function fireNewsCron() {
   return fireWorkflowDispatch(WORKFLOW_NEWSCRON, {});
+}
+
+
+/**
+ * Fires calendar-check (pre + post release sweep). Same drop-rate issue
+ * as news-cron — GH free-tier was running this ~6x/day instead of
+ * the cron-spec'd 144x/day, so most pre-release alerts never fired.
+ */
+function fireCalendarCheck() {
+  return fireWorkflowDispatch(WORKFLOW_CALCHECK, {});
 }
 
 

@@ -549,6 +549,64 @@ def post_release_bubble(
     }
 
 
+def weekly_preview_bubble(
+    events: list[CalEvent],
+    effects: dict[str, dict[str, str]],
+    week_label: str,
+) -> dict[str, Any] | None:
+    """One long bubble — preview of next week's events, sectioned by day.
+
+    `effects` maps event_id → forecast_vs_previous_effect dict, used to
+    render the per-event 🟢 / 🔴 / 🟡 indicator.
+    """
+    if not events:
+        return None
+    from collections import OrderedDict
+    by_day: OrderedDict[str, list[CalEvent]] = OrderedDict()
+    for ev in sorted(events, key=lambda e: e.dt_utc):
+        key = ev.dt_ict.strftime("%a %d %b")
+        by_day.setdefault(key, []).append(ev)
+
+    sections: list[dict[str, Any]] = []
+    for i, (day_label, day_events) in enumerate(by_day.items()):
+        if i > 0:
+            sections.append({"type": "separator", "margin": "lg"})
+        sections.append({
+            "type": "box", "layout": "horizontal", "margin": "lg",
+            "alignItems": "center",
+            "contents": [
+                {"type": "text", "text": day_label.upper(), "size": "sm",
+                 "color": "#374151", "weight": "bold", "flex": 1},
+                {"type": "text", "text": f"{len(day_events)} event(s)",
+                 "size": "xs", "color": "#9CA3AF", "align": "end", "flex": 0},
+            ],
+        })
+        for ev in day_events:
+            eff = effects.get(ev.event_id) or {"emoji": "🟡"}
+            sections.append({
+                "type": "box", "layout": "horizontal", "spacing": "md",
+                "alignItems": "center", "margin": "md",
+                "contents": [
+                    {"type": "text", "text": ev.hhmm_ict, "size": "sm",
+                     "weight": "bold", "color": "#111827", "flex": 0},
+                    _impact_pill_calendar(ev.impact),
+                    {"type": "text", "text": f"  {ev.country}  ", "size": "xs",
+                     "weight": "bold", "color": "#374151", "flex": 0},
+                    {"type": "text", "text": ev.title, "size": "sm",
+                     "wrap": True, "color": "#111827", "flex": 1},
+                    {"type": "text", "text": eff["emoji"], "size": "md",
+                     "flex": 0, "align": "end"},
+                ],
+            })
+
+    return {
+        "type": "bubble", "size": "giga",
+        "header": _header("📅 Week Ahead", week_label, COLOR["digest"]),
+        "body": {"type": "box", "layout": "vertical", "spacing": "sm",
+                 "contents": sections, "paddingAll": "16px"},
+    }
+
+
 def pre_release_bubble(event: CalEvent, minutes_to_release: int,
                        impact: dict[str, str] | None = None,
                        effect: dict[str, str] | None = None) -> dict[str, Any]:
