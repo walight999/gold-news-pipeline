@@ -31,17 +31,22 @@ SUMMARY_LIMIT       = 200
 
 # Human-readable source names. Falls back to id.title() if not listed.
 SOURCE_NAMES: dict[str, str] = {
-    "fed":         "Federal Reserve",
-    "bls":         "BLS",
-    "ecb":         "ECB",
-    "treasury":    "US Treasury",
-    "bbc_world":   "BBC",
-    "aljazeera":   "Al Jazeera",
-    "cnbc":        "CNBC",
-    "marketwatch": "MarketWatch",
-    "forexlive":   "ForexLive",
-    "fxstreet":    "FXStreet",
-    "kitco":       "Kitco",
+    "fed":                  "Federal Reserve",
+    "bls":                  "BLS",
+    "ecb":                  "ECB",
+    "treasury":             "US Treasury",
+    "bbc_world":            "BBC",
+    "aljazeera":            "Al Jazeera",
+    "cnbc":                 "CNBC",
+    "marketwatch":          "MarketWatch",
+    "forexlive":            "ForexLive",
+    "fxstreet":             "FXStreet",
+    "kitco":                "Kitco",
+    "investing_cb":         "Investing CB",
+    "investing_commodities":"Investing Commodities",
+    "investing_general":    "Investing.com",
+    "benzinga":             "Benzinga",
+    "yahoo_finance":        "Yahoo Finance",
 }
 
 # Health warning -> human-readable English text.

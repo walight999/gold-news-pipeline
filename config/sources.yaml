@@ -17,3 +17,11 @@ sources:
   - {id: forexlive,   tier: 2, source_class: wire,       role: trader_macro, url: "https://www.forexlive.com/feed/",                    poll_min: 5,  enabled: true}
   - {id: fxstreet,    tier: 2, source_class: wire,       role: gold_bias,    url: "https://www.fxstreet.com/rss",                       poll_min: 5,  enabled: true,  note: "verified 2026-05-20"}
   - {id: kitco,       tier: 3, source_class: gold_blog,  role: gold_context, url: "https://www.kitco.com/rss/",                         poll_min: 60, enabled: false, note: "2026-05-20: HTTP 404"}
+  # Fast-news additions (replace the Reuters/Make.com / Apify path).
+  # Investing.com runs without Cloudflare — plain httpx returns 200.
+  - {id: investing_cb,          tier: 1, source_class: aggregator, role: rate_policy,  url: "https://www.investing.com/rss/news_95.rss",  poll_min: 10, enabled: true,  note: "Investing.com central bank news (Fed/ECB/BoJ etc.)"}
+  - {id: investing_commodities, tier: 1, source_class: aggregator, role: gold_context, url: "https://www.investing.com/rss/news_11.rss",  poll_min: 10, enabled: true,  note: "Investing.com commodities (gold/oil — direct XAU relevance)"}
+  - {id: investing_general,     tier: 1, source_class: aggregator, role: macro,        url: "https://www.investing.com/rss/news.rss",     poll_min: 10, enabled: true,  note: "Investing.com general macro"}
+  - {id: benzinga,              tier: 2, source_class: wire,       role: trader_macro, url: "https://www.benzinga.com/feed",              poll_min: 5,  enabled: true,  note: "Trader wire — fast"}
+  - {id: yahoo_finance,         tier: 1, source_class: aggregator, role: macro,        url: "https://finance.yahoo.com/news/rssindex",    poll_min: 10, enabled: true,  note: "Carries Reuters/AP syndicated content (Reuters direct RSS is retired)"}
+
