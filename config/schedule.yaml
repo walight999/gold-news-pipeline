@@ -41,18 +41,23 @@ calendar:
   # ForexFactory free weekly JSON. Refreshes every few hours upstream.
   source_url: "https://nfs.faireconomy.media/ff_calendar_thisweek.json"
 
-  # Daily push at 06:30 ICT — full day's events worth knowing about.
-  daily_push_ict: "06:30"
-  daily_currencies: [USD, EUR, CNY, JPY, GBP]
+  # Daily push at 04:40 ICT — full day's events worth knowing about.
+  daily_push_ict: "04:40"
+  # 7 currencies XAU traders watch. CHF rarely appears in FF (SNB is quiet)
+  # but include for forward compatibility.
+  daily_currencies: [CAD, CHF, CNY, EUR, GBP, JPY, USD]
   daily_impacts:    [High, Medium]
 
-  # Pre-release alert — tight filter so we don't spam.
+  # Pre-release alert — broad currency set, both impacts. FF free data
+  # gives ~4-12 such events per day, so expect 4-12 pre-release pushes.
+  # Tighten back to High-only if it gets spammy after a week of data.
   pre_release_window_low_min:  15   # alert if event is >= this many minutes out
   pre_release_window_high_min: 25   # ... and < this many minutes out
-  pre_release_currencies: [USD, EUR]
-  pre_release_impacts:    [High]
+  pre_release_currencies: [CAD, CHF, CNY, EUR, GBP, JPY, USD]
+  pre_release_impacts:    [High, Medium]
 
-  # Post-release alert — fires once after release, directional gold impact only
-  # (FF free JSON doesn't ship `actual`, so no surprise calc in Phase 1).
+  # Post-release alert — fires once after release, directional gold impact
+  # plus FRED actual when supported (US series only — CAD/CHF/etc. stay
+  # directional only).
   post_release_window_low_min:  -15
   post_release_window_high_min:   0
