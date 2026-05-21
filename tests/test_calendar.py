@@ -92,9 +92,11 @@ def test_pre_release_bubble_shape():
     assert b["type"] == "bubble"
     # High-impact header is red
     assert b["header"]["backgroundColor"] == "#DC2626"
-    # Header right shows the countdown
-    sub_label = b["header"]["contents"][1]["text"]
-    assert "T-15min" in sub_label
+    # v3 layout drops the T-Xmin sub-label and the directional block; the
+    # 3-column row carries Forecast/Previous/GOLD IMPACT instead.
+    body_texts = _all_texts(b["body"])
+    assert any("GOLD IMPACT" in t for t in body_texts)
+    assert not any("↑" in t for t in body_texts), "directional block should be gone"
 
 
 def test_gold_impact_directional_cpi_bearish():
@@ -123,13 +125,13 @@ def test_post_release_bubble_shape():
     from src.line_flex import post_release_bubble
     e = cal.parse_ff_payload([_ff_item("Core CPI m/m", "USD", "2026-05-15T08:30:00-04:00", "High")])[0]
     info = cal.gold_impact_directional(e)
-    b = post_release_bubble(e, info)
+    eff = cal.forecast_vs_previous_effect(e)
+    b = post_release_bubble(e, info, effect=eff)
     assert b["type"] == "bubble"
     assert b["header"]["backgroundColor"] == "#DC2626"
-    # Directional-only path: body should have "Higher" + "Lower" lines
-    texts = [c.get("text", "") for c in b["body"]["contents"] if c.get("type") == "text"]
-    assert any("Higher" in t for t in texts)
-    assert any("Lower" in t for t in texts)
+    # v3: no-FRED path now mirrors pre-release — 3-col Forecast/Previous/GOLD IMPACT.
+    body_texts = _all_texts(b["body"])
+    assert any("GOLD IMPACT" in t for t in body_texts)
 
 
 def _all_texts(node) -> list[str]:

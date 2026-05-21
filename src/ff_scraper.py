@@ -98,17 +98,41 @@ def _parse_date_header(text: str, ref: datetime) -> datetime | None:
         return None
 
 
+# Cloudflare ranks fingerprints differently; cloud-runner IPs sometimes
+# trip the bot rules with chrome124 but pass with chrome131 or safari17_0.
+# Try in order — first that returns a parseable table wins.
+_IMPERSONATIONS = ["chrome124", "chrome131", "chrome120", "safari17_0", "edge99"]
+
+
+def _try_fetch(url: str, timeout: float) -> str | None:
+    for imp in _IMPERSONATIONS:
+        try:
+            r = cffi.get(url, impersonate=imp, timeout=timeout)
+            if r.status_code == 200 and "calendar__table" in r.text:
+                log.info("FF scrape ok via %s", imp)
+                return r.text
+            log.info("FF scrape %s status=%s (trying next impersonation)",
+                     imp, r.status_code)
+        except Exception as e:
+            log.warning("FF scrape %s failed: %s", imp, e)
+    return None
+
+
 def scrape_ff_html(
     url: str = CALENDAR_URL,
-    impersonate: str = "chrome124",
+    impersonate: str | None = None,
     timeout: float = 25.0,
 ) -> list[dict[str, Any]]:
     """Returns a list of FF-JSON-shaped dicts for the requested week."""
-    r = cffi.get(url, impersonate=impersonate, timeout=timeout)
-    if r.status_code != 200:
-        log.warning("FF scrape HTTP %s for %s", r.status_code, url)
+    if impersonate:
+        r = cffi.get(url, impersonate=impersonate, timeout=timeout)
+        html = r.text if r.status_code == 200 else None
+    else:
+        html = _try_fetch(url, timeout)
+    if not html:
+        log.warning("FF scrape: every impersonation failed for %s", url)
         return []
-    soup = BeautifulSoup(r.text, "lxml")
+    soup = BeautifulSoup(html, "lxml")
     table = soup.find("table", class_="calendar__table")
     if not table:
         log.warning("FF scrape: no calendar__table in response")

@@ -401,7 +401,9 @@ async def run_eod_recap() -> int:
         store.flush()
         return 0
     line = LineClient.from_env()
-    bubble = eod_recap_bubble(stats, now_ict().strftime("%a %d %b %Y"))
+    ict = now_ict()
+    short_date = f"{ict.day}/{ict.month}/{ict.year % 100}"
+    bubble = eod_recap_bubble(stats, short_date)
     alt = (f"🌙 EoD — {breaking_n} breaking, {alert_n} alert, "
            f"{cal_pre_n}+{cal_post_n} calendar")
     resp = _push_or_skip(line, target, alt, bubble, sched_cfg, label="eod_recap")
@@ -681,10 +683,12 @@ async def run_calendar_check() -> int:
             # XAU reaction since release (Phase 3 — when intraday data is
             # available; off-hours / 429s gracefully return None).
             xau_reaction = price_feed.xau_return_pct(ev.dt_utc, minutes_after=5)
+            effect_info = cal.forecast_vs_previous_effect(ev)
             bubble = post_release_bubble(ev, impact_info,
                                          actual_text=actual_text,
                                          surprise=surprise, verdict=verdict,
-                                         xau_return_pct=xau_reaction)
+                                         xau_return_pct=xau_reaction,
+                                         effect=effect_info)
             alt_extra = f" · actual {actual_text}" if actual_text else ""
             alt = f"📊 Released · {ev.country} {ev.title}{alt_extra}"
             resp = _push_or_skip(line, target, alt, bubble, sched_cfg, label="calendar")

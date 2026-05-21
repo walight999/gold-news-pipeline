@@ -552,6 +552,7 @@ def post_release_bubble(
     surprise: str | None = None,
     verdict: str | None = None,
     xau_return_pct: float | None = None,
+    effect: dict[str, str] | None = None,
 ) -> dict[str, Any]:
     """Released-news bubble — title-led, no time field, single-word verdict.
 
@@ -620,21 +621,31 @@ def post_release_bubble(
                 "size": "xs", "color": color, "margin": "sm",
             })
     else:
-        # Directional-only path
+        # No-FRED path — same compact 3-column shape as pre-release so the
+        # bubbles read consistently. Effect emoji carries the gold impact.
+        eff = effect or {"emoji": "🟡"}
         body_contents.append({
-            "type": "text",
-            "text": f"Forecast: {event.forecast or '-'}  ·  Previous: {event.previous or '-'}",
-            "size": "xs", "color": "#374151", "margin": "lg",
+            "type": "box", "layout": "horizontal", "margin": "lg",
+            "contents": [
+                {"type": "text", "text": "Forecast", "size": "xxs",
+                 "color": "#9CA3AF", "flex": 1},
+                {"type": "text", "text": "Previous", "size": "xxs",
+                 "color": "#9CA3AF", "flex": 1, "align": "center"},
+                {"type": "text", "text": "GOLD IMPACT", "size": "xxs",
+                 "color": "#9CA3AF", "flex": 1, "align": "end"},
+            ],
         })
-        body_contents.append({"type": "separator", "margin": "lg"})
-        body_contents.extend([
-            {"type": "text", "text": "Gold Impact (directional)",
-             "size": "xs", "color": "#9CA3AF", "weight": "bold", "margin": "md"},
-            {"type": "text", "text": "↑ Higher → " + impact["higher_is"],
-             "size": "xs", "color": "#374151", "margin": "xs"},
-            {"type": "text", "text": "↓ Lower  → " + impact["lower_is"],
-             "size": "xs", "color": "#374151"},
-        ])
+        body_contents.append({
+            "type": "box", "layout": "horizontal",
+            "contents": [
+                {"type": "text", "text": event.forecast or "-", "size": "sm",
+                 "weight": "bold", "color": "#111827", "flex": 1},
+                {"type": "text", "text": event.previous or "-", "size": "sm",
+                 "color": "#374151", "flex": 1, "align": "center"},
+                {"type": "text", "text": eff["emoji"], "size": "md",
+                 "flex": 1, "align": "end"},
+            ],
+        })
 
     return {
         "type": "bubble", "size": "kilo",
@@ -705,19 +716,17 @@ def weekly_preview_bubble(
 def pre_release_bubble(event: CalEvent, minutes_to_release: int,
                        impact: dict[str, str] | None = None,
                        effect: dict[str, str] | None = None) -> dict[str, Any]:
-    """Pre-release bubble — title-led, 3-column Forecast/Previous/Effect.
+    """Pre-release bubble — title-led, 3-column Forecast/Previous/Gold Impact.
 
-    Effect emoji (🟢/🔴/🟡) reflects what the market is pricing in based on
-    just the forecast vs previous comparison (no actual yet).
+    The Gold Impact emoji (🟢/🔴/🟡) alone communicates direction; no
+    separate directional block underneath (the column already says it).
     """
     header_color, _ = _impact_color(event.impact)
     eff = effect or {"emoji": "🟡", "label": "n/a"}
 
     body_contents: list[dict[str, Any]] = [
-        # Title (lead the bubble)
         {"type": "text", "text": event.title, "weight": "bold", "size": "md",
          "wrap": True, "color": "#111827"},
-        # Impact pill + country row
         {"type": "box", "layout": "horizontal", "spacing": "sm",
          "alignItems": "center", "margin": "sm",
          "contents": [
@@ -725,17 +734,15 @@ def pre_release_bubble(event: CalEvent, minutes_to_release: int,
              {"type": "text", "text": event.country, "size": "xs",
               "weight": "bold", "color": "#374151", "flex": 0},
         ]},
-        # 3-column header
         {"type": "box", "layout": "horizontal", "margin": "lg",
          "contents": [
              {"type": "text", "text": "Forecast", "size": "xxs",
               "color": "#9CA3AF", "flex": 1},
              {"type": "text", "text": "Previous", "size": "xxs",
               "color": "#9CA3AF", "flex": 1, "align": "center"},
-             {"type": "text", "text": "Effect", "size": "xxs",
+             {"type": "text", "text": "GOLD IMPACT", "size": "xxs",
               "color": "#9CA3AF", "flex": 1, "align": "end"},
         ]},
-        # 3-column values
         {"type": "box", "layout": "horizontal",
          "contents": [
              {"type": "text", "text": event.forecast or "-", "size": "sm",
@@ -746,19 +753,11 @@ def pre_release_bubble(event: CalEvent, minutes_to_release: int,
               "flex": 1, "align": "end"},
         ]},
     ]
-    if impact:
-        body_contents.extend([
-            {"type": "separator", "margin": "lg"},
-            {"type": "text", "text": "Gold Impact (directional)",
-             "size": "xs", "color": "#9CA3AF", "weight": "bold", "margin": "md"},
-            {"type": "text", "text": "↑ Higher → " + impact["higher_is"],
-             "size": "xs", "color": "#374151", "margin": "xs"},
-            {"type": "text", "text": "↓ Lower  → " + impact["lower_is"],
-             "size": "xs", "color": "#374151"},
-        ])
+    # Header sub-label dropped — bubble timing in LINE already conveys
+    # "this is happening soon"; "T-Xmin" was just noise.
     return {
         "type": "bubble", "size": "kilo",
-        "header": _header("⏰ Pre-Release", f"T-{minutes_to_release}min", header_color),
+        "header": _header("⏰ Pre-Release", "", header_color),
         "body": {"type": "box", "layout": "vertical", "spacing": "sm",
                  "paddingAll": "16px", "contents": body_contents},
     }
