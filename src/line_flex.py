@@ -277,33 +277,42 @@ def alert_bubble(ev: Event, score: float, kw_cfg: dict[str, Any]) -> dict[str, A
 
 # ---------- digest ----------
 
-def _digest_event_row(ev: Event, score: float, kw_cfg: dict[str, Any]) -> dict[str, Any]:
+def _digest_event_row(ev: Event, score: float, kw_cfg: dict[str, Any],
+                      title_th: str | None = None,
+                      summary_th: str | None = None) -> dict[str, Any]:
     """Compact event row for the single long-bubble digest.
 
-    Layout:
-      [HIGH] Title in bold (wraps)
-             ForexLive · 12m ago                            Read ↗
+    With Thai translations available, the bubble carries enough info for
+    the user to understand WITHOUT clicking through:
+      [HIGH] {Thai title — bold}
+              {Thai summary — small grey, optional}
+              ForexLive · 12m ago                          Read ↗
+    Falls back to English title only when translation is unavailable.
     """
-    title = _trim(ev.representative_title, TOPIC_TITLE_LIMIT)
+    en_title = _trim(ev.representative_title, TOPIC_TITLE_LIMIT)
+    display_title = title_th.strip() if title_th else en_title
     src_name = _source_label(ev.source_list, max_n=2)
-    primary_src = SOURCE_NAMES.get(ev.source_list[0], ev.source_list[0].title()) if ev.source_list else "source"
     age = _ago_label(_earliest_ts(ev))
     url = _pick_article_url(ev.items)
 
-    return {
-        "type": "box", "layout": "vertical", "spacing": "xs", "margin": "md",
-        "contents": [
-            # Title row: fixed-width impact pill + bold title
-            {"type": "box", "layout": "horizontal", "spacing": "sm",
-             "alignItems": "center", "contents": [
-                 _impact_pill_small(score),
-                 {"type": "text", "text": title, "size": "sm",
-                  "wrap": True, "color": "#111827", "flex": 1, "weight": "bold"},
-            ]},
-            # Meta row: time + source-as-link (source name itself opens URL)
-            _source_link(src_name, age, url),
-        ],
-    }
+    contents: list[dict[str, Any]] = [
+        # Title row: fixed-width impact pill + bold title
+        {"type": "box", "layout": "horizontal", "spacing": "sm",
+         "alignItems": "center", "contents": [
+             _impact_pill_small(score),
+             {"type": "text", "text": display_title, "size": "sm",
+              "wrap": True, "color": "#111827", "flex": 1, "weight": "bold"},
+        ]},
+    ]
+    if summary_th:
+        contents.append({
+            "type": "text", "text": _trim(summary_th, 280),
+            "size": "xxs", "color": "#4B5563", "wrap": True, "margin": "xs",
+        })
+    contents.append(_source_link(src_name, age, url))
+
+    return {"type": "box", "layout": "vertical", "spacing": "xs",
+            "margin": "md", "contents": contents}
 
 
 def digest_carousel(
@@ -311,6 +320,7 @@ def digest_carousel(
     scores: dict[str, float],
     slot: str,
     kw_cfg: dict[str, Any],
+    translations: dict[str, dict[str, str | None]] | None = None,
 ) -> dict[str, Any] | None:
     """Single LONG bubble: header then per-topic sections (no carousel).
 
@@ -346,7 +356,12 @@ def digest_carousel(
             ],
         })
         for ev in evs:
-            sections.append(_digest_event_row(ev, scores.get(ev.event_id, 0), kw_cfg))
+            tr = (translations or {}).get(ev.event_id, {})
+            sections.append(_digest_event_row(
+                ev, scores.get(ev.event_id, 0), kw_cfg,
+                title_th=tr.get("title_th"),
+                summary_th=tr.get("summary_th"),
+            ))
 
     return {
         "type": "bubble", "size": "giga",

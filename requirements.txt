@@ -14,3 +14,6 @@ beautifulsoup4>=4.12.0
 lxml>=5.0.0
 # XAU + DXY intraday for post-release reaction + daily-calendar snapshot.
 yfinance>=0.2.40
+# Thai translation for Latest News Update digest. Faithful translation
+# only (no AI rewriting). Google Translate backend = free, no API key.
+deep-translator>=1.11.0

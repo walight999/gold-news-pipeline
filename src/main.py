@@ -22,7 +22,7 @@ from typing import Any
 import yaml
 
 from . import calendar as cal
-from . import dedup, digest, fred, health, price_feed, scorer
+from . import dedup, digest, fred, health, price_feed, scorer, translator
 from .fetcher import fetch_all, plan_fetch
 from .line_client import LineClient
 from .line_flex import (
@@ -256,7 +256,15 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
             if not digest_events and non_breaking:
                 digest_events = non_breaking
             ranked = sorted(digest_events, key=lambda e: -scores.get(e.event_id, 0))[:max_events]
-            carousel = digest_carousel(ranked, scores, slot, kw_cfg)
+            # Translate title + summary to Thai for each event going to the
+            # bubble. Faithful translation (Google Translate) — not AI rewriting.
+            translations: dict[str, dict[str, str | None]] = {}
+            for ev in ranked:
+                translations[ev.event_id] = {
+                    "title_th":   translator.to_thai(ev.representative_title, 200),
+                    "summary_th": translator.to_thai(ev.representative_summary, 400),
+                }
+            carousel = digest_carousel(ranked, scores, slot, kw_cfg, translations=translations)
             if carousel and news_target:
                 line = line or LineClient.from_env()
                 alt = f"📰 Digest {slot} ICT — {len(ranked)} event(s)"
