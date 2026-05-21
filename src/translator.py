@@ -1,56 +1,118 @@
-"""Thai translation for digest event content.
+"""Thai translation for digest / breaking / alert content.
 
-Default backend: Google Translate via deep-translator (free, no API key).
-Translation only — preserves original meaning. No AI rewriting / summary
-generation; if the source has terse copy, the Thai version will be terse
-too. Falls back to English original on any rate-limit / network error.
+Backends (waterfall):
+  1. Anthropic Claude Haiku — set ANTHROPIC_API_KEY to enable.
+     Best quality for finance jargon ("patient stance" → "ท่าทีอดทน"
+     instead of "ผู้ป่วยยืน").
+  2. Google Translate via deep-translator — free, no key, used when the
+     LLM call fails or the key isn't set. Good for long-form, mediocre
+     on short finance titles.
+  3. None — caller renders the English original.
 
-The 'patient stance' / 'cuts' style finance jargon does have known
-translation quality issues. If quality becomes a blocker, swap the
-backend to an LLM-with-explicit-translate-prompt — change `to_thai`
-internals; the rest of the pipeline doesn't care.
+Translation only — never AI summarisation or rephrasing.
 """
 from __future__ import annotations
 
 import logging
+import os
 import re
 
 log = logging.getLogger(__name__)
 
-_instance = None
+_LLM_PROMPT = """Translate this English financial news to natural Thai. Rules:
+- Faithful translation — preserve every fact, number, percentage, and entity.
+- Use Thai financial journalism style, NOT literal word-for-word.
+- Keep technical terms in English when standard (CPI, NFP, Fed, FOMC, ECB,
+  BoJ, BoE, DXY, RSI, PMI, GDP, PCE, PPI etc.).
+- Translate finance idioms naturally:
+    "patient stance"        → "ท่าทีอดทน/รอดู"
+    "soft landing"          → "เศรษฐกิจชะลอแบบนุ่มนวล"
+    "hawkish"               → "ท่าทีเข้มงวด"
+    "dovish"                → "ท่าทีผ่อนคลาย"
+    "sticky inflation"      → "เงินเฟ้อที่อยู่ในระดับสูงต่อเนื่อง"
+    "safe-haven bid"        → "แรงซื้อสินทรัพย์ปลอดภัย"
+    "higher for longer"     → "ดอกเบี้ยสูงนานขึ้น"
+    "rate cut/cuts"         → "ลดดอกเบี้ย"
+    "rate hike/hikes"       → "ขึ้นดอกเบี้ย"
+    "breaks support"        → "หลุดแนวรับ"
+    "breaks resistance"     → "ทะลุแนวต้าน"
+- Do NOT add commentary, preamble, or explanation.
+- Output ONLY the Thai translation, nothing else.
+
+English: {text}
+
+Thai:"""
 
 
-def _get_translator():
-    global _instance
-    if _instance is not None:
-        return _instance
+# Lazy clients — avoid the imports until we actually need them.
+_anthropic_client = None
+_google_instance = None
+
+
+def _get_anthropic_client():
+    global _anthropic_client
+    if _anthropic_client is None:
+        key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
+        if not key:
+            _anthropic_client = False
+            return False
+        try:
+            import anthropic
+            _anthropic_client = anthropic.Anthropic(api_key=key)
+        except ImportError:
+            log.warning("anthropic SDK not installed — falling back to Google")
+            _anthropic_client = False
+    return _anthropic_client
+
+
+def _get_google():
+    global _google_instance
+    if _google_instance is None:
+        try:
+            from deep_translator import GoogleTranslator
+            _google_instance = GoogleTranslator(source="en", target="th")
+        except ImportError:
+            log.warning("deep-translator not installed")
+            _google_instance = False
+    return _google_instance
+
+
+def _translate_claude(text: str) -> str | None:
+    client = _get_anthropic_client()
+    if not client:
+        return None
     try:
-        from deep_translator import GoogleTranslator
-        _instance = GoogleTranslator(source="en", target="th")
-    except ImportError:
-        log.warning("deep-translator not installed — Thai translation disabled")
-        _instance = False
-    return _instance
+        resp = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=512,
+            messages=[{"role": "user", "content": _LLM_PROMPT.format(text=text)}],
+        )
+        out = resp.content[0].text.strip()
+        return out or None
+    except Exception as e:
+        log.warning("claude translate failed: %s", e)
+        return None
+
+
+def _translate_google(text: str) -> str | None:
+    g = _get_google()
+    if not g:
+        return None
+    try:
+        out = g.translate(text)
+        return out.strip() if out else None
+    except Exception as e:
+        log.warning("google translate failed: %s", e)
+        return None
 
 
 def to_thai(text: str | None, max_len: int = 600) -> str | None:
-    """Translate English text to Thai. Returns None on empty input or any
-    failure so callers can render the English original as fallback.
-
-    `max_len` caps the request size (Google Translate truncates above ~5k
-    chars; 600 is enough for a news summary and keeps the round-trip fast).
-    """
+    """Translate English to Thai. Tries Claude first (when key is set),
+    falls back to Google. Returns None if both fail so callers can show
+    the English original."""
     if not text:
         return None
     text = re.sub(r"\s+", " ", text).strip()[:max_len]
     if not text:
         return None
-    inst = _get_translator()
-    if not inst:
-        return None
-    try:
-        out = inst.translate(text)
-        return out.strip() if out else None
-    except Exception as e:
-        log.warning("translate_to_th failed (%s) — using EN fallback", e)
-        return None
+    return _translate_claude(text) or _translate_google(text)

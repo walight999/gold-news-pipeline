@@ -17,3 +17,6 @@ yfinance>=0.2.40
 # Thai translation for Latest News Update digest. Faithful translation
 # only (no AI rewriting). Google Translate backend = free, no API key.
 deep-translator>=1.11.0
+# Claude Haiku for higher-quality Thai translation of finance jargon.
+# Falls back to deep-translator (Google) when ANTHROPIC_API_KEY is unset.
+anthropic>=0.30.0
