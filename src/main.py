@@ -57,11 +57,15 @@ def _quiet_hours_cfg(sched_cfg):
     return sched_cfg.get("quiet_hours") or {}
 
 
-def _push_or_skip(line, target, alt, bubble, sched_cfg, label=""):
+def _push_or_skip(line, target, alt, bubble, sched_cfg, label="", bypass_quiet=False):
     """LINE push wrapped in the quiet-hours gate. Returns the response dict
     on actual push, or a synthetic {status: 0, body: 'quiet_hours'} when
-    suppressed so callers can keep idempotency logic clean."""
-    if is_quiet_hours_ict(_quiet_hours_cfg(sched_cfg)):
+    suppressed so callers can keep idempotency logic clean.
+
+    `bypass_quiet=True` skips the quiet-hours check — used for the daily
+    calendar briefing at 04:40 ICT, which should fire even though it sits
+    inside the 04:00-05:00 ICT market-close window."""
+    if not bypass_quiet and is_quiet_hours_ict(_quiet_hours_cfg(sched_cfg)):
         log.info("quiet hours — suppressing push (%s)", label or "")
         return {"status": 0, "body": "quiet_hours"}
     return line.push_flex(target, alt, bubble)
@@ -582,8 +586,11 @@ async def run_calendar_daily() -> int:
         store.flush()
         return 0
     line = LineClient.from_env()
+    # Daily briefing is the ONE push that's allowed through the
+    # 04:00-05:00 ICT quiet window (it's the wake-up email of the day).
     resp = _push_or_skip(line, target, f"📅 Calendar — {len(filtered)} events today",
-                          bubble, sched_cfg, label="calendar_daily")
+                          bubble, sched_cfg, label="calendar_daily",
+                          bypass_quiet=True)
     if resp["status"] == 200:
         store.upsert("sent_log", {
             "event_id": sent_key, "route_type": "calendar_daily",

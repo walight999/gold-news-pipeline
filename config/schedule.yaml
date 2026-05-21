@@ -19,11 +19,13 @@ rate_limit:
   breaking_alert_max: 5
 
 quiet_hours:
-  # When enabled, all LINE pushes (breaking/alert/digest/calendar/health)
-  # are suppressed inside the window. Sheet still records everything —
-  # state isn't lost, just no LINE notifications during sleep.
+  # Forex/gold market closes around 04:00 ICT (NY close) and reopens with
+  # the Asian session 05:00 ICT — that one-hour gap is the quiet window.
+  # 00:00-04:00 ICT pushes still go through (US session is live).
+  # 04:40 ICT calendar_daily is exempt (the morning briefing should land
+  # exactly here, before the trader sits down).
   enabled: true
-  start_ict: "00:00"
+  start_ict: "04:00"
   end_ict:   "05:00"
 
 routing:
