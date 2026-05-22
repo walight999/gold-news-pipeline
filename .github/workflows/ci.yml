@@ -1,0 +1,29 @@
+name: ci
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+      - "LICENSE"
+  pull_request:
+    branches: [main]
+  workflow_dispatch: {}
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: pip install pytest
+      - name: Run tests
+        run: python -m pytest -v
+        # The smoke_*.py files require ANTHROPIC_API_KEY (live API) so
+        # they're excluded from CI via the naming convention (pytest only
+        # picks up test_*.py by default).
