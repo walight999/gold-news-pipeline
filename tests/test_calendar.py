@@ -157,8 +157,59 @@ def test_post_release_bubble_with_fred_actual():
     texts = _all_texts(b["body"])
     assert any("+0.5%" in t for t in texts)
     assert any("BEAT" in t for t in texts)
-    # Verdict is reduced to single uppercase word in v3 layout
-    assert any("BEARISH" in t for t in texts)
+    # Verdict rendered as a colored XAU↓ pill (post-Batch-K). The pill
+    # text is "XAU ↓" — check for the down arrow so we don't depend on
+    # the exact character spacing.
+    assert any("XAU" in t and "↓" in t for t in texts), \
+        "expected 'XAU ↓' pill in bearish post-release bubble"
+
+
+# ---------- XAU direction pill (Batch K) ----------
+
+
+def test_xau_pill_bullish_is_green():
+    from src.line_flex import _xau_direction_pill
+    pill = _xau_direction_pill("bullish")
+    assert pill["backgroundColor"] == "#059669"
+    assert pill["contents"][0]["text"] == "XAU ↑"
+
+
+def test_xau_pill_bearish_is_red():
+    from src.line_flex import _xau_direction_pill
+    pill = _xau_direction_pill("bearish")
+    assert pill["backgroundColor"] == "#DC2626"
+    assert pill["contents"][0]["text"] == "XAU ↓"
+
+
+def test_xau_pill_neutral_is_amber():
+    from src.line_flex import _xau_direction_pill
+    pill = _xau_direction_pill("neutral")
+    assert pill["backgroundColor"] == "#D97706"
+    assert pill["contents"][0]["text"] == "XAU ≈"
+
+
+def test_xau_pill_unknown_falls_back_to_neutral():
+    """Defensive — any unrecognized label maps to neutral instead of
+    crashing. The classifier sometimes returns words like 'mixed' or
+    'unclear' which legitimately are neutral."""
+    from src.line_flex import _xau_direction_pill
+    pill = _xau_direction_pill("mixed")
+    assert pill["backgroundColor"] == "#D97706"
+
+
+def test_pre_release_bubble_uses_pill_not_emoji():
+    """Pre-release bubble's 3rd column now carries a pill, not 🟢/🔴/🟡."""
+    from src.calendar import CalEvent
+    e = CalEvent(event_id="x", title="CPI m/m", country="USD",
+                 impact="High", forecast="0.5%", previous="0.3%",
+                 dt_utc=datetime(2026, 5, 22, 12, 0, tzinfo=timezone.utc))
+    eff = {"emoji": "🔴", "label": "bearish"}
+    b = pre_release_bubble(e, minutes_to_release=15, effect=eff)
+    texts = _all_texts(b["body"])
+    assert any("XAU" in t and "↓" in t for t in texts)
+    # Old plain emoji shouldn't appear in any text node (a pill carries
+    # text "XAU ↓", not "🔴" as the standalone cell content).
+    assert not any(t == "🔴" for t in texts)
 
 
 # ---------- FRED unit tests (no network) ----------

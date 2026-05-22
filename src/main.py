@@ -307,7 +307,11 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
                                        alerts=ranked_alerts)
             if carousel and news_target:
                 line = line or LineClient.from_env()
-                alt = f"📰 Digest {slot} ICT — {len(ranked)} event(s)"
+                # Use len(kept) so the LINE notification preview matches
+                # what's actually inside the bubble — previously this showed
+                # the pre-classifier pool size, so users saw "10 events"
+                # in the notification but only 5 in the bubble.
+                alt = f"📰 Digest {slot} ICT — {len(kept)} event(s)"
                 resp = _push_or_skip(line, news_target, alt, carousel, sched_cfg, label="digest")
                 digest.mark_sent(store, slot, resp["status"])
                 # Per-event sent_log rows so EOD top_topics can count
