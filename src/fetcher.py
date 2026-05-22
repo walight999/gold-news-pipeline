@@ -57,6 +57,14 @@ def plan_fetch(sources: list[dict[str, Any]], store: Store, force: bool = False)
 
 
 async def _fetch_one(client: httpx.AsyncClient, source: dict[str, Any], state: dict[str, Any]) -> FetchResult:
+    """Per-source fetch — catches ALL exceptions, not just httpx.HTTPError.
+
+    Captured live on 2026-05-22: one upstream returned a malformed
+    HTTP/2 SETTINGS frame, raising h2.exceptions.ProtocolError which
+    is NOT a subclass of httpx.HTTPError. The exception bubbled through
+    asyncio.gather() and killed the entire cron run (all 14 sources
+    dropped). We now treat any unexpected exception as a per-source
+    failure and continue with the rest."""
     headers: dict[str, str] = {"User-Agent": "gold-news-pipeline/1.0"}
     if state.get("etag"):
         headers["If-None-Match"] = str(state["etag"])
@@ -66,6 +74,11 @@ async def _fetch_one(client: httpx.AsyncClient, source: dict[str, Any], state: d
         resp = await client.get(source["url"], headers=headers, timeout=20.0, follow_redirects=True)
     except (httpx.HTTPError, asyncio.TimeoutError) as e:
         return FetchResult(source=source, status=0, body=None, error=str(e))
+    except Exception as e:
+        # h2.exceptions.ProtocolError, ConnectionResetError, SSL errors —
+        # don't let one upstream's malformed protocol kill the batch.
+        return FetchResult(source=source, status=0, body=None,
+                           error=f"{type(e).__name__}: {e}")
     if resp.status_code == 304:
         return FetchResult(source=source, status=304, body=None, not_modified=True,
                            etag=resp.headers.get("ETag"), last_modified=resp.headers.get("Last-Modified"))
@@ -77,16 +90,28 @@ async def _fetch_one(client: httpx.AsyncClient, source: dict[str, Any], state: d
 
 
 async def fetch_all(plan: FetchPlan, store: Store) -> list[FetchResult]:
+    """Fan-out fetch — `return_exceptions=True` so a task that escapes
+    its own try/except (very rare, but possible under cancellation /
+    asyncio quirks) becomes a FetchResult instead of bubbling up and
+    killing every other in-flight fetch."""
     results: list[FetchResult] = []
     if not plan.sources:
         return results
     limits = httpx.Limits(max_connections=10, max_keepalive_connections=5)
     async with httpx.AsyncClient(http2=True, limits=limits) as client:
         tasks = []
-        for s in plan.sources:
+        sources_in_order = list(plan.sources)
+        for s in sources_in_order:
             state = store.get("source_state", (s["id"],)) or {}
             tasks.append(_fetch_one(client, s, state))
-        results = await asyncio.gather(*tasks)
+        raw = await asyncio.gather(*tasks, return_exceptions=True)
+        for src, r in zip(sources_in_order, raw):
+            if isinstance(r, BaseException):
+                log.warning("fetch task for %s raised: %s", src["id"], r)
+                results.append(FetchResult(source=src, status=0, body=None,
+                                            error=f"{type(r).__name__}: {r}"))
+            else:
+                results.append(r)
     _update_source_state(plan, results, store)
     return results
 
