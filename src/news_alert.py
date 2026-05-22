@@ -299,13 +299,38 @@ def _cache_lookup(store: "Store | None", key: str) -> MarketAlert | None:
     return MarketAlert.from_json(blob)
 
 
+_CACHE_HARD_CAP = 3000   # in-memory cap; maintain mode does the 24h TTL pass
+
+
 def _cache_write(store: "Store | None", key: str, src_title: str, alert: MarketAlert) -> None:
+    """Upsert the alert into the translation_cache tab. Enforces a
+    hard cap of `_CACHE_HARD_CAP` rows in-memory — when exceeded, the
+    oldest entry (by updated_at) is evicted before the upsert. This
+    prevents intra-day cache bloat between maintain runs."""
     if store is None:
         return
     from .utils_time import iso_utc, now_utc
     existing = store.get("translation_cache", (key,)) or {}
     hits = int(existing.get("hits") or 0) + 1
     created = existing.get("created_at") or iso_utc(now_utc())
+
+    # Cap enforcement — only when we're about to ADD a new row (not on
+    # repeat writes to an existing key). Without the cap, a single
+    # high-volume day could grow translation_cache to many thousands of
+    # rows, slowing every subsequent load_all.
+    if not existing:
+        cache_tab = store.data.get("translation_cache", {})
+        if len(cache_tab) >= _CACHE_HARD_CAP:
+            # Find the single oldest row (by updated_at) and drop it.
+            # Linear scan is fine — happens at most once per write at the
+            # cap edge, and the cap is small enough (3000) that it's fast.
+            oldest_rk = min(
+                cache_tab.keys(),
+                key=lambda rk: cache_tab[rk].get("updated_at") or "",
+            )
+            cache_tab.pop(oldest_rk, None)
+            store.dirty.setdefault("translation_cache", set()).add("__evict__")
+
     store.upsert("translation_cache", {
         "cache_key": key,
         "source_preview": src_title[:80],
@@ -328,7 +353,17 @@ def classify_and_rewrite(
 
     Cache-first via the `translation_cache` Sheet tab. Falls back to a
     permissive accept (literal-translation) when Claude is unavailable
-    so the pipeline still publishes during ANTHROPIC_API_KEY outages."""
+    so the pipeline still publishes during ANTHROPIC_API_KEY outages.
+
+    Side-effects (when `store` is provided):
+    - Per-source counters incremented in source_state so watchdog can
+      flag sources whose reject rate gets too high (>90% over 7d → that
+      source is just noise, consider disabling).
+    - Classifier-health counters incremented in a synthetic
+      _classifier_health row so watchdog can flag silent classifier
+      degradation (Claude key invalidated → all calls fall through to
+      permissive Google translate, channel goes noisy without anyone
+      knowing)."""
     if not title:
         return _REJECTED_NO_TITLE
 
@@ -337,15 +372,85 @@ def classify_and_rewrite(
     cached = _cache_lookup(store, key)
     if cached is not None:
         _cache_write(store, key, title, cached)
+        # Cached call counts as "kept" or "rejected" toward source stats.
+        _record_classifier_outcome(store, source_id, cached, used_fallback=False, cache_hit=True)
         return cached
 
     age_h_str = f"{age_hours:.1f}" if age_hours is not None else "unknown"
     result = _classify_claude(title, summary or "", source_id, age_h_str)
+    used_fallback = False
     if result is None:
         result = _fallback_alert(title, summary or "", store=store)
+        used_fallback = True
 
     _cache_write(store, key, title, result)
+    _record_classifier_outcome(store, source_id, result, used_fallback=used_fallback, cache_hit=False)
     return result
+
+
+def _record_classifier_outcome(
+    store: "Store | None",
+    source_id: str,
+    alert: MarketAlert,
+    used_fallback: bool,
+    cache_hit: bool,
+) -> None:
+    """Increment per-source + global classifier counters in source_state.
+
+    Schema reuse — we piggyback on existing columns to avoid a schema
+    migration:
+      `items_last_hour`     → JSON-encoded {kept:N, rejected:N, fallback:N}
+      `last_validation_ts`  → most-recent classify timestamp
+    Aggregations are window-less here; the watchdog computes the ratio
+    from the JSON blob each cycle. Old runs whose `items_last_hour` is a
+    plain int just look like {kept:0, rejected:0, fallback:0} to the
+    aggregator — safe migration."""
+    if store is None:
+        return
+    from .utils_time import iso_utc, now_utc
+    ts = iso_utc(now_utc())
+
+    def _bump(row_id: str) -> None:
+        row = store.get("source_state", (row_id,)) or {"source_id": row_id}
+        counters = _parse_counters(row.get("items_last_hour"))
+        if cache_hit:
+            counters["cache_hits"] = counters.get("cache_hits", 0) + 1
+        if used_fallback:
+            counters["fallback"] = counters.get("fallback", 0) + 1
+        if alert.action == "keep":
+            counters["kept"] = counters.get("kept", 0) + 1
+        else:
+            counters["rejected"] = counters.get("rejected", 0) + 1
+        row["source_id"] = row_id
+        row["items_last_hour"] = json.dumps(counters)
+        row["last_validation_ts"] = ts
+        store.upsert("source_state", row)
+
+    if source_id:
+        _bump(f"_class:{source_id[:30]}")   # cap length so it fits cell
+    _bump("_classifier_health")
+
+
+def _parse_counters(blob) -> dict[str, int]:
+    """items_last_hour stores either an integer (legacy) or a JSON blob
+    (new). Both come back as a counter dict — legacy just maps to zeros."""
+    if not blob:
+        return {}
+    try:
+        d = json.loads(blob)
+        if isinstance(d, dict):
+            return {k: int(v) for k, v in d.items() if isinstance(v, (int, float))}
+    except (json.JSONDecodeError, TypeError, ValueError):
+        pass
+    return {}
+
+
+def get_classifier_counters(store, source_id: str | None = None) -> dict[str, int]:
+    """Read the classifier counters. `source_id=None` returns global
+    (_classifier_health). Used by watchdog + EOD recap."""
+    row_id = f"_class:{source_id[:30]}" if source_id else "_classifier_health"
+    row = store.get("source_state", (row_id,)) or {}
+    return _parse_counters(row.get("items_last_hour"))
 
 
 def _strip_codefence(text: str) -> str:

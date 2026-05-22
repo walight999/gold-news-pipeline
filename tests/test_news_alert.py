@@ -122,6 +122,69 @@ def test_classify_and_rewrite_reject_skips_send(store):
         assert "personal-finance" in out.reason
 
 
+def test_classifier_counters_track_kept_rejected(store):
+    """Each classify call bumps per-source + global counters. Used by
+    watchdog + EOD recap to spot silently degraded classifier."""
+    from src.news_alert import get_classifier_counters
+    kept = MarketAlert(action="keep", headline_th="x")
+    rejected = MarketAlert(action="reject", reason="evergreen")
+    with patch("src.news_alert._classify_claude", side_effect=[kept, rejected, kept]):
+        classify_and_rewrite("title1", "sum1", source_id="forexlive", store=store)
+        classify_and_rewrite("title2", "sum2", source_id="forexlive", store=store)
+        classify_and_rewrite("title3", "sum3", source_id="bbc_world", store=store)
+
+    global_cnt = get_classifier_counters(store, source_id=None)
+    assert global_cnt.get("kept") == 2
+    assert global_cnt.get("rejected") == 1
+
+    fl = get_classifier_counters(store, source_id="forexlive")
+    assert fl.get("kept") == 1
+    assert fl.get("rejected") == 1
+
+
+def test_classifier_counters_track_fallback(store):
+    """Fallback (Claude unavailable) increments the fallback counter so
+    the watchdog can detect silent degradation."""
+    from src.news_alert import get_classifier_counters
+    with patch("src.news_alert._classify_claude", return_value=None), \
+         patch("src.translator._translate_claude", return_value=None), \
+         patch("src.translator._translate_google", return_value="ทอง"):
+        classify_and_rewrite("Gold up", "Gold rallies", source_id="forexlive", store=store)
+
+    cnt = get_classifier_counters(store, source_id=None)
+    assert cnt.get("fallback") == 1
+    # Fallback is counted as "kept" (permissive accept) so total still adds up
+    assert cnt.get("kept") == 1
+
+
+def test_cache_cap_evicts_oldest_when_full(store):
+    """When the cache reaches the hard cap, adding a new entry evicts
+    the row with the oldest updated_at (LRU-by-time)."""
+    from src.news_alert import _CACHE_HARD_CAP, _cache_write
+    # Seed cache to exactly the cap with old timestamps
+    for i in range(_CACHE_HARD_CAP):
+        store.upsert("translation_cache", {
+            "cache_key":     f"old{i:04d}xxxxxxxx",
+            "source_preview": f"old item {i}",
+            "thai_text":     '{"action":"keep","headline_th":"x"}',
+            "hits":          "1",
+            "created_at":    f"2026-05-01T00:00:00+00:00",
+        })
+        # Override updated_at to force a known ordering — oldest = highest i? No, lowest i.
+        store.data["translation_cache"][f"old{i:04d}xxxxxxxx"]["updated_at"] = f"2026-05-01T{i % 24:02d}:00:00+00:00"
+
+    assert len(store.data["translation_cache"]) == _CACHE_HARD_CAP
+
+    # Write a new key — should evict the oldest entry.
+    new_alert = MarketAlert(action="keep", headline_th="new")
+    _cache_write(store, "newkey1234567890", "new title", new_alert)
+
+    # Still at cap (one evicted, one added)
+    assert len(store.data["translation_cache"]) == _CACHE_HARD_CAP
+    # The new key is present
+    assert store.get("translation_cache", ("newkey1234567890",)) is not None
+
+
 def test_classify_and_rewrite_fallback_when_claude_unavailable(store):
     """When Claude returns None (key missing / API down), we fall through
     to a permissive accept with literal translation, so the pipeline still

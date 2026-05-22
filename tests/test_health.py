@@ -189,6 +189,65 @@ def test_watchdog_no_ff_warning_below_threshold(store):
     assert "ff_scraper_dead" not in types
 
 
+def test_watchdog_flags_classifier_degraded_at_high_fallback(store):
+    """Claude key invalid → all calls fall through. Watchdog should
+    raise classifier_degraded when fallback ratio crosses threshold."""
+    from src.news_alert import _record_classifier_outcome, MarketAlert
+    fallback_alert = MarketAlert(action="keep", headline_th="x",
+                                  reason="claude-unavailable fallback")
+    # 25 fallback calls, 25 normal — 50/100 = 50% > 30% threshold
+    keep_alert = MarketAlert(action="keep", headline_th="y")
+    for _ in range(15):
+        _record_classifier_outcome(store, "forexlive", fallback_alert,
+                                    used_fallback=True, cache_hit=False)
+    for _ in range(15):
+        _record_classifier_outcome(store, "forexlive", keep_alert,
+                                    used_fallback=False, cache_hit=False)
+    # Need a fresh heartbeat so silence doesn't fire
+    from src.health import write_heartbeat
+    write_heartbeat(store, items_seen=5)
+    warns = check_pipeline_health(store)
+    types = [wt for wt, _ in warns]
+    assert "classifier_degraded" in types
+
+
+def test_watchdog_no_classifier_warning_below_sample_size(store):
+    """Don't fire when there aren't enough samples — random noise
+    shouldn't trigger an alert. classifier_min_samples default is 20."""
+    from src.news_alert import _record_classifier_outcome, MarketAlert
+    fallback_alert = MarketAlert(action="keep", headline_th="x")
+    # 5 fallbacks out of 5 — 100% but under min_samples=20
+    for _ in range(5):
+        _record_classifier_outcome(store, "forexlive", fallback_alert,
+                                    used_fallback=True, cache_hit=False)
+    from src.health import write_heartbeat
+    write_heartbeat(store, items_seen=5)
+    warns = check_pipeline_health(store)
+    types = [wt for wt, _ in warns]
+    assert "classifier_degraded" not in types
+
+
+def test_watchdog_flags_noisy_source_at_high_reject_rate(store):
+    """A source that's 95% reject for the last 50+ items is noise —
+    raise a per-source warning suggesting disabling."""
+    from src.news_alert import _record_classifier_outcome, MarketAlert
+    rejected = MarketAlert(action="reject", reason="evergreen")
+    kept = MarketAlert(action="keep", headline_th="x")
+    # 55 from yahoo: 53 reject, 2 keep → 96% reject rate
+    for _ in range(53):
+        _record_classifier_outcome(store, "yahoo_finance", rejected,
+                                    used_fallback=False, cache_hit=False)
+    for _ in range(2):
+        _record_classifier_outcome(store, "yahoo_finance", kept,
+                                    used_fallback=False, cache_hit=False)
+    from src.health import write_heartbeat
+    write_heartbeat(store, items_seen=5)
+    warns = check_pipeline_health(store)
+    types = [wt for wt, _ in warns]
+    noisy_warnings = [t for t in types if t.startswith("source_noisy:")]
+    assert any("yahoo_finance" in t for t in noisy_warnings)
+
+
 def test_tier0_event_day_no_success(store):
     sid = "fed"
     long_ago = datetime.now(timezone.utc) - timedelta(minutes=30)

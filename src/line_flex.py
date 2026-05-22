@@ -49,6 +49,8 @@ SOURCE_NAMES: dict[str, str] = {
     "benzinga":             "Benzinga",
     "_pipeline_heartbeat":  "Pipeline",
     "_ff_scraper":          "FF HTML Scraper",
+    "_classifier_health":   "Classifier",
+    "_workflow_failures":   "GitHub Actions",
     "yahoo_finance":        "Yahoo Finance",
 }
 
@@ -61,7 +63,19 @@ WARNING_MESSAGES: dict[str, str] = {
     "watchdog_silence":            "Pipeline silent — cron may have stopped firing",
     "watchdog_no_items":           "All sources returned 0 items for hours — scraper/network down?",
     "ff_scraper_dead":             "FF HTML scrape returned 0 events 3× in a row — Cloudflare/HTML changed?",
+    "classifier_degraded":         "Classifier fallback rate >30% — Claude key invalid or API down?",
+    "workflow_failure":            "GitHub Actions workflow failed in last 24h — check Actions tab",
+    # source_noisy:<source_id> is dynamic — handled by _format_warning.
 }
+
+
+def _format_warning(sid: str, wtype: str) -> str:
+    """Human-readable label for a warning row. Handles dynamic
+    `source_noisy:<source>` warnings that aren't in the static table."""
+    if wtype.startswith("source_noisy:"):
+        source = wtype.split(":", 1)[1]
+        return f"Source '{source}' >90% reject rate — likely noise"
+    return WARNING_MESSAGES.get(wtype, wtype)
 
 
 def _trim(s: str, n: int) -> str:
@@ -504,6 +518,28 @@ def eod_recap_bubble(stats: dict[str, Any], date_label: str) -> dict[str, Any]:
              "size": "sm", "color": "#374151", "flex": 1, "align": "end"},
         ]},
     ]
+    # Classifier breakdown — only if the counters have any activity.
+    cl_total = int(stats.get("classifier_total", 0))
+    if cl_total > 0:
+        cl_kept = int(stats.get("classifier_kept", 0))
+        cl_rejected = int(stats.get("classifier_rejected", 0))
+        cl_fallback = int(stats.get("classifier_fallback", 0))
+        keep_pct = (cl_kept / cl_total * 100) if cl_total else 0
+        rows.append({"type": "separator", "margin": "lg"})
+        rows.append({"type": "text", "text": "CLASSIFIER", "size": "xs",
+                     "color": "#9CA3AF", "weight": "bold", "margin": "md"})
+        rows.append({"type": "box", "layout": "horizontal", "contents": [
+            {"type": "text", "text": f"✓ {cl_kept} kept ({keep_pct:.0f}%)",
+             "size": "sm", "color": "#059669", "flex": 1},
+            {"type": "text", "text": f"✗ {cl_rejected} rejected",
+             "size": "sm", "color": "#6B7280", "flex": 1, "align": "end"},
+        ]})
+        if cl_fallback > 0:
+            fb_pct = cl_fallback / cl_total * 100
+            color = "#DC2626" if fb_pct >= 30 else "#9CA3AF"
+            rows.append({"type": "text",
+                         "text": f"⚠ {cl_fallback} Claude fallback ({fb_pct:.0f}%)",
+                         "size": "xs", "color": color, "margin": "xs"})
     top_topics = stats.get("top_topics") or []
     if top_topics:
         rows.append({"type": "separator", "margin": "lg"})
@@ -535,7 +571,7 @@ def health_recovered_bubble(recoveries: list[tuple[str, str]]) -> dict[str, Any]
     lines: list[dict[str, Any]] = []
     for sid, wtype in recoveries[:15]:
         src = SOURCE_NAMES.get(sid, sid)
-        msg = WARNING_MESSAGES.get(wtype, wtype)
+        msg = _format_warning(sid, wtype)
         lines.append({
             "type": "text", "text": f"📡 {src} · {msg}",
             "size": "xs", "color": "#374151", "wrap": True, "margin": "xs",
@@ -553,7 +589,7 @@ def health_bubble(warnings: list[tuple[str, str]]) -> dict[str, Any]:
     lines: list[dict[str, Any]] = []
     for sid, wtype in warnings[:15]:
         src = SOURCE_NAMES.get(sid, sid)
-        msg = WARNING_MESSAGES.get(wtype, wtype)
+        msg = _format_warning(sid, wtype)
         lines.append({
             "type": "text", "text": f"📡 {src} · {msg}",
             "size": "xs", "color": "#374151", "wrap": True, "margin": "xs",

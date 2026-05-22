@@ -310,6 +310,18 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
                 alt = f"📰 Digest {slot} ICT — {len(ranked)} event(s)"
                 resp = _push_or_skip(line, news_target, alt, carousel, sched_cfg, label="digest")
                 digest.mark_sent(store, slot, resp["status"])
+                # Per-event sent_log rows so EOD top_topics can count
+                # only the events that actually reached the user (after
+                # classifier filtering). Without these the EOD recap
+                # over-reports the count.
+                if resp["status"] == 200:
+                    for ev in kept:
+                        store.upsert("sent_log", {
+                            "event_id": ev.event_id,
+                            "route_type": "digest",
+                            "sent_ts": iso_utc(now_utc()),
+                            "line_status": resp["status"],
+                        })
 
     # 8. Heartbeat — stamp pipeline liveness before flush so the watchdog
     # can distinguish "cron stopped" from "cron ran but no news today".
@@ -444,16 +456,28 @@ async def run_eod_recap() -> int:
         elif rt == "calendar_pre": cal_pre_n += 1
         elif rt == "calendar_post": cal_post_n += 1
 
-    # Top topics from the recap day's event_state (score >= 1.5)
-    topic_stats: dict[str, list[float]] = {}
-    for row in store.all_rows("event_state"):
-        ts = parse_iso(row.get("first_seen_ts"))
+    # Top topics — only count events that were ACTUALLY PUSHED (not the
+    # classifier-rejected ones). We intersect sent_log (filtered to the
+    # recap window) with event_state to pick up topic_bucket per pushed
+    # event. Pre-classifier this counted every clustered event regardless
+    # of whether it reached the user, which was misleading.
+    pushed_event_ids: set[str] = set()
+    for row in store.all_rows("sent_log"):
+        ts = parse_iso(row.get("sent_ts"))
         if not ts or ts < today_start or ts >= today_end:
             continue
-        sc = float(row.get("score") or 0)
-        if sc < 1.5:
+        rt = row.get("route_type", "")
+        if rt in ("breaking", "alert", "digest"):
+            ev_id = row.get("event_id", "")
+            if ev_id:
+                pushed_event_ids.add(ev_id)
+
+    topic_stats: dict[str, list[float]] = {}
+    for row in store.all_rows("event_state"):
+        if row.get("event_id") not in pushed_event_ids:
             continue
         topic = row.get("topic_bucket", "other")
+        sc = float(row.get("score") or 0)
         topic_stats.setdefault(topic, []).append(sc)
 
     top_topics = [
@@ -463,6 +487,17 @@ async def run_eod_recap() -> int:
     top_topics.sort(key=lambda x: (-x[2], -x[1]))
     digest_events_n = sum(len(s) for s in topic_stats.values())
 
+    # Classifier counters for the recap day — global + per-source breakdown.
+    # These survive across the whole day (counters reset is not implemented
+    # yet, so they're cumulative since the row was first written). For EOD
+    # the "today" version is approximated as the cumulative ratio.
+    classifier_total = classifier_kept = classifier_rejected = classifier_fallback = 0
+    cl = news_alert.get_classifier_counters(store, source_id=None)
+    classifier_kept = cl.get("kept", 0)
+    classifier_rejected = cl.get("rejected", 0)
+    classifier_fallback = cl.get("fallback", 0)
+    classifier_total = classifier_kept + classifier_rejected
+
     stats = {
         "breaking_n": breaking_n,
         "alert_n": alert_n,
@@ -470,6 +505,10 @@ async def run_eod_recap() -> int:
         "calendar_pre_n": cal_pre_n,
         "calendar_post_n": cal_post_n,
         "top_topics": top_topics,
+        "classifier_total": classifier_total,
+        "classifier_kept": classifier_kept,
+        "classifier_rejected": classifier_rejected,
+        "classifier_fallback": classifier_fallback,
     }
     target = os.environ.get("LINE_NEWS_TARGET", "")
     if not target:
@@ -857,9 +896,16 @@ async def run_calendar_check() -> int:
 def _watchdog_source_id(warning_type: str) -> str:
     """Map a watchdog warning_type to the source_state row it's about.
     Pipeline-level warnings go under _pipeline_heartbeat; per-subsystem
-    warnings (FF scraper, future additions) go under their own row id."""
+    warnings (FF scraper, classifier health, per-source noise) go under
+    their own row id so they raise / resolve independently."""
     if warning_type == "ff_scraper_dead":
         return "_ff_scraper"
+    if warning_type == "classifier_degraded":
+        return "_classifier_health"
+    if warning_type == "workflow_failure":
+        return "_workflow_failures"
+    if warning_type.startswith("source_noisy:"):
+        return f"_class:{warning_type.split(':', 1)[1][:30]}"
     return health.HEARTBEAT_SOURCE_ID
 
 
@@ -878,21 +924,50 @@ async def run_watchdog() -> int:
     store.load_all()
 
     warnings = health.check_pipeline_health(store)
+
+    # Workflow failure check — read GH Actions API for recent failed
+    # runs. Requires GITHUB_TOKEN (auto-provided inside the workflow) +
+    # GITHUB_REPOSITORY. Silent no-op when either is missing.
+    wf_failures = health.check_recent_workflow_failures(hours=24)
+    if wf_failures:
+        # Bundle into ONE warning so the bubble doesn't spam — show
+        # count + first failure as preview.
+        first = wf_failures[0]
+        if len(wf_failures) > 1:
+            msg = f"{len(wf_failures)} workflow runs failed in 24h. Latest: {first}"
+        else:
+            msg = f"Workflow failed: {first}"
+        warnings.append(("workflow_failure", msg))
+
     warning_types = {wt for wt, _ in warnings}
 
     line = None
     health_target = os.environ.get("LINE_HEALTH_TARGET", "")
 
     # Resolve any open warnings that are no longer firing — one row per
-    # (source_id, warning_type) so each clears independently.
+    # (source_id, warning_type) so each clears independently. Static
+    # warning types are listed here; dynamic source_noisy:* warnings
+    # auto-resolve via the scan below.
     recovered: list[tuple[str, str]] = []
-    for warning_type in ("watchdog_silence", "watchdog_no_items", "ff_scraper_dead"):
+    static_types = ("watchdog_silence", "watchdog_no_items", "ff_scraper_dead",
+                    "classifier_degraded", "workflow_failure")
+    for warning_type in static_types:
         if warning_type in warning_types:
             continue
         sid = _watchdog_source_id(warning_type)
         if health.warning_open_minutes(store, sid, warning_type) > 0:
             health.resolve_warning(store, sid, warning_type)
             recovered.append((sid, warning_type))
+    # Source-noise auto-resolve: any open source_noisy:* warning whose
+    # current ratio fell back below the threshold should be cleared.
+    for row in store.all_rows("health_log"):
+        wt = row.get("warning_type", "")
+        if not wt.startswith("source_noisy:") or row.get("resolved_ts"):
+            continue
+        if wt not in warning_types:
+            sid = _watchdog_source_id(wt)
+            health.resolve_warning(store, sid, wt)
+            recovered.append((sid, wt))
 
     # Raise fresh warnings (cooldown-gated, per (source_id, warning_type)).
     fresh: list[tuple[str, str, str]] = []  # (source_id, warning_type, message)

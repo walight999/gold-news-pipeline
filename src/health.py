@@ -132,6 +132,10 @@ def check_pipeline_health(
     max_silence_min: int = 25,
     max_no_items_min: int = 180,
     max_ff_scrape_errors: int = 3,
+    classifier_fallback_threshold_pct: int = 30,
+    classifier_min_samples: int = 20,
+    source_reject_threshold_pct: int = 90,
+    source_min_samples: int = 50,
 ) -> list[tuple[str, str]]:
     """Returns (warning_type, human_message) pairs. Empty list = healthy.
     Used by --mode watchdog.
@@ -174,6 +178,87 @@ def check_pipeline_health(
         out.append(("ff_scraper_dead",
                     f"FF HTML scrape returned 0 events {ff_consec}× in a row "
                     f"(last success: {last_ok}). Cloudflare tightened or HTML changed."))
+
+    # Classifier degradation — Claude key invalidated / API down → most
+    # calls fall through to permissive Google translate. LINE channel
+    # gets noisy but no error fires. Detect via fallback ratio.
+    from .news_alert import get_classifier_counters
+    cl = get_classifier_counters(store, source_id=None)
+    cl_total = (cl.get("kept", 0) + cl.get("rejected", 0))
+    cl_fallback = cl.get("fallback", 0)
+    if cl_total >= classifier_min_samples:
+        pct = (cl_fallback / cl_total) * 100
+        if pct >= classifier_fallback_threshold_pct:
+            out.append(("classifier_degraded",
+                        f"Classifier fallback rate {pct:.0f}% over {cl_total} samples "
+                        f"({cl_fallback} fell to literal-translation). "
+                        f"ANTHROPIC_API_KEY invalid or Claude down?"))
+
+    # Per-source reject rate. If a source's classifier reject rate is
+    # >90% over the all-time counter window, it's just noise — consider
+    # disabling in sources.yaml. We only fire when the source has a
+    # statistically meaningful sample (>=50 items).
+    for row in store.all_rows("source_state"):
+        sid = row.get("source_id", "")
+        if not sid.startswith("_class:"):
+            continue
+        source_id = sid[len("_class:"):]
+        cnt = get_classifier_counters(store, source_id=source_id)
+        total = cnt.get("kept", 0) + cnt.get("rejected", 0)
+        rejected = cnt.get("rejected", 0)
+        if total < source_min_samples:
+            continue
+        pct = (rejected / total) * 100
+        if pct >= source_reject_threshold_pct:
+            out.append((f"source_noisy:{source_id}",
+                        f"Source '{source_id}' reject rate {pct:.0f}% "
+                        f"over {total} items — consider disabling in sources.yaml."))
+
+    return out
+
+
+def check_recent_workflow_failures(
+    repo: str | None = None,
+    token: str | None = None,
+    hours: int = 24,
+) -> list[str]:
+    """Query GitHub Actions API for failed workflow runs in the last N
+    hours. Returns a list of "<workflow> failed at <time>" descriptions.
+
+    Reads `GITHUB_TOKEN` (auto-provided inside Actions) and `GITHUB_REPOSITORY`
+    from env when args aren't provided. Returns [] silently when either
+    is missing — fail open so the watchdog still works locally."""
+    import os as _os
+    repo = repo or _os.environ.get("GITHUB_REPOSITORY")
+    token = token or _os.environ.get("GITHUB_TOKEN")
+    if not repo or not token:
+        return []
+
+    import httpx as _httpx
+    from datetime import datetime as _dt, timedelta as _td, timezone as _tz
+    cutoff = _dt.now(_tz.utc) - _td(hours=hours)
+    url = f"https://api.github.com/repos/{repo}/actions/runs"
+    headers = {"Authorization": f"Bearer {token}",
+               "Accept": "application/vnd.github+json"}
+    out: list[str] = []
+    try:
+        # Filter to failed conclusions only — saves bandwidth.
+        params = {"status": "failure", "per_page": 30}
+        r = _httpx.get(url, headers=headers, params=params, timeout=15)
+        r.raise_for_status()
+        for run in r.json().get("workflow_runs", []):
+            created = run.get("created_at", "")
+            try:
+                ts = _dt.fromisoformat(created.replace("Z", "+00:00"))
+            except (TypeError, ValueError):
+                continue
+            if ts < cutoff:
+                continue
+            name = run.get("name") or run.get("workflow_id") or "?"
+            out.append(f"{name} failed at {created}")
+    except Exception as e:
+        log.warning("check_recent_workflow_failures: %s", e)
+        return []
     return out
 
 
