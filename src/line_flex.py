@@ -51,6 +51,7 @@ SOURCE_NAMES: dict[str, str] = {
     "_ff_scraper":          "FF HTML Scraper",
     "_classifier_health":   "Classifier",
     "_workflow_failures":   "GitHub Actions",
+    "_line_push":           "LINE API",
     "yahoo_finance":        "Yahoo Finance",
 }
 
@@ -65,6 +66,8 @@ WARNING_MESSAGES: dict[str, str] = {
     "ff_scraper_dead":             "FF HTML scrape returned 0 events 3× in a row — Cloudflare/HTML changed?",
     "classifier_degraded":         "Classifier fallback rate >30% — Claude key invalid or API down?",
     "workflow_failure":            "GitHub Actions workflow failed in last 24h — check Actions tab",
+    "line_push_failing":           "LINE push failing 5× in a row — token expired or channel disabled?",
+    "line_quota_high":             "LINE free-tier usage above 80% this month — consider Light plan",
     # source_noisy:<source_id> is dynamic — handled by _format_warning.
 }
 
@@ -674,11 +677,25 @@ def _fmt_value(v: float, prefix: str = "", decimals: int = 2) -> str:
 
 
 def _price_cell(label: str, snap: tuple[float, float] | None,
-                value_fmt) -> dict[str, Any] | None:
+                value_fmt) -> dict[str, Any]:
     """One column of the price strip. `value_fmt(last)` returns the
-    display string (e.g. "$4,542.40" or "฿35.21" or "+1.23%")."""
+    display string (e.g. "$4,542.40" or "฿35.21").
+
+    When `snap` is None (yfinance off-hours / fetch failure), render a
+    placeholder cell with "—" and "(no data)" instead of dropping the
+    cell — keeps the 5-column layout stable across hours of day.
+    """
     if not snap:
-        return None
+        return {
+            "type": "box", "layout": "vertical", "flex": 1,
+            "contents": [
+                {"type": "text", "text": label, "size": "xxs", "color": "#9CA3AF"},
+                {"type": "text", "text": "—", "size": "sm",
+                 "weight": "bold", "color": "#9CA3AF"},
+                {"type": "text", "text": "(no data)", "size": "xxs",
+                 "color": "#9CA3AF"},
+            ],
+        }
     last, pct = snap
     color = "#059669" if pct > 0 else "#DC2626" if pct < 0 else "#374151"
     sign = "+" if pct > 0 else ""
@@ -747,9 +764,12 @@ def calendar_day_bubble(
         ("GLD", gld_snapshot, lambda v: _fmt_value(v, "$")),
         ("USDTHB", thb_snapshot, lambda v: _fmt_value(v, "฿")),
     )
-    cells = [c for c in (_price_cell(lbl, snap, fmt)
-                          for lbl, snap, fmt in price_specs) if c is not None]
-    if cells:
+    # Always render all 5 cells (placeholders when off-hours / API
+    # failure) so the strip width is stable. Strip is dropped entirely
+    # only when EVERY ticker is missing — common during weekend.
+    cells = [_price_cell(lbl, snap, fmt) for lbl, snap, fmt in price_specs]
+    has_any_data = any(snap is not None for _, snap, _ in price_specs)
+    if has_any_data:
         body_contents.append({
             "type": "box", "layout": "horizontal", "spacing": "md",
             "contents": cells,

@@ -188,6 +188,48 @@ def test_xau_pill_neutral_is_amber():
     assert pill["contents"][0]["text"] == "XAU ≈"
 
 
+def test_calendar_price_strip_placeholder_for_missing_ticker():
+    """Off-hours (yfinance None) → "—" / "(no data)" placeholder cell
+    instead of disappearing. Strip layout stays stable."""
+    from src.calendar import CalEvent
+    e = CalEvent(event_id="x", title="CPI", country="USD", impact="High",
+                 forecast="0.5%", previous="0.3%",
+                 dt_utc=datetime(2026, 5, 22, 12, 0, tzinfo=timezone.utc))
+    # XAU has data, DXY/HUI/GLD/THB missing
+    b = calendar_day_bubble(
+        [e], "Fri 22 May 2026",
+        xau_snapshot=(4500.0, 0.5),
+        dxy_snapshot=None,
+        hui_snapshot=None,
+        gld_snapshot=None,
+        thb_snapshot=None,
+    )
+    texts = _all_texts(b["body"])
+    # Placeholder text "—" appears for each missing ticker
+    dash_count = sum(1 for t in texts if t == "—")
+    assert dash_count == 4
+    # No-data labels appear too
+    assert texts.count("(no data)") == 4
+
+
+def test_calendar_price_strip_dropped_when_all_missing():
+    """Weekend / total fetch failure — entire strip dropped (rather
+    than 5 placeholder cells)."""
+    from src.calendar import CalEvent
+    e = CalEvent(event_id="x", title="CPI", country="USD", impact="High",
+                 forecast="0.5%", previous="0.3%",
+                 dt_utc=datetime(2026, 5, 22, 12, 0, tzinfo=timezone.utc))
+    b = calendar_day_bubble(
+        [e], "Fri 22 May 2026",
+        xau_snapshot=None, dxy_snapshot=None, hui_snapshot=None,
+        gld_snapshot=None, thb_snapshot=None,
+    )
+    texts = _all_texts(b["body"])
+    # No price labels at all — strip absent
+    assert "XAU" not in texts
+    assert "DXY" not in texts
+
+
 def test_xau_pill_unknown_falls_back_to_neutral():
     """Defensive — any unrecognized label maps to neutral instead of
     crashing. The classifier sometimes returns words like 'mixed' or

@@ -194,6 +194,23 @@ def check_pipeline_health(
                         f"({cl_fallback} fell to literal-translation). "
                         f"ANTHROPIC_API_KEY invalid or Claude down?"))
 
+    # LINE push health — consecutive failures + monthly quota.
+    from .line_client import LINE_PUSH_SOURCE_ID, get_line_quota_status, LINE_FREE_TIER_QUOTA
+    line_row = store.get("source_state", (LINE_PUSH_SOURCE_ID,)) or {}
+    line_consec = int(line_row.get("consecutive_errors") or 0)
+    if line_consec >= 5:
+        out.append(("line_push_failing",
+                    f"LINE push failed {line_consec}× in a row — token expired? channel disabled?"))
+    qs = get_line_quota_status(store)
+    if qs.get("count", 0) > 0:
+        pct = qs.get("pct", 0)
+        if pct >= 80:
+            count = qs.get("count")
+            month = qs.get("month") or "this month"
+            out.append(("line_quota_high",
+                        f"LINE free-tier usage {count}/{LINE_FREE_TIER_QUOTA} ({pct}%) for {month} "
+                        "— upgrading to Light plan recommended."))
+
     # Per-source reject rate. If a source's classifier reject rate is
     # >90% over the all-time counter window, it's just noise — consider
     # disabling in sources.yaml. We only fire when the source has a

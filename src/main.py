@@ -57,18 +57,29 @@ def _quiet_hours_cfg(sched_cfg):
     return sched_cfg.get("quiet_hours") or {}
 
 
-def _push_or_skip(line, target, alt, bubble, sched_cfg, label="", bypass_quiet=False):
+def _push_or_skip(line, target, alt, bubble, sched_cfg, label="", bypass_quiet=False,
+                   store=None):
     """LINE push wrapped in the quiet-hours gate. Returns the response dict
     on actual push, or a synthetic {status: 0, body: 'quiet_hours'} when
     suppressed so callers can keep idempotency logic clean.
 
     `bypass_quiet=True` skips the quiet-hours check — used for the daily
     calendar briefing at 04:40 ICT, which should fire even though it sits
-    inside the 04:00-05:00 ICT market-close window."""
+    inside the 04:00-05:00 ICT market-close window.
+
+    `store` is optional but recommended — passing it enables LINE
+    quota + push-failure health tracking (watchdog detects 5xx streaks
+    + 80% quota usage)."""
     if not bypass_quiet and is_quiet_hours_ict(_quiet_hours_cfg(sched_cfg)):
         log.info("quiet hours — suppressing push (%s)", label or "")
         return {"status": 0, "body": "quiet_hours"}
-    return line.push_flex(target, alt, bubble)
+    resp = line.push_flex(target, alt, bubble)
+    # Health tracking — counts only ACTUAL push attempts (not quiet-hour
+    # suppressions). Records success or failure on every push attempt
+    # so the watchdog can spot a degrading channel before it goes silent.
+    from .line_client import record_line_outcome
+    record_line_outcome(store, resp.get("status", 0))
+    return resp
 
 log = logging.getLogger("gold-news")
 CFG_DIR = Path(__file__).resolve().parent.parent / "config"
@@ -190,7 +201,7 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
             else:
                 bubble = alert_bubble(ev, d.score, kw_cfg, alert=alert_obj)
                 alt = alt_text_for_event("🔔 ALERT", ev, d.score)
-            resp = _push_or_skip(line, news_target, alt, bubble, sched_cfg, label=d.route.value)
+            resp = _push_or_skip(line, news_target, alt, bubble, sched_cfg, label=d.route.value, store=store)
             if resp["status"] == 200:
                 store.upsert("sent_log", {
                     "event_id": ev.event_id,
@@ -245,14 +256,14 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
         if emitted_warnings:
             bubble = health_bubble(emitted_warnings)
             alt = f"⚠️ Health Check — {len(emitted_warnings)} warning(s)"
-            _push_or_skip(line, health_target, alt, bubble, sched_cfg, label="health")
+            _push_or_skip(line, health_target, alt, bubble, sched_cfg, label="health", store=store)
 
     # Push recoveries
     if recovered and health_target:
         line = line or LineClient.from_env()
         bubble = health_recovered_bubble(recovered)
         alt = f"✅ Health Recovered — {len(recovered)} item(s)"
-        _push_or_skip(line, health_target, alt, bubble, sched_cfg, label="health_recovered")
+        _push_or_skip(line, health_target, alt, bubble, sched_cfg, label="health_recovered", store=store)
 
     # 7. Digest if in slot
     if mode in ("cron", "digest"):
@@ -312,7 +323,7 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
                 # the pre-classifier pool size, so users saw "10 events"
                 # in the notification but only 5 in the bubble.
                 alt = f"📰 Digest {slot} ICT — {len(kept)} event(s)"
-                resp = _push_or_skip(line, news_target, alt, carousel, sched_cfg, label="digest")
+                resp = _push_or_skip(line, news_target, alt, carousel, sched_cfg, label="digest", store=store)
                 digest.mark_sent(store, slot, resp["status"])
                 # Per-event sent_log rows so EOD top_topics can count
                 # only the events that actually reached the user (after
@@ -404,7 +415,7 @@ async def run_verify_sources() -> int:
             line = LineClient.from_env()
             bubble = health_bubble(emitted)
             alt = f"⚠️ Verify — {len(emitted)} source issue(s)"
-            _push_or_skip(line, health_target, alt, bubble, sched_cfg, label="verify")
+            _push_or_skip(line, health_target, alt, bubble, sched_cfg, label="verify", store=store)
     store.flush()
     return 0
 
@@ -524,7 +535,7 @@ async def run_eod_recap() -> int:
     bubble = eod_recap_bubble(stats, short_date)
     alt = (f"🌙 EoD — {breaking_n} breaking, {alert_n} alert, "
            f"{cal_pre_n}+{cal_post_n} calendar")
-    resp = _push_or_skip(line, target, alt, bubble, sched_cfg, label="eod_recap")
+    resp = _push_or_skip(line, target, alt, bubble, sched_cfg, label="eod_recap", store=store)
     if resp["status"] == 200:
         store.upsert("sent_log", {
             "event_id": sent_key, "route_type": "eod_recap",
@@ -667,7 +678,7 @@ async def run_weekly_preview() -> int:
         return 0
     line = LineClient.from_env()
     resp = _push_or_skip(line, target, f"📅 Week Ahead — {len(filtered)} events",
-                          bubble, sched_cfg, label="weekly_preview")
+                          bubble, sched_cfg, label="weekly_preview", store=store)
     if resp["status"] == 200:
         store.upsert("sent_log", {
             "event_id": sent_key, "route_type": "weekly_preview",
@@ -755,7 +766,7 @@ async def run_calendar_daily() -> int:
     # 04:00-05:00 ICT quiet window (it's the wake-up email of the day).
     resp = _push_or_skip(line, target, f"📅 Calendar — {len(filtered)} events today",
                           bubble, sched_cfg, label="calendar_daily",
-                          bypass_quiet=True)
+                          bypass_quiet=True, store=store)
     if resp["status"] == 200:
         store.upsert("sent_log", {
             "event_id": sent_key, "route_type": "calendar_daily",
@@ -824,7 +835,7 @@ async def run_calendar_check() -> int:
             effect_info = cal.forecast_vs_previous_effect(ev)
             bubble = pre_release_bubble(ev, mins_to, impact_info, effect_info)
             alt = f"⏰ T-{mins_to}min · {ev.country} {ev.title}"
-            resp = _push_or_skip(line, target, alt, bubble, sched_cfg, label="calendar")
+            resp = _push_or_skip(line, target, alt, bubble, sched_cfg, label="calendar", store=store)
             if resp["status"] == 200:
                 store.upsert("sent_log", {
                     "event_id": sent_key, "route_type": "calendar_pre",
@@ -884,7 +895,7 @@ async def run_calendar_check() -> int:
                                          effect=effect_info)
             alt_extra = f" · actual {actual_text}" if actual_text else ""
             alt = f"📊 Released · {ev.country} {ev.title}{alt_extra}"
-            resp = _push_or_skip(line, target, alt, bubble, sched_cfg, label="calendar")
+            resp = _push_or_skip(line, target, alt, bubble, sched_cfg, label="calendar", store=store)
             if resp["status"] == 200:
                 store.upsert("sent_log", {
                     "event_id": sent_key, "route_type": "calendar_post",
@@ -908,6 +919,8 @@ def _watchdog_source_id(warning_type: str) -> str:
         return "_classifier_health"
     if warning_type == "workflow_failure":
         return "_workflow_failures"
+    if warning_type in ("line_push_failing", "line_quota_high"):
+        return "_line_push"
     if warning_type.startswith("source_noisy:"):
         return f"_class:{warning_type.split(':', 1)[1][:30]}"
     return health.HEARTBEAT_SOURCE_ID
@@ -954,7 +967,8 @@ async def run_watchdog() -> int:
     # auto-resolve via the scan below.
     recovered: list[tuple[str, str]] = []
     static_types = ("watchdog_silence", "watchdog_no_items", "ff_scraper_dead",
-                    "classifier_degraded", "workflow_failure")
+                    "classifier_degraded", "workflow_failure",
+                    "line_push_failing", "line_quota_high")
     for warning_type in static_types:
         if warning_type in warning_types:
             continue
