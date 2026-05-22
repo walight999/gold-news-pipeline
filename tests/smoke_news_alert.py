@@ -36,62 +36,78 @@ from src.news_alert import classify_and_rewrite  # noqa: E402
 
 
 CASES = [
-    # (title, summary, age_hours, expected_action, notes)
+    # (title, summary, age_hours, expected_action, expected_category_or_None, notes)
     (
         "How to protect your savings from inflation",
         "Five tips for retirees to keep their nest egg from being eroded.",
-        24,
-        "reject",
+        24, "reject", None,
         "personal finance — must reject",
     ),
     (
         "Annuity payout rates remain elevated as inflation cools",
         "What this means for your retirement income.",
-        12,
-        "reject",
+        12, "reject", None,
         "personal finance — annuity",
     ),
     (
         "AI energy trade powering investment into Nvidia",
         "How the AI infrastructure buildout is driving capital into chip leaders.",
-        4,
-        "reject",
+        4, "reject", None,
         "equity-specific Nvidia article — no macro signal",
     ),
     (
         "Outdated: How to invest in gold for beginners",
         "A guide for first-time gold investors.",
-        24 * 30,    # 30 days old
-        "reject",
+        24 * 30, "reject", None,
         "evergreen + stale — must reject",
+    ),
+    (
+        "What's on the docket today? European session preview",
+        "Today's main events: in the European session, traders will watch UK retail sales and Eurozone PMI flash. The US session brings...",
+        0.1, "reject", None,
+        "NEW: calendar preview / session wrap — must reject",
+    ),
+    (
+        "Markets mixed as traders digest data",
+        "Stocks closed mixed Friday with the Dow flat and Nasdaq slightly higher.",
+        0.5, "reject", None,
+        "NEW: generic 'markets mixed' commentary without specific event — must reject",
     ),
     (
         "US Core CPI prints 3.5% y/y vs 3.3% expected",
         "Core CPI hot for the third month, raising odds of Fed staying on hold longer.",
-        0.1,
-        "keep",
-        "hot CPI — must keep + hawkish tone + impact line",
+        0.1, "keep", "Inflation",
+        "hot CPI data release — keep + category=Inflation",
+    ),
+    (
+        "ING expects BoJ may hike in June despite weak Japan CPI",
+        "ING analysts said in a note today that even with Core CPI cooling to 1.4%, the BoJ is likely to hike rates in June because wage growth is firming.",
+        0.5, "keep", "Central Bank",
+        "NEW: analyst outlook on central bank — category=Central Bank, NOT Inflation",
     ),
     (
         "Powell signals patient stance, opens door to rate cuts later this year",
         "Fed chair Powell told the Economic Club that the FOMC will be data-dependent.",
-        0.5,
-        "keep",
-        "Fed speech — must keep + dovish tone",
+        0.5, "keep", "Central Bank",
+        "Fed speech — keep + dovish tone",
     ),
     (
         "Japan Core CPI slows to 1.4% y/y vs 1.7% expected in April 2026",
         "Bank of Japan governor Ueda warned that inflation cooling reduces urgency for rate hike. Article from May 22 2026 by Eamonn Sheridan at investinglive.com.",
-        0.05,
-        "keep",
+        0.05, "keep", "Inflation",
         "CRITICAL: year must be 2026, NOT 2563 / 2569 / พ.ศ.",
+    ),
+    (
+        "US stocks rise Friday but US-Iran talks weigh as gold gains 0.5%",
+        "The Dow rose +180pts, S&P 500 +0.4%, Nasdaq 100 +0.5%. Gold gained 0.5% on safe-haven bid as US-Iran nuclear talks stalled in Vienna. Brent crude +1.2% on Hormuz tension.",
+        0.3, "keep", "Geopolitics",
+        "NEW: equity + geopolitics with specific moves — must classify as Geopolitics (not Equity)",
     ),
     (
         "Putin signals openness to ceasefire as gold rallies on safe-haven bid",
         "Russian president comments at SPIEF; gold up 1% on de-escalation hopes.",
-        0.2,
-        "keep",
-        "geopolitics — must keep + risk_on tone",
+        0.2, "keep", "Geopolitics",
+        "geopolitics — keep + risk_on tone",
     ),
 ]
 
@@ -123,15 +139,27 @@ def main() -> int:
         print("FAIL: ANTHROPIC_API_KEY not set")
         return 1
 
+    awkward_phrases = (
+        "ในซื้อขายวันศุกร์",  # awkward direct translation
+        "ดึงเอียง",            # nonsense Thai
+        "ขึ้นในซื้อขาย",       # awkward
+        "ขึ้นในการ",           # awkward
+    )
+
+    def _bad_phrase(text: str) -> str | None:
+        if not text: return None
+        for p in awkward_phrases:
+            if p in text:
+                return p
+        return None
+
     passed = failed = 0
-    for title, summary, age_h, expected_action, note in CASES:
+    for title, summary, age_h, expected_action, expected_category, note in CASES:
         out = classify_and_rewrite(title, summary, source_id="smoke",
                                     age_hours=age_h)
         ok = (out.action == expected_action)
 
-        # Year + institution checks only matter on keeps
-        be_leak = ""
-        long_name = ""
+        problems: list[str] = []
         if out.action == "keep":
             joined = " ".join(filter(None, [
                 out.headline_th, out.impact_th,
@@ -139,10 +167,24 @@ def main() -> int:
             ]))
             if _has_be_year(joined):
                 ok = False
-                be_leak = "  ❌ Buddhist Era year leaked!"
+                problems.append("Buddhist Era year leaked")
             if _has_long_thai_bank_name(joined):
                 ok = False
-                long_name = "  ❌ Long bank name (should be BoJ/Fed/ECB)!"
+                problems.append("Long bank name (should be BoJ/Fed/ECB)")
+            bad = _bad_phrase(joined)
+            if bad:
+                ok = False
+                problems.append(f"awkward Thai phrase: '{bad}'")
+            if expected_category and out.category != expected_category:
+                ok = False
+                problems.append(f"category={out.category!r} expected={expected_category!r}")
+            if out.headline_th and len(out.headline_th) > 95:
+                ok = False
+                problems.append(f"headline {len(out.headline_th)} chars > 95 cap")
+            for b in (out.body_th or []):
+                if b and len(b) > 130:
+                    ok = False
+                    problems.append(f"bullet {len(b)} chars > 130 cap")
 
         tag = "PASS" if ok else "FAIL"
         if ok: passed += 1
@@ -158,8 +200,8 @@ def main() -> int:
             print(f"        tone={out.tone}  category={out.category}  type={out.news_type}")
         elif out.action == "reject":
             print(f"        reason: {out.reason}")
-        if be_leak: print(be_leak)
-        if long_name: print(long_name)
+        for p in problems:
+            print(f"        FAIL: {p}")
         print()
 
     print(f"--- {passed}/{passed+failed} pass ---")

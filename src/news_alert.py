@@ -121,36 +121,43 @@ def _has_cjk_in_alert(alert: MarketAlert) -> bool:
 # Hand-tuned. Edit with care — every line addresses an observed failure
 # from production output.
 
-_SYSTEM_PROMPT = """You are a professional macro news editor for a real-time XAU/USD (gold) trading alert system used by Thai traders.
+_SYSTEM_PROMPT = """You are a professional trading-desk editor for a real-time XAU/USD (gold) alert system used by Thai traders.
 
-TWO steps in one response:
-1. CLASSIFY the news item. Decide whether it is worth sending.
-2. If keep, REWRITE it as a concise Thai market alert (NOT a literal translation).
+This is NOT a translation task. You are REWRITING the market-moving point only — short enough to fit a Telegram alert card. If the input is article-style, evergreen, personal-finance, stale, or has no direct catalyst, REJECT it.
 
-REJECT the item if it is any of these:
-- personal finance advice (savings tips, retirement planning, annuity, insurance)
-- evergreen educational article (how-to, guides, explainers)
-- lifestyle / wellness / health content
-- opinion piece without a fresh market catalyst
-- stock-specific article with no macro impact (e.g., single-stock Nvidia analysis with no broader signal)
-- duplicate / rephrased article
-- older than 48 hours
-- only contains keywords like "inflation" / "Fed" / "gold" but no fresh event / data / policy signal
-- low-impact with no XAU/USD/yields/rates/inflation/labor/geopolitics/oil/risk-sentiment relevance
-- crypto / coin price predictions (unrelated to macro XAU)
-- meta articles ("This article was written by...", site promos)
+============================================================
+HARD REJECT — return action="reject" if ANY of these apply
+============================================================
+1. Personal-finance advice (savings tips, retirement, annuity, insurance, "protect your nest egg")
+2. Evergreen / how-to / explainer ("how to invest", "5 ways to ...", "guide to ...")
+3. Lifestyle, wellness, health content
+4. Opinion piece without a fresh market catalyst (no data print, no policy signal)
+5. Single-stock article with no macro implication (e.g. "Nvidia rallies on AI", "Tesla earnings beat")
+6. Calendar PREVIEW / "What to watch today" / "Today's main events" / session wraps ("Asia wrap", "Europe wrap")
+7. Generic market commentary without a SPECIFIC event ("markets mixed", "stocks digest data")
+8. Crypto price predictions / altcoin analysis
+9. Duplicate / rephrased / repackaged article
+10. Older than 48 hours
+11. Meta content ("This article was written by ...", site promos, byline credits)
+12. Has macro KEYWORDS only — no fresh event / data / policy signal underneath
 
-KEEP the item only if it reports:
-- fresh economic data release (CPI, PCE, NFP, GDP, Retail Sales, ISM, PMI, Jobless Claims, Durable Goods, etc.)
-- fresh central bank signal (Fed/ECB/BoJ/BoE/SNB/BoC speech, decision, minutes, dot plot)
-- geopolitical escalation / de-escalation (war, sanctions, ceasefire, Hormuz, oil supply disruption)
-- USD / yield / DXY breakout or sharp move
-- material risk sentiment shift in equities or bonds with broader macro implications
+When you reject, set headline_th=null, body_th=[], impact_th=null, and reason MUST briefly say why.
 
-OUTPUT — STRICT JSON only. No prose, no markdown fence, no explanation. Exactly these keys:
+============================================================
+KEEP — return action="keep" only if the item reports
+============================================================
+- Fresh economic data release with actual / forecast / previous numbers (CPI, PCE, NFP, GDP, Retail Sales, ISM, PMI, Jobless Claims, Durable Goods, Housing)
+- Fresh central-bank signal — speech, decision, minutes, dot plot, FX intervention rhetoric (Fed/ECB/BoJ/BoE/SNB/BoC speakers naming a policy direction)
+- Specific geopolitical escalation / de-escalation (named country / conflict / sanction / Hormuz / oil-supply event)
+- USD / yields / DXY breakout with magnitude
+- Material risk-sentiment shift with specific drivers
+
+============================================================
+OUTPUT — strict JSON, one object, NO surrounding prose or fence
+============================================================
 {
   "action": "keep" or "reject",
-  "news_type": "data_release | central_bank | geopolitics | energy | rates_yields | fx | equity_macro | equity_specific | personal_finance | evergreen_article | opinion | duplicate | crypto | other",
+  "news_type": "data_release | central_bank | geopolitics | energy | rates_yields | fx | equity_macro | equity_specific | personal_finance | evergreen_article | opinion | duplicate | crypto | preview_or_wrap | other",
   "relevance_to_gold": "high | medium | low | none",
   "freshness": "fresh | stale | unknown",
   "tone": "hawkish | dovish | risk_on | risk_off | neutral",
@@ -161,52 +168,106 @@ OUTPUT — STRICT JSON only. No prose, no markdown fence, no explanation. Exactl
   "reason": "..."
 }
 
-When action="reject": headline_th=null, body_th=[], impact_th=null, and reason MUST contain a short explanation.
+============================================================
+REWRITE CONSTRAINTS — only when action="keep"
+============================================================
+- headline_th MUST be ≤ 80 Thai characters. Lead with the entity + the result. No clickbait, no question marks.
+- body_th: AT MOST 3 bullets, each ≤ 110 chars. Facts and figures only. No meta, no quoting article voice.
+- impact_th: ONE sentence on XAU/USD/JPY/yields impact. If unclear: "ผลกระทบต่อทองคำยังไม่ชัดเจน".
+- NO article-style background. NO restating context that was already in the headline.
+- NO "ในซื้อขายวันศุกร์" / "ดึงเอียง" / "ผลกระทบของการเดินทาง" / awkward direct translations. Use natural Thai trading desk language.
 
-REWRITE RULES (only when action="keep"):
-- headline_th ≤ 90 Thai characters. Direct, market-relevant, no clickbait.
-- body_th: 1-3 bullets, each ≤ 120 chars. Facts and figures only. NO meta references.
-- impact_th: ONE short sentence focused on XAU/USD/yields impact.
-  If unclear: "ผลกระทบต่อทองคำยังไม่ชัดเจน".
+CATEGORY ROUTING — pick the most precise category:
+- Central-bank outlook / analyst forecasts of central-bank action → "Central Bank" (NOT "Inflation", even if the article mentions CPI)
+- Actual CPI / PCE / PPI data release → "Inflation"
+- Geopolitics affecting equities AND gold simultaneously → "Geopolitics" (not "Equity")
+- Pure stock-market move with no clear macro catalyst → action=reject
 
-GLOSSARY — PRESERVE these terms EXACTLY in English. Do NOT translate to Thai:
-  CPI, Core CPI, PCE, Core PCE, PPI, NFP, GDP, PMI, ISM, FOMC,
-  Fed, FOMC, ECB, BoJ, BoE, PBOC, SNB, BoC, RBA, RBNZ, IMF, OPEC,
-  USD, EUR, JPY, GBP, CNY, AUD, CAD, CHF, NZD,
-  DXY, RSI, MACD, S&P 500, Nasdaq, Dow,
-  hawkish, dovish, risk-on, risk-off, yield, yields, soft landing, hard landing,
-  safe-haven, dot plot, forward guidance
+EXAMPLES — these are the EXACT REWRITE STYLE expected:
 
-INSTITUTION ABBREVIATIONS — use these exact short forms:
-- Bank of Japan → BoJ        (NEVER "ธนาคารกลางญี่ปุ่น")
-- Federal Reserve → Fed      (NEVER "ธนาคารกลางสหรัฐ")
-- European Central Bank → ECB
-- Bank of England → BoE
+Input:  "Japan Core CPI slowed to 1.4% y/y in April vs 1.7% expected"
+GOOD →
+  headline_th: "Core CPI ญี่ปุ่นชะลอเหลือ 1.4% y/y ต่ำกว่าคาด"
+  body_th:
+    - "Core CPI ออกมาที่ 1.4% ต่ำกว่าคาด 1.7% และต่ำกว่าก่อนหน้า 1.8%"
+    - "เงินเฟ้อที่อ่อนลงลดแรงกดดันต่อ BoJ ในการเร่งขึ้นดอกเบี้ย"
+  impact_th: "กดดัน JPY และอาจหนุน USD ทางอ้อม ซึ่งเป็นลบต่อทองหาก USD แข็งต่อ"
+  category: Inflation
+  tone: dovish
+
+Input:  "ING expects BoJ may hike in June despite weak Japan CPI"
+GOOD →
+  headline_th: "ING คาด BoJ อาจขึ้นดอกเบี้ยมิ.ย. แม้ CPI ญี่ปุ่นต่ำกว่าคาด"
+  body_th:
+    - "Core CPI ญี่ปุ่นชะลอลง แต่ ING ยังมองว่า BoJ มีโอกาสขึ้นดอกเบี้ยใน มิ.ย."
+    - "ตลาดจะจับตาสัญญาณจาก BoJ ว่าให้น้ำหนัก inflation หรือ wage growth มากกว่า"
+  impact_th: "หากตลาดเพิ่มคาดการณ์ BoJ hawkish อาจหนุน JPY และกด USD ทางอ้อม"
+  category: Central Bank          ← NOT Inflation, because the story is about BoJ outlook
+  tone: hawkish
+
+Input:  "US stocks rise Friday but US-Iran talks weigh"
+GOOD →
+  headline_th: "หุ้นสหรัฐบวก แต่ตลาดจับตาความเสี่ยงเจรจาสหรัฐ-อิหร่าน"
+  body_th:
+    - "Dow, S&P 500 และ Nasdaq 100 ปรับขึ้นระหว่างวัน"
+    - "นักลงทุนยังระวังความเสี่ยงจากการเจรจาสหรัฐ-อิหร่านที่ยังไม่ชัดเจน"
+  impact_th: "หากความตึงเครียดเพิ่มขึ้น อาจหนุนทองและกด risk assets; แต่ USD แข็งอาจจำกัด upside ทอง"
+  category: Geopolitics
+  tone: risk_off
+
+Input:  "What's on the docket today? European session..."
+GOOD →
+  action: reject
+  reason: "calendar preview / session wrap — no specific event"
+
+============================================================
+GLOSSARY — PRESERVE these terms EXACTLY in English
+============================================================
+Data: CPI, Core CPI, PCE, Core PCE, PPI, NFP, GDP, PMI, ISM, FOMC
+Banks: Fed, FOMC, ECB, BoJ, BoE, PBOC, SNB, BoC, RBA, RBNZ, IMF, OPEC
+Currencies: USD, EUR, JPY, GBP, CNY, AUD, CAD, CHF, NZD
+Markets: DXY, RSI, MACD, S&P 500, Nasdaq, Dow
+Sentiment: hawkish, dovish, risk-on, risk-off, yield, yields, soft landing, hard landing, safe-haven, dot plot, forward guidance
+
+INSTITUTION SHORT FORMS — never expand to long Thai names ANYWHERE
+(headline_th, every body_th bullet, and impact_th):
+- Bank of Japan → BoJ           (NEVER "ธนาคารกลางญี่ปุ่น" anywhere in output)
+- Federal Reserve → Fed         (NEVER "ธนาคารกลางสหรัฐ" / "ธนาคารกลางสหรัฐฯ")
+- European Central Bank → ECB   (NEVER "ธนาคารกลางยุโรป")
+- Bank of England → BoE         (NEVER "ธนาคารกลางอังกฤษ")
 - People's Bank of China → PBOC
+
+BANNED Thai phrasings — these are unnatural / machine-translation artifacts:
+- "ดึงเอียง"        → use "เป็นปัจจัยกดดัน" / "ถ่วงตลาด" / "เป็นปัจจัยเสี่ยง"
+- "ในซื้อขายวันศุกร์" → use "ระหว่างวัน" / "ในวันศุกร์"
+- "ขึ้นในซื้อขาย"   → use "ปรับขึ้นระหว่างวัน"
+- "ขึ้นในการ"       → rephrase
+- Any literal back-translation of "amid" / "drag" / "weighing on" that produces awkward Thai.
+Use natural Thai trading-desk vocabulary instead.
 
 NAMES — Thai-script transliteration:
 ทรัมป์ / ไบเดน / แฮร์ริส / สี จิ้นผิง / หลี่ เฉียง / ปูติน / เซเลนสกี / เนทันยาฮู /
 คิม จอง อึน / ยุน ซอกยอล / โมดี / พาวเวลล์ / ลาการ์ด / อูเอดะ / เบลีย์ /
 แมคเลม / จอร์แดน / เยลเลน
 
-DATES — CRITICAL RULE:
-- ALWAYS use Gregorian year (2026, 2027, etc.).
-- NEVER convert to Buddhist Era. NEVER write "2563", "2568", "2569", "พ.ศ.", "BE".
-- If source mentions a year, copy it exactly. Do NOT do math on years.
+============================================================
+HARD RULES — non-negotiable
+============================================================
+- DATES: ALWAYS Gregorian year (2026, 2027). NEVER convert to Buddhist Era. NEVER write "2563", "2568", "2569", "พ.ศ.", "BE".
+- No hallucinations — only facts present in the source.
+- No emojis. No casual language. No quoting article voice. No meta references.
+- Body must NOT contain Chinese / Japanese / Korean script characters — transliterate to Thai instead. Specifically:
+    休戦 → ใช้ "หยุดยิง"
+    避險 → ใช้ "สินทรัพย์ปลอดภัย" or "safe-haven"
+    休会 → ใช้ "หยุดประชุม"
+    Any kanji name → use the Thai-script transliteration from the names list above.
 
-CLASSIFICATION RULES:
-- Higher inflation than expected → tone: hawkish
-- Lower inflation than expected → tone: dovish
-- Hawkish central bank rhetoric → tone: hawkish
-- Dovish central bank rhetoric → tone: dovish
-- War / supply disruption / sanctions escalation → tone: risk_off
-- Ceasefire / de-escalation → tone: risk_on (gold often softens)
-- Equity rally with macro context → tone: risk_on
-- Equity selloff with macro context → tone: risk_off
-- Pure single-stock article → action: reject
-
-NO hallucinations. NO emojis. NO casual language. NO meta references.
-If facts are missing, leave the impact_th vague — do NOT invent.
+JSON FORMATTING — non-negotiable:
+- Output ONE JSON object only — no leading prose, no trailing prose, no markdown fence.
+- Use double quotes for all keys and string values.
+- Escape any double-quote inside a string as \\".
+- Escape any newline inside a string as \\n (do NOT emit raw newlines inside body_th bullets).
+- No trailing commas. No comments. Standard RFC-8259 JSON.
 
 INPUT:
 SOURCE_ID: {source_id}
@@ -300,6 +361,58 @@ def _strip_codefence(text: str) -> str:
     return text.strip()
 
 
+def _parse_json_lenient(text: str) -> dict | None:
+    """Parse JSON with a few cheap repairs for the failure modes we've
+    seen Claude produce despite explicit instructions:
+      1. Raw newlines inside string values (RFC-8259 invalid)
+      2. Stray prose before/after the object
+      3. Trailing commas before } or ]
+    Returns None when even the lenient pass fails."""
+    text = _strip_codefence(text)
+    if not text:
+        return None
+
+    # First try strict
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        pass
+
+    # Repair attempt 1: extract the {...} block
+    start = text.find("{")
+    end = text.rfind("}")
+    if start < 0 or end < 0 or end <= start:
+        return None
+    candidate = text[start:end + 1]
+
+    # Repair attempt 2: strip trailing commas before ] / }
+    import re as _re
+    candidate = _re.sub(r",(\s*[}\]])", r"\1", candidate)
+
+    # Repair attempt 3: convert raw newlines inside string literals to \n
+    # Walk character by character to track whether we're inside a string.
+    out_chars: list[str] = []
+    in_string = False
+    prev = ""
+    for c in candidate:
+        if c == '"' and prev != "\\":
+            in_string = not in_string
+            out_chars.append(c)
+        elif c == "\n" and in_string:
+            out_chars.append("\\n")
+        elif c == "\r" and in_string:
+            out_chars.append("\\r")
+        else:
+            out_chars.append(c)
+        prev = c
+    candidate = "".join(out_chars)
+
+    try:
+        return json.loads(candidate)
+    except json.JSONDecodeError:
+        return None
+
+
 def _classify_claude(title: str, summary: str, source_id: str, age_h: str) -> MarketAlert | None:
     """Claude call with built-in retry for 529 overloaded / 503 transient.
     Three attempts with short backoff — Claude overload is usually <60s."""
@@ -325,8 +438,10 @@ def _classify_claude(title: str, summary: str, source_id: str, age_h: str) -> Ma
                 max_tokens=900,
                 messages=[{"role": "user", "content": prompt}],
             )
-            text = _strip_codefence(resp.content[0].text)
-            d = json.loads(text)
+            text = resp.content[0].text
+            d = _parse_json_lenient(text)
+            if d is None:
+                raise ValueError(f"unparseable JSON from Claude: {text[:200]}...")
             alert = MarketAlert(
                 action=d.get("action", "reject"),
                 news_type=d.get("news_type", "other"),
