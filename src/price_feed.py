@@ -94,6 +94,26 @@ def get_dxy_snapshot() -> PriceSnapshot | None:
     return get_snapshot("DX-Y.NYB")
 
 
+def get_hui_snapshot() -> PriceSnapshot | None:
+    """NYSE Arca Gold BUGS Index — gold miners. Often leads XAU on
+    risk-on / risk-off rotations because miners carry operational
+    leverage to gold price moves."""
+    return get_snapshot("^HUI")
+
+
+def get_gld_snapshot() -> PriceSnapshot | None:
+    """SPDR Gold Trust ETF — proxy for institutional gold flows. Daily
+    holdings change tracks central-bank + asset-manager positioning,
+    though the ETF price itself just tracks spot."""
+    return get_snapshot("GLD")
+
+
+def get_thb_snapshot() -> PriceSnapshot | None:
+    """USD/THB — important for Thai-based traders to size gold positions
+    in baht terms (gold quoted in USD, paid in THB)."""
+    return get_snapshot("THB=X")
+
+
 def _get_intraday_once(ticker: str, ref_dt: datetime) -> float | None:
     yf = _yf()
     t = yf.Ticker(ticker)

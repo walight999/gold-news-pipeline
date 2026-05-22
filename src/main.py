@@ -22,7 +22,7 @@ from typing import Any
 import yaml
 
 from . import calendar as cal
-from . import dedup, digest, fred, health, price_feed, scorer, translator
+from . import dedup, digest, fred, health, news_alert, price_feed, scorer, translator
 from .fetcher import fetch_all, plan_fetch
 from .line_client import LineClient
 from .line_flex import (
@@ -165,18 +165,30 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
             existing = store.get("sent_log", (ev.event_id, d.route.value))
             if existing:
                 continue
-            # Translate title + summary to Thai inline so the bubble carries
-            # full context without the user clicking through. Falls back to
-            # English if Google Translate hiccups.
-            title_th   = translator.to_thai(ev.representative_title, 200, store=store)
-            summary_th = translator.to_thai(ev.representative_summary, 600, store=store)
+            # Classify + rewrite into a structured Thai market alert. Skips
+            # the push entirely when the classifier rejects the item
+            # (personal finance / evergreen / opinion / stale).
+            earliest = ev.first_seen_ts if ev.items else None
+            from datetime import timezone as _tz
+            age_hours = None
+            if earliest:
+                age_hours = (now_utc() - earliest).total_seconds() / 3600.0
+            alert_obj = news_alert.classify_and_rewrite(
+                ev.representative_title,
+                ev.representative_summary,
+                source_id=",".join(ev.source_list[:2]),
+                age_hours=age_hours,
+                store=store,
+            )
+            if not alert_obj.should_send:
+                log.info("breaking/alert classifier rejected event_id=%s reason=%s",
+                         ev.event_id, alert_obj.reason)
+                continue
             if d.route == Route.BREAKING:
-                bubble = breaking_bubble(ev, d.score, kw_cfg,
-                                          title_th=title_th, summary_th=summary_th)
+                bubble = breaking_bubble(ev, d.score, kw_cfg, alert=alert_obj)
                 alt = alt_text_for_event("⚡ BREAKING", ev, d.score)
             else:
-                bubble = alert_bubble(ev, d.score, kw_cfg,
-                                       title_th=title_th, summary_th=summary_th)
+                bubble = alert_bubble(ev, d.score, kw_cfg, alert=alert_obj)
                 alt = alt_text_for_event("🔔 ALERT", ev, d.score)
             resp = _push_or_skip(line, news_target, alt, bubble, sched_cfg, label=d.route.value)
             if resp["status"] == 200:
@@ -263,15 +275,36 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
             if not digest_events and non_breaking:
                 digest_events = non_breaking
             ranked = sorted(digest_events, key=lambda e: -scores.get(e.event_id, 0))[:max_events]
-            # Translate title + summary to Thai for each event going to the
-            # bubble. Faithful translation (Google Translate) — not AI rewriting.
-            translations: dict[str, dict[str, str | None]] = {}
+            # Classify + rewrite each event. Rejected items are filtered
+            # out of the carousel entirely — the classifier drops personal
+            # finance / evergreen / opinion / stale articles that used to
+            # leak through via keyword matching alone.
+            ranked_alerts: dict[str, news_alert.MarketAlert] = {}
+            kept: list[dedup.Event] = []
             for ev in ranked:
-                translations[ev.event_id] = {
-                    "title_th":   translator.to_thai(ev.representative_title, 200, store=store),
-                    "summary_th": translator.to_thai(ev.representative_summary, 400, store=store),
-                }
-            carousel = digest_carousel(ranked, scores, slot, kw_cfg, translations=translations)
+                earliest = ev.first_seen_ts if ev.items else None
+                age_hours = None
+                if earliest:
+                    age_hours = (now_utc() - earliest).total_seconds() / 3600.0
+                a = news_alert.classify_and_rewrite(
+                    ev.representative_title,
+                    ev.representative_summary,
+                    source_id=",".join(ev.source_list[:2]),
+                    age_hours=age_hours,
+                    store=store,
+                )
+                if a.should_send:
+                    ranked_alerts[ev.event_id] = a
+                    kept.append(ev)
+                else:
+                    log.info("digest classifier rejected event_id=%s reason=%s",
+                             ev.event_id, a.reason)
+            log.info("digest classifier: %d/%d events kept", len(kept), len(ranked))
+            if not kept:
+                store.flush()
+                return 0
+            carousel = digest_carousel(kept, scores, slot, kw_cfg,
+                                       alerts=ranked_alerts)
             if carousel and news_target:
                 line = line or LineClient.from_env()
                 alt = f"📰 Digest {slot} ICT — {len(ranked)} event(s)"
@@ -361,7 +394,13 @@ async def run_verify_sources() -> int:
 
 
 async def run_eod_recap() -> int:
-    """End-of-day recap @ 23:00 ICT. Idempotent per ICT date."""
+    """End-of-day recap @ 23:00 ICT. Idempotent per ICT date that the
+    recap is FOR (not the date the workflow happens to fire on).
+
+    GitHub free-tier cron drops can delay this run past midnight ICT.
+    When we fire at 01:xx ICT, the day we're summarising is yesterday,
+    not "today" — so both the date label and the activity window
+    must align on the recap's target day."""
     if is_weekend_ict():
         log.info("weekend (ICT) — skipping eod_recap")
         return 0
@@ -370,21 +409,34 @@ async def run_eod_recap() -> int:
     store.connect()
     store.load_all()
 
-    from datetime import timedelta
-    today_ict = now_ict().strftime("%Y-%m-%d")
-    sent_key = f"eod:{today_ict}"
+    from datetime import datetime, time as _t, timedelta, timezone as _tz
+    from .utils_time import ICT
+
+    ict = now_ict()
+    # Heuristic: hour >= 12 means we're firing on the same day the
+    # recap is FOR (the scheduled 23:00 ICT slot). Below 12 means the
+    # cron dropped and we're now running on the next ICT day — recap
+    # is for the day that just ended.
+    if ict.hour >= 12:
+        recap_for_date = ict.date()
+    else:
+        recap_for_date = (ict - timedelta(days=1)).date()
+    recap_start_ict = datetime.combine(recap_for_date, _t.min, tzinfo=ICT)
+    recap_end_ict   = recap_start_ict + timedelta(days=1)
+    today_start = recap_start_ict.astimezone(_tz.utc)
+    today_end   = recap_end_ict.astimezone(_tz.utc)
+
+    target_key = recap_for_date.strftime("%Y-%m-%d")
+    sent_key = f"eod:{target_key}"
     if store.get("sent_log", (sent_key, "eod_recap")):
-        log.info("eod_recap already sent for %s — skipping", today_ict)
+        log.info("eod_recap already sent for %s — skipping", target_key)
         store.flush()
         return 0
-
-    # Count today's pushes from sent_log
-    today_start = now_utc().replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(hours=7)
     breaking_n = alert_n = cal_pre_n = cal_post_n = 0
     from .utils_time import parse_iso
     for row in store.all_rows("sent_log"):
         ts = parse_iso(row.get("sent_ts"))
-        if not ts or ts < today_start:
+        if not ts or ts < today_start or ts >= today_end:
             continue
         rt = row.get("route_type", "")
         if rt == "breaking": breaking_n += 1
@@ -392,11 +444,11 @@ async def run_eod_recap() -> int:
         elif rt == "calendar_pre": cal_pre_n += 1
         elif rt == "calendar_post": cal_post_n += 1
 
-    # Top topics from today's event_state (score >= 1.5)
+    # Top topics from the recap day's event_state (score >= 1.5)
     topic_stats: dict[str, list[float]] = {}
     for row in store.all_rows("event_state"):
         ts = parse_iso(row.get("first_seen_ts"))
-        if not ts or ts < today_start:
+        if not ts or ts < today_start or ts >= today_end:
             continue
         sc = float(row.get("score") or 0)
         if sc < 1.5:
@@ -425,8 +477,7 @@ async def run_eod_recap() -> int:
         store.flush()
         return 0
     line = LineClient.from_env()
-    ict = now_ict()
-    short_date = f"{ict.day}/{ict.month}/{ict.year % 100}"
+    short_date = f"{recap_for_date.day}/{recap_for_date.month}/{recap_for_date.year % 100}"
     bubble = eod_recap_bubble(stats, short_date)
     alt = (f"🌙 EoD — {breaking_n} breaking, {alert_n} alert, "
            f"{cal_pre_n}+{cal_post_n} calendar")
@@ -638,12 +689,21 @@ async def run_calendar_daily() -> int:
         return 0
 
     date_label = now_ict().strftime("%a %d %b %Y")
-    # Market pulse — yfinance call wrapped in try (skip on failure).
-    xau_snap = price_feed.get_xau_snapshot()
-    dxy_snap = price_feed.get_dxy_snapshot()
-    xau_tuple = (xau_snap.last, xau_snap.pct_change_day) if xau_snap else None
-    dxy_tuple = (dxy_snap.last, dxy_snap.pct_change_day) if dxy_snap else None
-    bubble = calendar_day_bubble(filtered, date_label, xau_tuple, dxy_tuple)
+    # Market pulse — yfinance call wrapped in retry (price_feed handles
+    # 3-attempt backoff). Any failure renders as a missing cell.
+    def _to_tuple(snap):
+        return (snap.last, snap.pct_change_day) if snap else None
+    xau_tuple = _to_tuple(price_feed.get_xau_snapshot())
+    dxy_tuple = _to_tuple(price_feed.get_dxy_snapshot())
+    hui_tuple = _to_tuple(price_feed.get_hui_snapshot())
+    gld_tuple = _to_tuple(price_feed.get_gld_snapshot())
+    thb_tuple = _to_tuple(price_feed.get_thb_snapshot())
+    bubble = calendar_day_bubble(
+        filtered, date_label,
+        xau_snapshot=xau_tuple, dxy_snapshot=dxy_tuple,
+        hui_snapshot=hui_tuple, gld_snapshot=gld_tuple,
+        thb_snapshot=thb_tuple,
+    )
     if bubble is None:
         store.flush()
         return 0

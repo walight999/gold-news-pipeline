@@ -22,6 +22,6 @@ sources:
   - {id: investing_cb,          tier: 1, source_class: aggregator, role: rate_policy,  url: "https://www.investing.com/rss/news_95.rss",  poll_min: 10, enabled: true,  note: "Investing.com central bank news (Fed/ECB/BoJ etc.)"}
   - {id: investing_commodities, tier: 1, source_class: aggregator, role: gold_context, url: "https://www.investing.com/rss/news_11.rss",  poll_min: 10, enabled: true,  note: "Investing.com commodities (gold/oil — direct XAU relevance)"}
   - {id: investing_general,     tier: 1, source_class: aggregator, role: macro,        url: "https://www.investing.com/rss/news.rss",     poll_min: 10, enabled: true,  note: "Investing.com general macro"}
-  - {id: benzinga,              tier: 2, source_class: wire,       role: trader_macro, url: "https://www.benzinga.com/feed",              poll_min: 5,  enabled: true,  note: "Trader wire — fast"}
+  - {id: benzinga,              tier: 2, source_class: wire,       role: trader_macro, url: "https://www.benzinga.com/markets/feed",      poll_min: 5,  enabled: true,  note: "2026-05-22: switched from /feed (crypto-noise) to /markets/feed (Dow/SPX/macro headlines). Verified live."}
   - {id: yahoo_finance,         tier: 1, source_class: aggregator, role: macro,        url: "https://finance.yahoo.com/news/rssindex",    poll_min: 10, enabled: true,  note: "Carries Reuters/AP syndicated content (Reuters direct RSS is retired)"}
 

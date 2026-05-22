@@ -16,6 +16,7 @@ from typing import Any
 
 from .calendar import CalEvent
 from .dedup import Event
+from .news_alert import MarketAlert
 from .normalizer import Item
 
 COLOR = {
@@ -235,45 +236,75 @@ def _source_link(src_name: str, age: str, url: str | None) -> dict[str, Any]:
 
 
 def _event_bubble(label: str, color: str, ev: Event, score: float, kw_cfg: dict[str, Any],
+                  alert: MarketAlert | None = None,
                   title_th: str | None = None,
                   summary_th: str | None = None) -> dict[str, Any]:
-    """Breaking / Alert body. Renders the Thai title + summary inline when
-    provided so the reader doesn't have to click through to understand
-    the story — same UX as the digest. English fallback on translation
-    failure."""
+    """Breaking / Alert body.
+
+    Preferred input is a `MarketAlert` from news_alert.classify_and_rewrite(),
+    which carries a structured Thai headline + bullets + impact line that
+    were tailored for a mobile trading-alert card (≤90 char headline,
+    ≤120 char bullets, hawkish/dovish/risk_on/risk_off tone tag).
+
+    Legacy `title_th` + `summary_th` strings still accepted for callers
+    that haven't been migrated yet. English fallback when neither is set.
+
+    Sized `giga` (768px) to match Economic Calendar so text doesn't get
+    cut off and all bubble types read at the same width.
+    """
     en_title = _trim(ev.representative_title, 200)
     en_summary = _trim(ev.representative_summary, SUMMARY_LIMIT)
-    display_title = (title_th.strip() if title_th else en_title)
-    display_summary = (summary_th.strip() if summary_th else en_summary)
+
+    if alert and alert.should_send and alert.headline_th:
+        display_title = alert.headline_th
+        body_lines: list[str] = list(alert.body_th or [])
+        impact_line = alert.impact_th
+        category_text = alert.category
+        tone_label = alert.tone
+    else:
+        display_title = title_th.strip() if title_th else en_title
+        body_lines = [summary_th.strip()] if summary_th else ([en_summary] if en_summary else [])
+        impact_line = None
+        category_text = ev.topic_bucket.replace("_", " ").title()
+        tone_label = ev.direction_label
+
     src_name = _source_label(ev.source_list)
     age = _ago_label(_earliest_ts(ev))
     article_url = _pick_article_url(ev.items)
     _, topic_fg = _topic_chip_color(ev.topic_bucket)
-    dir_bg, dir_fg = _direction_chip_color(ev.direction_label)
-    topic_text = ev.topic_bucket.replace("_", " ").title()
+    dir_bg, dir_fg = _direction_chip_color(tone_label)
 
     body_contents: list[dict[str, Any]] = [
-        # Topic + direction row — Title Case xs bold, LEFT-aligned, chip tight
         {"type": "box", "layout": "horizontal", "spacing": "sm",
          "alignItems": "center", "contents": [
-             {"type": "text", "text": topic_text,
+             {"type": "text", "text": category_text,
               "size": "xs", "weight": "bold", "color": topic_fg, "flex": 0},
-             _chip(ev.direction_label, dir_bg, dir_fg),
+             _chip(tone_label, dir_bg, dir_fg),
         ]},
-        # Title — only one size larger than the summary, bold
         {"type": "text", "text": display_title, "weight": "bold", "size": "md",
          "wrap": True, "color": "#111827", "margin": "md"},
     ]
-    if display_summary:
-        body_contents.append({"type": "text", "text": display_summary, "size": "sm",
-                              "wrap": True, "color": "#1F2937", "margin": "md"})
-    # Footer: time + source link (small, last) — separator gives visual gap
+    # Bullets — render each as its own xs gray line. Limit to 3 bullets.
+    for bullet in body_lines[:3]:
+        if not bullet:
+            continue
+        body_contents.append({
+            "type": "text", "text": f"• {bullet}",
+            "size": "sm", "wrap": True, "color": "#1F2937", "margin": "sm",
+        })
+    if impact_line:
+        body_contents.append({"type": "separator", "margin": "md"})
+        body_contents.append({
+            "type": "text", "text": f"💡 {impact_line}",
+            "size": "xs", "wrap": True, "color": "#6B7280", "margin": "sm",
+            "weight": "bold",
+        })
     body_contents.append({"type": "separator", "margin": "lg"})
     body_contents.append(_source_link(src_name, age, article_url))
 
     impact_label, _, _ = score_to_impact(score)
     return {
-        "type": "bubble", "size": "kilo",
+        "type": "bubble", "size": "giga",
         "header": _header(label, impact_label, color),
         "body": {"type": "box", "layout": "vertical", "spacing": "sm",
                  "contents": body_contents, "paddingAll": "16px"},
@@ -281,49 +312,59 @@ def _event_bubble(label: str, color: str, ev: Event, score: float, kw_cfg: dict[
 
 
 def breaking_bubble(ev: Event, score: float, kw_cfg: dict[str, Any],
+                    alert: MarketAlert | None = None,
                     title_th: str | None = None,
                     summary_th: str | None = None) -> dict[str, Any]:
     return _event_bubble("⚡ Breaking", COLOR["breaking"], ev, score, kw_cfg,
-                          title_th=title_th, summary_th=summary_th)
+                          alert=alert, title_th=title_th, summary_th=summary_th)
 
 
 def alert_bubble(ev: Event, score: float, kw_cfg: dict[str, Any],
+                 alert: MarketAlert | None = None,
                  title_th: str | None = None,
                  summary_th: str | None = None) -> dict[str, Any]:
     return _event_bubble("🔔 Alert", COLOR["alert"], ev, score, kw_cfg,
-                          title_th=title_th, summary_th=summary_th)
+                          alert=alert, title_th=title_th, summary_th=summary_th)
 
 
 # ---------- digest ----------
 
 def _digest_event_row(ev: Event, score: float, kw_cfg: dict[str, Any],
+                      alert: MarketAlert | None = None,
                       title_th: str | None = None,
                       summary_th: str | None = None) -> dict[str, Any]:
-    """Compact event row for the single long-bubble digest.
+    """Compact event row for the digest carousel.
 
-    With Thai translations available, the bubble carries enough info for
-    the user to understand WITHOUT clicking through:
-      [HIGH] {Thai title — bold}
-              {Thai summary — small grey, optional}
-              ForexLive · 12m ago                          Read ↗
-    Falls back to English title only when translation is unavailable.
+    Prefers MarketAlert (headline_th + ≤3 bullets) when available. Falls
+    back to legacy title_th + summary_th strings, and finally to the
+    English title when no translation is set.
+
+    Layout:
+      {Thai headline — bold sm}
+        • {bullet 1 — xxs gray}
+        • {bullet 2 — xxs gray}
+      ForexLive · 12m ago                          Read ↗
     """
     en_title = _trim(ev.representative_title, TOPIC_TITLE_LIMIT)
-    display_title = title_th.strip() if title_th else en_title
+    if alert and alert.should_send and alert.headline_th:
+        display_title = alert.headline_th
+        bullets = list(alert.body_th or [])[:2]
+    else:
+        display_title = title_th.strip() if title_th else en_title
+        bullets = [summary_th.strip()] if summary_th else []
     src_name = _source_label(ev.source_list, max_n=2)
     age = _ago_label(_earliest_ts(ev))
     url = _pick_article_url(ev.items)
 
     contents: list[dict[str, Any]] = [
-        # Title — no impact pill here; the topic-section header above
-        # already carries the max impact for this group.
         {"type": "text", "text": display_title, "size": "sm",
          "wrap": True, "color": "#111827", "weight": "bold"},
     ]
-    if summary_th:
-        # Allow 3-4 lines of Thai context. 500 chars ≈ 4 lines on a phone.
+    for b in bullets:
+        if not b:
+            continue
         contents.append({
-            "type": "text", "text": _trim(summary_th, 500),
+            "type": "text", "text": f"• {_trim(b, 200)}",
             "size": "xxs", "color": "#374151", "wrap": True, "margin": "sm",
         })
     contents.append(_source_link(src_name, age, url))
@@ -338,6 +379,7 @@ def _build_digest_bubble(
     slot: str,
     kw_cfg: dict[str, Any],
     translations: dict[str, dict[str, str | None]] | None,
+    alerts: dict[str, MarketAlert] | None,
     header_label: str,
     header_sub: str,
 ) -> dict[str, Any]:
@@ -354,9 +396,6 @@ def _build_digest_bubble(
         evs = sorted(groups[topic], key=lambda e: -scores.get(e.event_id, 0))
         if i > 0:
             sections.append({"type": "separator", "margin": "lg"})
-        # Topic header: name on the left, the topic's MAX impact pill on
-        # the right (replaces the "N item(s)" indicator which was usually
-        # just "1 item(s)" and added nothing).
         section_max_score = max(scores.get(e.event_id, 0) for e in evs)
         sections.append({
             "type": "box", "layout": "horizontal", "margin": "lg",
@@ -369,10 +408,12 @@ def _build_digest_bubble(
         })
         for ev in evs:
             tr = (translations or {}).get(ev.event_id, {})
+            alert = (alerts or {}).get(ev.event_id)
             sections.append(_digest_event_row(
                 ev, scores.get(ev.event_id, 0), kw_cfg,
-                title_th=tr.get("title_th"),
-                summary_th=tr.get("summary_th"),
+                alert=alert,
+                title_th=tr.get("title_th") if tr else None,
+                summary_th=tr.get("summary_th") if tr else None,
             ))
     return {
         "type": "bubble", "size": "giga",
@@ -392,37 +433,35 @@ def digest_carousel(
     slot: str,
     kw_cfg: dict[str, Any],
     translations: dict[str, dict[str, str | None]] | None = None,
+    alerts: dict[str, MarketAlert] | None = None,
 ) -> dict[str, Any] | None:
     """Build the Latest News Update.
 
     ≤ 5 events: single giga bubble.
-    > 5 events: 2-bubble carousel, split into halves by score order
-                (6→3/3, 8→4/4, 10→5/5, etc). Each bubble re-runs its own
-                topic grouping for the events it carries.
+    > 5 events: 2-bubble carousel split by score order. Header sub-label
+                shows ONLY the slot time (e.g. "05:30 ICT") — the "N/M
+                events" count was noise that didn't help the reader.
     """
     if not events:
         return None
-    # Sort by score (highest first) so the first bubble has the most
-    # important events.
     ranked = sorted(events, key=lambda e: -scores.get(e.event_id, 0))
     n = len(ranked)
 
     if n <= DIGEST_SPLIT_THRESHOLD:
         return _build_digest_bubble(
-            ranked, scores, slot, kw_cfg, translations,
+            ranked, scores, slot, kw_cfg, translations, alerts,
             header_label="📰 Latest News Update",
-            header_sub=f"{slot} ICT · {n} event(s)",
+            header_sub=f"{slot} ICT",
         )
 
-    # Split into two halves — first bubble gets the ceiling (top scores).
     mid = (n + 1) // 2
     chunks = [ranked[:mid], ranked[mid:]]
     bubbles = []
     for i, chunk in enumerate(chunks, start=1):
         bubbles.append(_build_digest_bubble(
-            chunk, scores, slot, kw_cfg, translations,
+            chunk, scores, slot, kw_cfg, translations, alerts,
             header_label=f"📰 News Update {i}/{len(chunks)}",
-            header_sub=f"{slot} ICT · {len(chunk)}/{n} events",
+            header_sub=f"{slot} ICT",
         ))
     return {"type": "carousel", "contents": bubbles}
 
@@ -430,7 +469,17 @@ def digest_carousel(
 # ---------- health ----------
 
 def eod_recap_bubble(stats: dict[str, Any], date_label: str) -> dict[str, Any]:
-    """End-of-day recap. `stats` shape:
+    """End-of-day recap. Header carries the date that the recap is FOR
+    (the day that just ended), not today's wall-clock date — the recap
+    fires at 22:00 ICT so they are the same day, but bundling the date
+    into the title removes a UI ambiguity (the previous right-aligned
+    date looked like "now" when it actually meant "for yesterday").
+
+    Top Topics section: dropped the "max 5.0" / "max 4.0" debug numbers
+    (they were raw scorer outputs that didn't translate to anything the
+    reader cared about) and moved the event count to the right.
+
+    `stats` shape:
        {breaking_n, alert_n, digest_events_n, calendar_pre_n,
         calendar_post_n, top_topics: list[(topic, count, max_score)]}
     """
@@ -460,22 +509,22 @@ def eod_recap_bubble(stats: dict[str, Any], date_label: str) -> dict[str, Any]:
         rows.append({"type": "separator", "margin": "lg"})
         rows.append({"type": "text", "text": "TOP TOPICS", "size": "xs",
                      "color": "#9CA3AF", "weight": "bold", "margin": "md"})
-        for topic, count, max_score in top_topics[:6]:
+        for topic, count, _max_score in top_topics[:6]:
             bg, fg = _topic_chip_color(topic)
             rows.append({
                 "type": "box", "layout": "horizontal", "spacing": "sm",
                 "alignItems": "center", "margin": "sm",
                 "contents": [
                     _chip(topic, bg, fg),
+                    {"type": "filler"},
                     {"type": "text", "text": f"{count} events",
-                     "size": "xs", "color": "#6B7280", "flex": 1, "margin": "sm"},
-                    {"type": "text", "text": f"max {max_score:.1f}",
-                     "size": "xs", "color": "#9CA3AF", "flex": 0, "align": "end"},
+                     "size": "xs", "color": "#6B7280", "flex": 0, "align": "end"},
                 ],
             })
+    title = f"🌙 Daily Recap for {date_label}" if date_label else "🌙 Daily Recap"
     return {
-        "type": "bubble", "size": "kilo",
-        "header": _header("🌙 End of Day", date_label, "#1F2937"),
+        "type": "bubble", "size": "giga",
+        "header": _header(title, "", "#1F2937"),
         "body": {"type": "box", "layout": "vertical", "spacing": "sm",
                  "paddingAll": "16px", "contents": rows},
     }
@@ -492,7 +541,7 @@ def health_recovered_bubble(recoveries: list[tuple[str, str]]) -> dict[str, Any]
             "size": "xs", "color": "#374151", "wrap": True, "margin": "xs",
         })
     return {
-        "type": "bubble", "size": "kilo",
+        "type": "bubble", "size": "giga",
         "header": _header("✅ Recovered", str(len(recoveries)), "#059669"),
         "body": {"type": "box", "layout": "vertical", "spacing": "xs",
                  "paddingAll": "12px", "contents": lines},
@@ -510,7 +559,7 @@ def health_bubble(warnings: list[tuple[str, str]]) -> dict[str, Any]:
             "size": "xs", "color": "#374151", "wrap": True, "margin": "xs",
         })
     return {
-        "type": "bubble", "size": "kilo",
+        "type": "bubble", "size": "giga",
         "header": _header("⚠️ Health Check", str(len(warnings)), COLOR["health"]),
         "body": {"type": "box", "layout": "vertical", "spacing": "xs",
                  "paddingAll": "12px", "contents": lines},
@@ -543,61 +592,112 @@ def _impact_pill_calendar(impact: str) -> dict[str, Any]:
     }
 
 
+def _fmt_value(v: float, prefix: str = "", decimals: int = 2) -> str:
+    return f"{prefix}{v:,.{decimals}f}"
+
+
+def _price_cell(label: str, snap: tuple[float, float] | None,
+                value_fmt) -> dict[str, Any] | None:
+    """One column of the price strip. `value_fmt(last)` returns the
+    display string (e.g. "$4,542.40" or "฿35.21" or "+1.23%")."""
+    if not snap:
+        return None
+    last, pct = snap
+    color = "#059669" if pct > 0 else "#DC2626" if pct < 0 else "#374151"
+    sign = "+" if pct > 0 else ""
+    return {
+        "type": "box", "layout": "vertical", "flex": 1,
+        "contents": [
+            {"type": "text", "text": label, "size": "xxs", "color": "#9CA3AF"},
+            {"type": "text", "text": value_fmt(last), "size": "sm",
+             "weight": "bold", "color": "#111827"},
+            {"type": "text", "text": f"{sign}{pct:.2f}%", "size": "xxs",
+             "color": color},
+        ],
+    }
+
+
+def _forecast_previous_inline(forecast: str, previous: str) -> dict[str, Any] | None:
+    """Right-aligned 'F: -0.6% | Pre: 0.7%' block. Returns None when
+    both values are blank (so a row doesn't show a stray bar)."""
+    f = (forecast or "").strip()
+    p = (previous or "").strip()
+    if not f and not p:
+        return None
+    parts: list[str] = []
+    if f:
+        parts.append(f"F: {f}")
+    if p:
+        parts.append(f"Pre: {p}")
+    return {
+        "type": "text", "text": " | ".join(parts),
+        "size": "xxs", "color": "#6B7280", "flex": 0, "align": "end",
+        "wrap": False,
+    }
+
+
 def calendar_day_bubble(
     events: list[CalEvent],
     date_label: str,
     xau_snapshot: tuple[float, float] | None = None,   # (last, day_pct)
     dxy_snapshot: tuple[float, float] | None = None,
+    hui_snapshot: tuple[float, float] | None = None,
+    gld_snapshot: tuple[float, float] | None = None,
+    thb_snapshot: tuple[float, float] | None = None,
 ) -> dict[str, Any] | None:
     """One long bubble listing today's events chronologically.
 
-    Optional `xau_snapshot` / `dxy_snapshot` render a market-pulse band
-    at the top of the body so the user sees gold / dollar levels alongside
-    the day's release schedule.
+    Price strip: XAU | DXY | HUI | GLD | USDTHB. Any snapshot that's
+    None is skipped (off-hours / API flake). Strip uses up to 5 cells
+    so the bubble width carries real signal instead of empty space.
+
+    Per-event row layout:
+      [HH:MM] [Impact] [Country] [Event title]              F: X | Pre: Y
+    Forecast / Previous are right-aligned gray so the eye reads time +
+    name on the left and surprise context on the right. Skipped when
+    both values are blank.
     """
     if not events:
         return None
     body_contents: list[dict[str, Any]] = []
 
-    # Price snapshot strip
-    if xau_snapshot or dxy_snapshot:
-        cells = []
-        for label, snap in (("XAU", xau_snapshot), ("DXY", dxy_snapshot)):
-            if not snap:
-                continue
-            last, pct = snap
-            color = "#059669" if pct > 0 else "#DC2626" if pct < 0 else "#374151"
-            sign = "+" if pct > 0 else ""
-            cells.append({
-                "type": "box", "layout": "vertical", "flex": 1,
-                "contents": [
-                    {"type": "text", "text": label, "size": "xxs", "color": "#9CA3AF"},
-                    {"type": "text", "text": f"${last:,.2f}", "size": "sm",
-                     "weight": "bold", "color": "#111827"},
-                    {"type": "text", "text": f"{sign}{pct:.2f}%", "size": "xxs",
-                     "color": color},
-                ],
-            })
-        if cells:
-            body_contents.append({
-                "type": "box", "layout": "horizontal", "spacing": "md",
-                "contents": cells,
-            })
-            body_contents.append({"type": "separator", "margin": "md"})
-
-    for ev in events:
+    # Price snapshot strip (XAU spot in $, DXY index, HUI gold-miners,
+    # GLD SPDR ETF price, USD/THB).
+    price_specs = (
+        ("XAU", xau_snapshot, lambda v: _fmt_value(v, "$")),
+        ("DXY", dxy_snapshot, lambda v: _fmt_value(v, "")),
+        ("HUI", hui_snapshot, lambda v: _fmt_value(v, "")),
+        ("GLD", gld_snapshot, lambda v: _fmt_value(v, "$")),
+        ("USDTHB", thb_snapshot, lambda v: _fmt_value(v, "฿")),
+    )
+    cells = [c for c in (_price_cell(lbl, snap, fmt)
+                          for lbl, snap, fmt in price_specs) if c is not None]
+    if cells:
         body_contents.append({
             "type": "box", "layout": "horizontal", "spacing": "md",
+            "contents": cells,
+        })
+        body_contents.append({"type": "separator", "margin": "md"})
+
+    for ev in events:
+        # Left side: time + impact pill + country + event title (flex=1
+        # so it stretches to fill). Right side: F:/Pre: when present.
+        left_cells: list[dict[str, Any]] = [
+            {"type": "text", "text": ev.hhmm_ict, "size": "sm",
+             "weight": "bold", "color": "#111827", "flex": 0},
+            _impact_pill_calendar(ev.impact),
+            {"type": "text", "text": f" {ev.country} ", "size": "xs",
+             "weight": "bold", "color": "#374151", "flex": 0},
+            {"type": "text", "text": ev.title, "size": "sm",
+             "wrap": True, "color": "#111827", "flex": 1},
+        ]
+        fp_block = _forecast_previous_inline(ev.forecast, ev.previous)
+        if fp_block:
+            left_cells.append(fp_block)
+        body_contents.append({
+            "type": "box", "layout": "horizontal", "spacing": "sm",
             "alignItems": "center", "margin": "md",
-            "contents": [
-                {"type": "text", "text": ev.hhmm_ict, "size": "sm",
-                 "weight": "bold", "color": "#111827", "flex": 0},
-                _impact_pill_calendar(ev.impact),
-                {"type": "text", "text": f"  {ev.country}  ", "size": "xs",
-                 "weight": "bold", "color": "#374151", "flex": 0},
-                {"type": "text", "text": ev.title, "size": "sm",
-                 "wrap": True, "color": "#111827", "flex": 1},
-            ],
+            "contents": left_cells,
         })
     return {
         "type": "bubble", "size": "giga",
@@ -722,7 +822,7 @@ def post_release_bubble(
         })
 
     return {
-        "type": "bubble", "size": "kilo",
+        "type": "bubble", "size": "giga",
         "header": _header("📊 Released News", "", header_color),
         "body": {"type": "box", "layout": "vertical", "spacing": "sm",
                  "paddingAll": "16px", "contents": body_contents},
@@ -830,7 +930,7 @@ def pre_release_bubble(event: CalEvent, minutes_to_release: int,
     # Header sub-label dropped — bubble timing in LINE already conveys
     # "this is happening soon"; "T-Xmin" was just noise.
     return {
-        "type": "bubble", "size": "kilo",
+        "type": "bubble", "size": "giga",
         "header": _header("⏰ Pre-Release", "", header_color),
         "body": {"type": "box", "layout": "vertical", "spacing": "sm",
                  "paddingAll": "16px", "contents": body_contents},
