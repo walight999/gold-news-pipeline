@@ -617,34 +617,51 @@ def _impact_color(impact: str) -> tuple[str, str]:
     }.get(impact, ("#6B7280", "#FFFFFF"))
 
 
+def _direction_color(direction: str) -> tuple[str, str, str]:
+    """Map direction label → (bg, fg, arrow). Single source of truth
+    used by both XAU pill and the generalized currency pill."""
+    direction = (direction or "neutral").lower()
+    if "bull" in direction or direction == "up":
+        return "#059669", "#FFFFFF", "↑"
+    if "bear" in direction or direction == "down":
+        return "#DC2626", "#FFFFFF", "↓"
+    return "#D97706", "#FFFFFF", "≈"
+
+
+def _currency_direction_pill(currency: str, direction: str,
+                              flex: int = 1) -> dict[str, Any]:
+    """Colored "{currency} {arrow}" pill. Used in the 3-pill row for
+    pre / post-release bubbles (ECU + counter + XAU).
+
+    flex=1 by default so 3 pills share the row width equally; pass
+    flex=0 to make the pill hug its text (used in compact calendar
+    rows that already have F:/P: labels alongside)."""
+    bg, fg, arrow = _direction_color(direction)
+    label = (currency or "?").upper()
+    return {
+        "type": "box", "layout": "vertical",
+        "backgroundColor": bg, "cornerRadius": "4px",
+        "paddingStart": "6px", "paddingEnd": "6px",
+        "paddingTop": "4px", "paddingBottom": "4px",
+        "flex": flex,
+        "contents": [{"type": "text", "text": f"{label} {arrow}",
+                       "size": "sm", "color": fg, "weight": "bold",
+                       "align": "center"}],
+    }
+
+
 def _xau_direction_pill(label: str) -> dict[str, Any]:
-    """Colored XAU-direction tag used on calendar-family bubbles.
-
-    Reads at a glance even on a small phone screen — far more visible
-    than a single 🟢/🔴/🟡 emoji at body size. Other bubble types
-    (Breaking / Alert / Digest news / Health / EOD) keep the emoji
-    chip — economic-calendar releases are the place where direction is
-    the dominant signal so it earns the bigger visual.
-
-    Maps:
-      bullish  → "XAU ↑"  green   (forecast > previous AND higher is bullish for gold)
-      bearish  → "XAU ↓"  red     (forecast > previous AND higher is bearish for gold)
-      neutral  → "XAU ≈"  amber   (no clear directional signal)
-    """
-    label = (label or "neutral").lower()
-    if "bull" in label or label == "up":
-        bg, fg, text = "#059669", "#FFFFFF", "XAU ↑"
-    elif "bear" in label or label == "down":
-        bg, fg, text = "#DC2626", "#FFFFFF", "XAU ↓"
-    else:
-        bg, fg, text = "#D97706", "#FFFFFF", "XAU ≈"
+    """Compact XAU-only pill kept for the calendar_day / weekly_preview
+    rows where a 3-pill block per row would crowd the layout. Behavior
+    matches `_currency_direction_pill('XAU', label, flex=0)`."""
+    bg, fg, arrow = _direction_color(label)
     return {
         "type": "box", "layout": "vertical",
         "backgroundColor": bg, "cornerRadius": "4px",
         "paddingStart": "8px", "paddingEnd": "8px",
         "paddingTop": "2px", "paddingBottom": "2px",
         "flex": 0,
-        "contents": [{"type": "text", "text": text,
+        "contents": [{"type": "text", "text": f"XAU {arrow}",
                        "size": "xxs", "color": fg, "weight": "bold",
                        "align": "center"}],
     }
@@ -656,6 +673,16 @@ def _xau_direction_pill_from_effect(effect: dict[str, Any] | None) -> dict[str, 
     can pass the same effect dict they were using before."""
     label = (effect or {}).get("label", "neutral")
     return _xau_direction_pill(label)
+
+
+def _impact_pills_row(pills: list[tuple[str, str]]) -> dict[str, Any]:
+    """3-pill horizontal row: (currency, direction) tuples → equal-flex
+    colored pills. Used at the bottom of pre/post-release bubbles."""
+    return {
+        "type": "box", "layout": "horizontal", "spacing": "sm",
+        "margin": "lg",
+        "contents": [_currency_direction_pill(c, d, flex=1) for c, d in pills],
+    }
 
 
 def _impact_pill_calendar(impact: str) -> dict[str, Any]:
@@ -890,19 +917,22 @@ def post_release_bubble(
                 "size": "sm", "weight": "bold",
                 "color": "#374151", "margin": "md",
             })
-        # Gold-impact verdict shown as a colored XAU↑/XAU↓/XAU≈ pill so
-        # the post-release direction reads at the same width-style as the
-        # rest of the calendar bubbles.
+        # 3-pill currency impact row (ECU + counter + XAU). Uses the
+        # same logic as pre-release; for the released-with-actual path
+        # we let the FRED verdict override the XAU pill direction since
+        # we have the actual print to grade direction against forecast.
+        from .calendar import event_impact_pills
+        pills = event_impact_pills(event)
         verdict_word = _verdict_word(verdict).lower()
+        if verdict_word in ("bullish", "bearish"):
+            # Replace the XAU pill (last) with the FRED-derived verdict.
+            pills = pills[:-1] + [("XAU", verdict_word)]
         body_contents.append({
-            "type": "box", "layout": "horizontal",
-            "alignItems": "center", "spacing": "sm", "margin": "md",
-            "contents": [
-                {"type": "text", "text": "Gold Impact:",
-                 "size": "sm", "weight": "bold", "color": "#111827", "flex": 0},
-                _xau_direction_pill(verdict_word),
-            ],
+            "type": "text", "text": "Currency Impact (POST)",
+            "size": "xxs", "color": "#9CA3AF", "weight": "bold",
+            "margin": "md",
         })
+        body_contents.append(_impact_pills_row(pills))
         # Live XAU reaction (price-feed Phase 3 — when available)
         if xau_return_pct is not None:
             color = "#059669" if xau_return_pct > 0 else "#DC2626" if xau_return_pct < 0 else "#6B7280"
@@ -913,33 +943,25 @@ def post_release_bubble(
                 "size": "xs", "color": color, "margin": "sm",
             })
     else:
-        # No-FRED path — 3-col Forecast / Previous / XAU direction pill.
-        # Pill replaces the legacy emoji so the gold impact is readable
-        # at-a-glance, matching the pre-release bubble style.
+        # No-FRED path — show F:/P: as an inline label and the 3-pill
+        # currency impact row underneath. Matches pre-release layout.
+        from .calendar import event_impact_pills
         body_contents.append({
             "type": "box", "layout": "horizontal", "margin": "lg",
             "contents": [
-                {"type": "text", "text": "Forecast", "size": "xxs",
-                 "color": "#9CA3AF", "flex": 1, "align": "center"},
-                {"type": "text", "text": "Previous", "size": "xxs",
-                 "color": "#9CA3AF", "flex": 1, "align": "center"},
-                {"type": "text", "text": "GOLD IMPACT", "size": "xxs",
-                 "color": "#9CA3AF", "flex": 1, "align": "center"},
+                {"type": "text", "text": "Actual ——", "size": "xs",
+                 "color": "#9CA3AF", "flex": 1, "align": "start"},
+                {"type": "text",
+                 "text": f"F: {event.forecast or '-'} / P: {event.previous or '-'}",
+                 "size": "xs", "color": "#6B7280", "flex": 1, "align": "end"},
             ],
         })
         body_contents.append({
-            "type": "box", "layout": "horizontal", "alignItems": "center",
-            "contents": [
-                {"type": "text", "text": event.forecast or "-", "size": "sm",
-                 "weight": "bold", "color": "#111827", "flex": 1, "align": "center"},
-                {"type": "text", "text": event.previous or "-", "size": "sm",
-                 "color": "#374151", "flex": 1, "align": "center"},
-                {"type": "box", "layout": "vertical", "flex": 1,
-                 "alignItems": "center", "contents": [
-                     _xau_direction_pill_from_effect(effect),
-                 ]},
-            ],
+            "type": "text", "text": "Currency Impact (POST)",
+            "size": "xxs", "color": "#9CA3AF", "weight": "bold",
+            "margin": "md",
         })
+        body_contents.append(_impact_pills_row(event_impact_pills(event)))
 
     return {
         "type": "bubble", "size": "giga",
@@ -1009,14 +1031,16 @@ def weekly_preview_bubble(
 def pre_release_bubble(event: CalEvent, minutes_to_release: int,
                        impact: dict[str, str] | None = None,
                        effect: dict[str, str] | None = None) -> dict[str, Any]:
-    """Pre-release bubble — title-led, 3-column Forecast/Previous/Gold Impact.
+    """Pre-release bubble — title-led, Forecast/Previous row + 3-pill
+    Currency Impact row.
 
-    Gold Impact column uses the colored XAU↑/XAU↓/XAU≈ pill instead of a
-    bare emoji — easier to read at a glance on a mobile card and matches
-    the daily calendar + post-release bubble style.
+    The 3-pill design (ECU + counter + XAU) was requested 2026-05-23 —
+    actionable for currency traders because they see at a glance how
+    BOTH the event's currency AND its counter are positioned, not just
+    the XAU side.
     """
+    from .calendar import event_impact_pills
     header_color, _ = _impact_color(event.impact)
-    eff = effect or {"emoji": "🟡", "label": "neutral"}
 
     body_contents: list[dict[str, Any]] = [
         {"type": "text", "text": event.title, "weight": "bold", "size": "md",
@@ -1028,26 +1052,20 @@ def pre_release_bubble(event: CalEvent, minutes_to_release: int,
              {"type": "text", "text": event.country, "size": "xs",
               "weight": "bold", "color": "#374151", "flex": 0},
         ]},
+        # Forecast / Previous on the right-hand side, compact
         {"type": "box", "layout": "horizontal", "margin": "lg",
          "contents": [
-             {"type": "text", "text": "Forecast", "size": "xxs",
-              "color": "#9CA3AF", "flex": 1, "align": "center"},
-             {"type": "text", "text": "Previous", "size": "xxs",
-              "color": "#9CA3AF", "flex": 1, "align": "center"},
-             {"type": "text", "text": "GOLD IMPACT", "size": "xxs",
-              "color": "#9CA3AF", "flex": 1, "align": "center"},
+             {"type": "text", "text": "Actual ——", "size": "xs",
+              "color": "#9CA3AF", "flex": 1, "align": "start"},
+             {"type": "text",
+              "text": f"F: {event.forecast or '-'} / P: {event.previous or '-'}",
+              "size": "xs", "color": "#6B7280", "flex": 1, "align": "end"},
         ]},
-        {"type": "box", "layout": "horizontal", "alignItems": "center",
-         "contents": [
-             {"type": "text", "text": event.forecast or "-", "size": "sm",
-              "weight": "bold", "color": "#111827", "flex": 1, "align": "center"},
-             {"type": "text", "text": event.previous or "-", "size": "sm",
-              "color": "#374151", "flex": 1, "align": "center"},
-             {"type": "box", "layout": "vertical", "flex": 1,
-              "alignItems": "center", "contents": [
-                  _xau_direction_pill_from_effect(eff),
-              ]},
-        ]},
+        # Section label + 3-pill row
+        {"type": "text", "text": "Currency Impact (PRE)",
+         "size": "xxs", "color": "#9CA3AF", "weight": "bold",
+         "margin": "md"},
+        _impact_pills_row(event_impact_pills(event)),
     ]
     # Header sub-label dropped — bubble timing in LINE already conveys
     # "this is happening soon"; "T-Xmin" was just noise.

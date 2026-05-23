@@ -86,17 +86,21 @@ def test_calendar_day_bubble_shape():
 
 def test_pre_release_bubble_shape():
     events = cal.parse_ff_payload([
-        _ff_item("Core CPI m/m", "USD", "2026-05-15T08:30:00-04:00", "High"),
+        _ff_item("Core CPI m/m", "USD", "2026-05-15T08:30:00-04:00", "High",
+                 forecast="0.5%", previous="0.3%"),
     ])
     b = pre_release_bubble(events[0], 15)
     assert b["type"] == "bubble"
-    # High-impact header is red
     assert b["header"]["backgroundColor"] == "#DC2626"
-    # v3 layout drops the T-Xmin sub-label and the directional block; the
-    # 3-column row carries Forecast/Previous/GOLD IMPACT instead.
+    # Batch M: 3-pill (ECU/USD/XAU) currency-impact row.
     body_texts = _all_texts(b["body"])
-    assert any("GOLD IMPACT" in t for t in body_texts)
-    assert not any("↑" in t for t in body_texts), "directional block should be gone"
+    assert any("Currency Impact" in t for t in body_texts)
+    # USD-event → ECU=USD + counter=EUR + XAU
+    assert any(t.startswith("USD") for t in body_texts)
+    assert any(t.startswith("EUR") for t in body_texts)
+    assert any(t.startswith("XAU") for t in body_texts)
+    # F:/P: inline label present (replaces old 3-col forecast/previous strip)
+    assert any("F:" in t and "P:" in t for t in body_texts)
 
 
 def test_gold_impact_directional_cpi_bearish():
@@ -121,6 +125,57 @@ def test_gold_impact_directional_unemployment_claims_inverse():
     out = gold_impact_directional(e)
     assert "Bullish" in out["higher_is"], \
         f"Unemployment Claims should be inverse (higher=bullish gold), got {out}"
+
+
+def test_event_impact_pills_gbp_cpi_cooling():
+    """User example 2026-05-23: GBP CPI y/y, F: 3.0% / P: 3.3%
+    (cooling). Expect GBP↓, USD↑, XAU↑ — image confirmed."""
+    from src.calendar import event_impact_pills, CalEvent
+    e = CalEvent(event_id="x", title="CPI y/y", country="GBP", impact="High",
+                 forecast="3.0%", previous="3.3%",
+                 dt_utc=datetime(2026, 5, 27, 6, 0, tzinfo=timezone.utc))
+    pills = event_impact_pills(e)
+    assert pills == [("GBP", "bearish"), ("USD", "bullish"), ("XAU", "bullish")]
+
+
+def test_event_impact_pills_us_cpi_hot():
+    """Hot US CPI: F > P → USD↑ (Fed hawkish), EUR↓, XAU↓."""
+    from src.calendar import event_impact_pills, CalEvent
+    e = CalEvent(event_id="x", title="Core CPI m/m", country="USD",
+                 impact="High", forecast="0.5%", previous="0.3%",
+                 dt_utc=datetime(2026, 5, 28, 12, 30, tzinfo=timezone.utc))
+    pills = event_impact_pills(e)
+    assert pills == [("USD", "bullish"), ("EUR", "bearish"), ("XAU", "bearish")]
+
+
+def test_event_impact_pills_unemployment_claims_rising():
+    """Higher US unemployment claims: weaker labor → USD↓ → XAU↑."""
+    from src.calendar import event_impact_pills, CalEvent
+    e = CalEvent(event_id="x", title="Unemployment Claims", country="USD",
+                 impact="Medium", forecast="240K", previous="220K",
+                 dt_utc=datetime(2026, 5, 29, 12, 30, tzinfo=timezone.utc))
+    pills = event_impact_pills(e)
+    assert pills == [("USD", "bearish"), ("EUR", "bullish"), ("XAU", "bullish")]
+
+
+def test_event_impact_pills_neutral_when_forecast_equals_previous():
+    """No directional signal → all 3 pills neutral."""
+    from src.calendar import event_impact_pills, CalEvent
+    e = CalEvent(event_id="x", title="GDP q/q", country="EUR", impact="High",
+                 forecast="0.3%", previous="0.3%",
+                 dt_utc=datetime(2026, 5, 28, 9, 0, tzinfo=timezone.utc))
+    pills = event_impact_pills(e)
+    assert pills == [("EUR", "neutral"), ("USD", "neutral"), ("XAU", "neutral")]
+
+
+def test_event_impact_pills_missing_data_falls_back_to_neutral():
+    """No forecast/previous → all neutral instead of crashing."""
+    from src.calendar import event_impact_pills, CalEvent
+    e = CalEvent(event_id="x", title="Some Speech", country="USD",
+                 impact="Low", forecast="", previous="",
+                 dt_utc=datetime(2026, 5, 28, 9, 0, tzinfo=timezone.utc))
+    pills = event_impact_pills(e)
+    assert all(d == "neutral" for _, d in pills)
 
 
 def test_gold_impact_adp_treated_as_payroll_not_claims():
@@ -158,9 +213,13 @@ def test_post_release_bubble_shape():
     b = post_release_bubble(e, info, effect=eff)
     assert b["type"] == "bubble"
     assert b["header"]["backgroundColor"] == "#DC2626"
-    # v3: no-FRED path now mirrors pre-release — 3-col Forecast/Previous/GOLD IMPACT.
+    # 3-pill layout (Batch M): bubble carries USD/EUR/XAU direction pills.
     body_texts = _all_texts(b["body"])
-    assert any("GOLD IMPACT" in t for t in body_texts)
+    assert any("Currency Impact" in t for t in body_texts)
+    # All 3 pill labels present
+    assert any(t.startswith("USD") for t in body_texts)
+    assert any(t.startswith("EUR") for t in body_texts)
+    assert any(t.startswith("XAU") for t in body_texts)
 
 
 def _all_texts(node) -> list[str]:
