@@ -23,6 +23,7 @@ def parse_feed(body: bytes, source: dict[str, Any]) -> list[dict[str, Any]]:
             "tier": source["tier"],
             "role": source["role"],
             "source_class": source.get("source_class", "aggregator"),
+            "organization": source.get("organization") or source["id"],
             "title": _clean_text((e.get("title") or "").strip()),
             "summary": _strip_html(e.get("summary") or e.get("description") or ""),
             "url": e.get("link") or "",

@@ -543,6 +543,16 @@ def eod_recap_bubble(stats: dict[str, Any], date_label: str) -> dict[str, Any]:
             rows.append({"type": "text",
                          "text": f"⚠ {cl_fallback} Claude fallback ({fb_pct:.0f}%)",
                          "size": "xs", "color": color, "margin": "xs"})
+        # Monthly Claude token usage (input + output) — visibility for
+        # cost tracking. claude-haiku-4-5 pricing ~$1/1M input + $5/1M
+        # output (approx), so 1M tokens ≈ $1-5 ballpark.
+        mt_in = int(stats.get("month_tokens_in", 0) or 0)
+        mt_out = int(stats.get("month_tokens_out", 0) or 0)
+        if mt_in or mt_out:
+            month_lbl = stats.get("month_label", "") or "this month"
+            rows.append({"type": "text",
+                         "text": f"🤖 Claude {month_lbl}: {mt_in:,}↑ / {mt_out:,}↓ tokens",
+                         "size": "xxs", "color": "#9CA3AF", "margin": "xs"})
     top_topics = stats.get("top_topics") or []
     if top_topics:
         rows.append({"type": "separator", "margin": "lg"})

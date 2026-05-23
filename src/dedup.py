@@ -21,8 +21,13 @@ from .utils_time import iso_utc, time_bucket
 
 log = logging.getLogger(__name__)
 
-CLUSTER_WINDOW_MIN = 15
-HEADLINE_SIM_FLOOR = 35  # below this, items in same topic/entity bucket are still kept apart (low confidence)
+# Phase 2.3 (2026-05-23): bumped from 15→60 min after observing ongoing
+# stories (Israel-Iran, Fed speech with follow-ups) get split into two
+# event_ids ~20 min apart, producing duplicate BREAKING pushes. 60 min
+# is wide enough to absorb story development without over-merging
+# unrelated CPI releases on the same day (different topic_bucket).
+CLUSTER_WINDOW_MIN = 60
+HEADLINE_SIM_FLOOR = 35
 
 
 @dataclass
@@ -57,11 +62,23 @@ class Event:
 
     @property
     def independent_source_count(self) -> int:
-        """Count of DISTINCT source classes (official / wire / aggregator / ...).
-        Two ForexLive endpoints reporting the same wire don't count as two
-        independent sources. Phase-2 confirmation logic uses this instead
-        of the raw source_count."""
-        return len({i.source_class for i in self.items if i.source_class})
+        """Count of DISTINCT organizations covering the event.
+
+        Phase 2.3 (2026-05-23) — was previously source_class which
+        collapsed every newsdesk into a single "aggregator" bucket.
+        Now BBC + AlJazeera + CNBC + MarketWatch + Yahoo = 5 orgs,
+        while Investing.com×3 endpoints = 1 org. Real confirmation
+        diversity instead of pseudo-diversity.
+
+        Falls back to source_id when organization is unset (e.g. older
+        items still in event_state from before the schema bump)."""
+        orgs = set()
+        for i in self.items:
+            org = (getattr(i, "organization", "") or "").strip()
+            if not org:
+                org = i.source_id
+            orgs.add(org)
+        return len(orgs)
 
     @property
     def representative_title(self) -> str:

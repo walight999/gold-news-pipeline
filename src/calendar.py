@@ -211,10 +211,14 @@ def gold_impact_directional(event: CalEvent) -> dict[str, str]:
                 "lower_is":  "🟢 Bullish gold",
                 "rationale": rationale,
             }
+    # Unknown event type — don't bias toward "higher=bearish" anymore.
+    # The previous default leaked too many false-bearish pills on events
+    # we hadn't classified (e.g. CB speaker schedules, vague indicators).
+    # Neutral is safer; the trader will read the actual headline.
     return {
-        "higher_is": "🔴 Bearish gold (hawkish)",
-        "lower_is":  "🟢 Bullish gold (dovish)",
-        "rationale": "Watch official statement for tone",
+        "higher_is": "🟡 Neutral",
+        "lower_is":  "🟡 Neutral",
+        "rationale": "Unknown event type — watch official statement",
     }
 
 

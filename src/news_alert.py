@@ -372,19 +372,21 @@ def classify_and_rewrite(
     cached = _cache_lookup(store, key)
     if cached is not None:
         _cache_write(store, key, title, cached)
-        # Cached call counts as "kept" or "rejected" toward source stats.
-        _record_classifier_outcome(store, source_id, cached, used_fallback=False, cache_hit=True)
+        _record_classifier_outcome(store, source_id, cached,
+                                    used_fallback=False, cache_hit=True)
         return cached
 
     age_h_str = f"{age_hours:.1f}" if age_hours is not None else "unknown"
-    result = _classify_claude(title, summary or "", source_id, age_h_str)
+    result, tin, tout = _classify_claude_with_usage(title, summary or "", source_id, age_h_str)
     used_fallback = False
     if result is None:
         result = _fallback_alert(title, summary or "", store=store)
         used_fallback = True
 
     _cache_write(store, key, title, result)
-    _record_classifier_outcome(store, source_id, result, used_fallback=used_fallback, cache_hit=False)
+    _record_classifier_outcome(store, source_id, result,
+                                used_fallback=used_fallback, cache_hit=False,
+                                tokens_in=tin, tokens_out=tout)
     return result
 
 
@@ -394,63 +396,124 @@ def _record_classifier_outcome(
     alert: MarketAlert,
     used_fallback: bool,
     cache_hit: bool,
+    tokens_in: int = 0,
+    tokens_out: int = 0,
 ) -> None:
-    """Increment per-source + global classifier counters in source_state.
+    """Increment classifier counters with a 24h rolling window so
+    degradation alerts trigger on RECENT failure rate, not a months-old
+    average that's slow to react.
 
-    Schema reuse — we piggyback on existing columns to avoid a schema
-    migration:
-      `items_last_hour`     → JSON-encoded {kept:N, rejected:N, fallback:N}
-      `last_validation_ts`  → most-recent classify timestamp
-    Aggregations are window-less here; the watchdog computes the ratio
-    from the JSON blob each cycle. Old runs whose `items_last_hour` is a
-    plain int just look like {kept:0, rejected:0, fallback:0} to the
-    aggregator — safe migration."""
+    Schema in `items_last_hour` (JSON blob):
+      {
+        "buckets": [
+          {"hour": "2026-05-23T01", "kept": 5, "rejected": 3, "fallback": 0,
+           "cache_hits": 2, "tokens_in": 8000, "tokens_out": 1200},
+          ...
+        ],
+        "month": "2026-05",  // for monthly token totals
+        "month_tokens_in": 250000,
+        "month_tokens_out": 32000
+      }
+    Buckets older than 24 hours are pruned on every write.
+
+    Per-source rows track only outcomes (no tokens). The
+    "_classifier_health" global row tracks everything."""
     if store is None:
         return
-    from .utils_time import iso_utc, now_utc
-    ts = iso_utc(now_utc())
+    from .utils_time import iso_utc, now_ict, now_utc
+    ts_now = now_utc()
+    ts_iso = iso_utc(ts_now)
+    hour_key = ts_now.strftime("%Y-%m-%dT%H")
+    month_key = now_ict().strftime("%Y-%m")
 
-    def _bump(row_id: str) -> None:
+    def _bump(row_id: str, include_tokens: bool) -> None:
         row = store.get("source_state", (row_id,)) or {"source_id": row_id}
-        counters = _parse_counters(row.get("items_last_hour"))
+        blob = _parse_blob(row.get("items_last_hour"))
+
+        # 24h rolling buckets
+        buckets = blob.get("buckets", [])
+        # Drop old buckets (>24h ago)
+        from datetime import timedelta
+        cutoff_hour = (ts_now - timedelta(hours=24)).strftime("%Y-%m-%dT%H")
+        buckets = [b for b in buckets if b.get("hour", "") >= cutoff_hour]
+        # Find or create current hour bucket
+        cur = next((b for b in buckets if b.get("hour") == hour_key), None)
+        if cur is None:
+            cur = {"hour": hour_key, "kept": 0, "rejected": 0,
+                   "fallback": 0, "cache_hits": 0}
+            buckets.append(cur)
         if cache_hit:
-            counters["cache_hits"] = counters.get("cache_hits", 0) + 1
+            cur["cache_hits"] = cur.get("cache_hits", 0) + 1
         if used_fallback:
-            counters["fallback"] = counters.get("fallback", 0) + 1
+            cur["fallback"] = cur.get("fallback", 0) + 1
         if alert.action == "keep":
-            counters["kept"] = counters.get("kept", 0) + 1
+            cur["kept"] = cur.get("kept", 0) + 1
         else:
-            counters["rejected"] = counters.get("rejected", 0) + 1
+            cur["rejected"] = cur.get("rejected", 0) + 1
+        if include_tokens and (tokens_in or tokens_out):
+            cur["tokens_in"] = cur.get("tokens_in", 0) + tokens_in
+            cur["tokens_out"] = cur.get("tokens_out", 0) + tokens_out
+
+        blob["buckets"] = buckets
+
+        # Monthly token tally — separate from rolling window
+        if include_tokens:
+            if blob.get("month") != month_key:
+                blob["month"] = month_key
+                blob["month_tokens_in"] = 0
+                blob["month_tokens_out"] = 0
+            blob["month_tokens_in"] = int(blob.get("month_tokens_in", 0)) + tokens_in
+            blob["month_tokens_out"] = int(blob.get("month_tokens_out", 0)) + tokens_out
+
         row["source_id"] = row_id
-        row["items_last_hour"] = json.dumps(counters)
-        row["last_validation_ts"] = ts
+        row["items_last_hour"] = json.dumps(blob)
+        row["last_validation_ts"] = ts_iso
         store.upsert("source_state", row)
 
     if source_id:
-        _bump(f"_class:{source_id[:30]}")   # cap length so it fits cell
-    _bump("_classifier_health")
+        _bump(f"_class:{source_id[:30]}", include_tokens=False)
+    _bump("_classifier_health", include_tokens=True)
 
 
-def _parse_counters(blob) -> dict[str, int]:
-    """items_last_hour stores either an integer (legacy) or a JSON blob
-    (new). Both come back as a counter dict — legacy just maps to zeros."""
+def _parse_blob(blob) -> dict:
+    """Decode items_last_hour. Returns {} on any parse failure."""
     if not blob:
         return {}
     try:
         d = json.loads(blob)
         if isinstance(d, dict):
-            return {k: int(v) for k, v in d.items() if isinstance(v, (int, float))}
+            return d
     except (json.JSONDecodeError, TypeError, ValueError):
         pass
     return {}
 
 
 def get_classifier_counters(store, source_id: str | None = None) -> dict[str, int]:
-    """Read the classifier counters. `source_id=None` returns global
-    (_classifier_health). Used by watchdog + EOD recap."""
+    """Read 24h ROLLING classifier counters from the bucket history.
+
+    `source_id=None` returns global (_classifier_health). The rolling
+    window means watchdog catches degradation on RECENT activity, not
+    diluted by historical averages."""
     row_id = f"_class:{source_id[:30]}" if source_id else "_classifier_health"
     row = store.get("source_state", (row_id,)) or {}
-    return _parse_counters(row.get("items_last_hour"))
+    blob = _parse_blob(row.get("items_last_hour"))
+    buckets = blob.get("buckets", [])
+    # Filter to last-24h buckets
+    if buckets:
+        from datetime import datetime as _dt, timedelta as _td, timezone as _tz
+        cutoff = (_dt.now(_tz.utc) - _td(hours=24)).strftime("%Y-%m-%dT%H")
+        buckets = [b for b in buckets if b.get("hour", "") >= cutoff]
+    totals = {"kept": 0, "rejected": 0, "fallback": 0, "cache_hits": 0,
+              "tokens_in": 0, "tokens_out": 0}
+    for b in buckets:
+        for k in totals:
+            totals[k] += int(b.get(k, 0) or 0)
+    # Carry monthly token tally on the global row only
+    if source_id is None:
+        totals["month"] = blob.get("month", "")
+        totals["month_tokens_in"] = int(blob.get("month_tokens_in", 0))
+        totals["month_tokens_out"] = int(blob.get("month_tokens_out", 0))
+    return totals
 
 
 def _strip_codefence(text: str) -> str:
@@ -519,13 +582,22 @@ def _parse_json_lenient(text: str) -> dict | None:
 
 
 def _classify_claude(title: str, summary: str, source_id: str, age_h: str) -> MarketAlert | None:
-    """Claude call with built-in retry for 529 overloaded / 503 transient.
-    Three attempts with short backoff — Claude overload is usually <60s."""
+    """Back-compat wrapper — returns alert only."""
+    alert, _, _ = _classify_claude_with_usage(title, summary, source_id, age_h)
+    return alert
+
+
+def _classify_claude_with_usage(
+    title: str, summary: str, source_id: str, age_h: str,
+) -> tuple["MarketAlert | None", int, int]:
+    """Claude call with built-in retry + token usage reporting.
+    Returns (alert, input_tokens, output_tokens). Tokens default to 0
+    when call fails / fallback used."""
     import time as _t
     from .translator import _get_anthropic_client
     client = _get_anthropic_client()
     if not client:
-        return None
+        return None, 0, 0
     # Avoid str.format() because the JSON schema in the prompt has many
     # unescaped braces — use .replace() for the 4 placeholders.
     prompt = (
@@ -569,11 +641,13 @@ def _classify_claude(title: str, summary: str, source_id: str, age_h: str) -> Ma
             if alert.action == "keep" and _has_cjk_in_alert(alert):
                 log.warning("claude rewrite contained CJK characters — downgrading to reject")
                 alert = MarketAlert(action="reject", reason="cjk-leak-in-rewrite")
-            return alert
+            # Token usage — Anthropic SDK exposes it on resp.usage
+            usage = getattr(resp, "usage", None)
+            tin = int(getattr(usage, "input_tokens", 0) or 0)
+            tout = int(getattr(usage, "output_tokens", 0) or 0)
+            return alert, tin, tout
         except Exception as e:
             last_exc = e
-            # Retry on transient overload codes only; everything else
-            # bubbles to the fallback.
             s = str(e)
             transient = any(c in s for c in (" 529", " 503", " 502", " 504",
                                              "overloaded", "rate_limit"))
@@ -584,10 +658,10 @@ def _classify_claude(title: str, summary: str, source_id: str, age_h: str) -> Ma
                 _t.sleep(wait)
                 continue
             log.warning("claude classify+rewrite failed: %s", e)
-            return None
+            return None, 0, 0
     if last_exc:
         log.warning("claude classify+rewrite exhausted retries: %s", last_exc)
-    return None
+    return None, 0, 0
 
 
 def _fallback_alert(title: str, summary: str, store: "Store | None" = None) -> MarketAlert:

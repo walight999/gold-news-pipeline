@@ -516,16 +516,16 @@ async def run_eod_recap() -> int:
     top_topics.sort(key=lambda x: (-x[2], -x[1]))
     digest_events_n = sum(len(s) for s in topic_stats.values())
 
-    # Classifier counters for the recap day — global + per-source breakdown.
-    # These survive across the whole day (counters reset is not implemented
-    # yet, so they're cumulative since the row was first written). For EOD
-    # the "today" version is approximated as the cumulative ratio.
-    classifier_total = classifier_kept = classifier_rejected = classifier_fallback = 0
+    # Classifier counters — 24h rolling window (Batch O: was cumulative
+    # forever, now resets so degradation alerts fire on recent activity).
+    # Token totals are still monthly (separate field on the same row).
     cl = news_alert.get_classifier_counters(store, source_id=None)
     classifier_kept = cl.get("kept", 0)
     classifier_rejected = cl.get("rejected", 0)
     classifier_fallback = cl.get("fallback", 0)
     classifier_total = classifier_kept + classifier_rejected
+    month_tokens_in = cl.get("month_tokens_in", 0)
+    month_tokens_out = cl.get("month_tokens_out", 0)
 
     stats = {
         "breaking_n": breaking_n,
@@ -538,6 +538,9 @@ async def run_eod_recap() -> int:
         "classifier_kept": classifier_kept,
         "classifier_rejected": classifier_rejected,
         "classifier_fallback": classifier_fallback,
+        "month_tokens_in": month_tokens_in,
+        "month_tokens_out": month_tokens_out,
+        "month_label": cl.get("month", ""),
     }
     target = os.environ.get("LINE_NEWS_TARGET", "")
     if not target:

@@ -1,27 +1,30 @@
 sources:
-  # source_class: used by Phase-2 independent_source_count for breaking/alert
-  # confirmation logic. Different classes = independent. Two ForexLive
-  # syndication paths are not "two sources".
-  #   official    — primary releaser (Fed, BLS, ECB, Treasury)
-  #   aggregator  — mainstream news desk (BBC, AlJazeera, CNBC, MarketWatch)
-  #   wire        — trader newswire (ForexLive, FXStreet)
-  #   gold_blog   — gold-specific commentary (Kitco)
-  - {id: fed,         tier: 0, source_class: official,   role: policy,       url: "https://www.federalreserve.gov/feeds/press_all.xml", poll_min: 15, enabled: true}
-  - {id: bls,         tier: 0, source_class: official,   role: data_release, url: "https://www.bls.gov/feed/bls_latest.rss",            poll_min: 15, enabled: true,  note: "verified 2026-05-20: HTTP 200, parses OK"}
-  - {id: ecb,         tier: 0, source_class: official,   role: policy,       url: "https://www.ecb.europa.eu/rss/press.xml",            poll_min: 15, enabled: true,  note: "verified 2026-05-20"}
-  - {id: treasury,    tier: 0, source_class: official,   role: yields,       url: "",                                                   poll_min: 15, enabled: false, note: "2026-05-20: no public RSS endpoint found"}
-  - {id: bbc_world,   tier: 1, source_class: aggregator, role: geopolitics,  url: "https://feeds.bbci.co.uk/news/world/rss.xml",        poll_min: 15, enabled: true}
-  - {id: aljazeera,   tier: 1, source_class: aggregator, role: geopolitics,  url: "https://www.aljazeera.com/xml/rss/all.xml",          poll_min: 15, enabled: true}
-  - {id: cnbc,        tier: 1, source_class: aggregator, role: macro,        url: "https://www.cnbc.com/id/100003114/device/rss/rss.html", poll_min: 10, enabled: true,  note: "verified 2026-05-20"}
-  - {id: marketwatch, tier: 1, source_class: aggregator, role: macro,        url: "https://feeds.marketwatch.com/marketwatch/topstories/", poll_min: 10, enabled: true}
-  - {id: forexlive,   tier: 2, source_class: wire,       role: trader_macro, url: "https://www.forexlive.com/feed/",                    poll_min: 5,  enabled: true}
-  - {id: fxstreet,    tier: 2, source_class: wire,       role: gold_bias,    url: "https://www.fxstreet.com/rss",                       poll_min: 5,  enabled: true,  note: "verified 2026-05-20"}
-  - {id: kitco,       tier: 3, source_class: gold_blog,  role: gold_context, url: "https://www.kitco.com/rss/",                         poll_min: 60, enabled: false, note: "2026-05-20: HTTP 404"}
-  # Fast-news additions (replace the Reuters/Make.com / Apify path).
+  # source_class + organization: both used by independent_source_count.
+  # Phase 2.3 (2026-05-23) — was previously single-axis source_class
+  # which collapsed too aggressively: BBC+AlJazeera+CNBC+MW+Yahoo all
+  # reported as "aggregator" → count=1 regardless of how many newsrooms
+  # confirmed. We now count UNIQUE ORGANIZATIONS instead, so 4 Investing
+  # endpoints (same org) still count as 1 but 4 newsdesks count as 4.
+  #
+  # source_class kept for legacy code paths but `organization` is the
+  # field the breaking/alert confirmation logic now uses.
+  - {id: fed,         tier: 0, source_class: official,   organization: us_gov,       role: policy,       url: "https://www.federalreserve.gov/feeds/press_all.xml", poll_min: 15, enabled: true}
+  - {id: bls,         tier: 0, source_class: official,   organization: us_gov,       role: data_release, url: "https://www.bls.gov/feed/bls_latest.rss",            poll_min: 15, enabled: true}
+  - {id: ecb,         tier: 0, source_class: official,   organization: ecb,          role: policy,       url: "https://www.ecb.europa.eu/rss/press.xml",            poll_min: 15, enabled: true}
+  - {id: treasury,    tier: 0, source_class: official,   organization: us_gov,       role: yields,       url: "",                                                   poll_min: 15, enabled: false, note: "no public RSS endpoint"}
+  - {id: bbc_world,   tier: 1, source_class: aggregator, organization: bbc,          role: geopolitics,  url: "https://feeds.bbci.co.uk/news/world/rss.xml",        poll_min: 15, enabled: true}
+  - {id: aljazeera,   tier: 1, source_class: aggregator, organization: aljazeera,    role: geopolitics,  url: "https://www.aljazeera.com/xml/rss/all.xml",          poll_min: 15, enabled: true}
+  - {id: cnbc,        tier: 1, source_class: aggregator, organization: cnbc,         role: macro,        url: "https://www.cnbc.com/id/100003114/device/rss/rss.html", poll_min: 10, enabled: true}
+  - {id: marketwatch, tier: 1, source_class: aggregator, organization: marketwatch,  role: macro,        url: "https://feeds.marketwatch.com/marketwatch/topstories/", poll_min: 10, enabled: true}
+  - {id: forexlive,   tier: 2, source_class: wire,       organization: forexlive,    role: trader_macro, url: "https://www.forexlive.com/feed/",                    poll_min: 5,  enabled: true}
+  - {id: fxstreet,    tier: 2, source_class: wire,       organization: fxstreet,     role: gold_bias,    url: "https://www.fxstreet.com/rss",                       poll_min: 5,  enabled: true}
+  - {id: kitco,       tier: 3, source_class: gold_blog,  organization: kitco,        role: gold_context, url: "https://www.kitco.com/rss/",                         poll_min: 60, enabled: false, note: "feed 404"}
   # Investing.com runs without Cloudflare — plain httpx returns 200.
-  - {id: investing_cb,          tier: 1, source_class: aggregator, role: rate_policy,  url: "https://www.investing.com/rss/news_95.rss",  poll_min: 10, enabled: true,  note: "Investing.com central bank news (Fed/ECB/BoJ etc.)"}
-  - {id: investing_commodities, tier: 1, source_class: aggregator, role: gold_context, url: "https://www.investing.com/rss/news_11.rss",  poll_min: 10, enabled: true,  note: "Investing.com commodities (gold/oil — direct XAU relevance)"}
-  - {id: investing_general,     tier: 1, source_class: aggregator, role: macro,        url: "https://www.investing.com/rss/news.rss",     poll_min: 10, enabled: true,  note: "Investing.com general macro"}
-  - {id: benzinga,              tier: 2, source_class: wire,       role: trader_macro, url: "https://www.benzinga.com/markets/feed",      poll_min: 5,  enabled: true,  note: "2026-05-22: switched from /feed (crypto-noise) to /markets/feed (Dow/SPX/macro headlines). Verified live."}
-  - {id: yahoo_finance,         tier: 1, source_class: aggregator, role: macro,        url: "https://finance.yahoo.com/news/rssindex",    poll_min: 10, enabled: true,  note: "Carries Reuters/AP syndicated content (Reuters direct RSS is retired)"}
+  # All 3 endpoints under ONE organization=investing so they don't fake
+  # source diversity for confirmation logic.
+  - {id: investing_cb,          tier: 1, source_class: aggregator, organization: investing,     role: rate_policy,  url: "https://www.investing.com/rss/news_95.rss",  poll_min: 10, enabled: true}
+  - {id: investing_commodities, tier: 1, source_class: aggregator, organization: investing,     role: gold_context, url: "https://www.investing.com/rss/news_11.rss",  poll_min: 10, enabled: true}
+  - {id: investing_general,     tier: 1, source_class: aggregator, organization: investing,     role: macro,        url: "https://www.investing.com/rss/news.rss",     poll_min: 10, enabled: true}
+  - {id: benzinga,              tier: 2, source_class: wire,       organization: benzinga,      role: trader_macro, url: "https://www.benzinga.com/markets/feed",      poll_min: 5,  enabled: true,  note: "/markets/feed (macro), not /feed (crypto)"}
+  - {id: yahoo_finance,         tier: 1, source_class: aggregator, organization: yahoo,         role: macro,        url: "https://finance.yahoo.com/news/rssindex",    poll_min: 10, enabled: true,  note: "Reuters/AP syndication"}
 

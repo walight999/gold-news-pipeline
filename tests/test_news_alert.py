@@ -99,7 +99,8 @@ def test_classify_and_rewrite_writes_to_cache(store):
         category="Inflation", headline_th="CPI สหรัฐสูงกว่าคาด",
         body_th=["CPI 3.5% vs 3.3% คาด"], impact_th="กดดันทองคำ",
     )
-    with patch("src.news_alert._classify_claude", return_value=fake_alert) as m:
+    with patch("src.news_alert._classify_claude_with_usage",
+                return_value=(fake_alert, 100, 50)) as m:
         out1 = classify_and_rewrite("US CPI hot", "CPI prints 3.5%", store=store)
         assert out1.should_send is True
         assert m.call_count == 1
@@ -113,7 +114,8 @@ def test_classify_and_rewrite_reject_skips_send(store):
     """Classifier reject → should_send False, no headline. Caller must
     not push these to LINE."""
     rejected = MarketAlert(action="reject", reason="personal-finance article")
-    with patch("src.news_alert._classify_claude", return_value=rejected):
+    with patch("src.news_alert._classify_claude_with_usage",
+                return_value=(rejected, 50, 20)):
         out = classify_and_rewrite(
             "5 ways to protect your savings from inflation",
             "Investment tips for retirees", store=store,
@@ -128,7 +130,8 @@ def test_classifier_counters_track_kept_rejected(store):
     from src.news_alert import get_classifier_counters
     kept = MarketAlert(action="keep", headline_th="x")
     rejected = MarketAlert(action="reject", reason="evergreen")
-    with patch("src.news_alert._classify_claude", side_effect=[kept, rejected, kept]):
+    with patch("src.news_alert._classify_claude_with_usage",
+                side_effect=[(kept, 80, 40), (rejected, 70, 30), (kept, 90, 50)]):
         classify_and_rewrite("title1", "sum1", source_id="forexlive", store=store)
         classify_and_rewrite("title2", "sum2", source_id="forexlive", store=store)
         classify_and_rewrite("title3", "sum3", source_id="bbc_world", store=store)
@@ -146,7 +149,8 @@ def test_classifier_counters_track_fallback(store):
     """Fallback (Claude unavailable) increments the fallback counter so
     the watchdog can detect silent degradation."""
     from src.news_alert import get_classifier_counters
-    with patch("src.news_alert._classify_claude", return_value=None), \
+    with patch("src.news_alert._classify_claude_with_usage",
+                return_value=(None, 0, 0)), \
          patch("src.translator._translate_claude", return_value=None), \
          patch("src.translator._translate_google", return_value="ทอง"):
         classify_and_rewrite("Gold up", "Gold rallies", source_id="forexlive", store=store)

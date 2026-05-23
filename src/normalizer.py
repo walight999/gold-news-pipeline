@@ -29,7 +29,8 @@ class Item:
     url: str
     published_ts: datetime | None
     first_seen_ts: datetime  # set on first encounter; anchor for freshness
-    source_class: str = "aggregator"   # Phase-2 independent_source_count input
+    source_class: str = "aggregator"   # legacy field — kept for backward compat
+    organization: str = ""             # 2.3+: unique-org diversity for confirmation
 
     @property
     def url_hash(self) -> str:
@@ -63,6 +64,7 @@ def normalize(entries: list[dict[str, Any]], stale_drop_hours: int = STALE_DROP_
             published_ts=pub,
             first_seen_ts=anchor,
             source_class=e.get("source_class", "aggregator"),
+            organization=e.get("organization") or e["source_id"],
         ))
     if dropped_stale:
         log.info("normalize: dropped %d stale items (>%dh old)",
