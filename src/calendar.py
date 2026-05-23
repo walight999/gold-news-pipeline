@@ -218,52 +218,65 @@ def gold_impact_directional(event: CalEvent) -> dict[str, str]:
     }
 
 
-def event_impact_pills(event: "CalEvent") -> list[tuple[str, str]]:
+def event_impact_pills(
+    event: "CalEvent",
+    actual_text: str | None = None,
+) -> list[tuple[str, str]]:
     """Returns 3 (label, direction) tuples for the pre/post-release bubble.
 
     Format: [(event_ccy, dir), (counter_ccy, dir), ("XAU", dir)] where
-    direction is one of {"bullish", "bearish", "neutral"} — the same
-    set used by `_xau_direction_pill`. Caller renders each pill via
-    `_currency_direction_pill(label, dir)`.
+    direction is {"bullish", "bearish", "neutral"}. Caller renders each
+    pill via `_currency_direction_pill(label, dir)`.
 
-    Mapping logic:
+    Direction source:
+      Pre-release (actual_text=None):  forecast vs PREVIOUS
+        ("what the market is positioning for")
+      Post-release (actual_text set):  actual vs FORECAST
+        ("how the print surprised vs consensus")
 
-    1. The event currency (e.g., GBP) follows the inverse/non-inverse
-       rule that already drives `gold_impact_directional`:
-         - Inflation / NFP / GDP / retail higher than expected → ECU ↑
-         - Unemployment-Claims higher than expected → ECU ↓
-       Lower-than-expected flips the sign.
+    Both paths use the same per-event inverse rule
+    (gold_impact_directional) and the same logic flow — only the
+    reference baseline changes. This keeps the 3 pills internally
+    consistent: ECU + counter + XAU all derived from the same diff,
+    so a hot CPI shows USD↑/EUR↓/XAU↓ in BOTH pre and post, just
+    measured against different baselines.
 
-    2. Counter currency is USD for foreign events, EUR for USD events
-       (EURUSD is the deepest pair). Counter moves opposite to ECU.
+    Mapping:
+    - ECU follows the inverse rule (CPI hot → ECU ↑, claims hot → ECU ↓).
+    - Counter = USD for foreign events, EUR for USD events. Always
+      opposite of ECU.
+    - XAU = opposite of ECU (hawkish-side CB → bearish gold; dovish
+      side → bullish gold, regardless of which CB).
 
-    3. XAU moves OPPOSITE to ECU on inflation/labor-strength prints
-       because a hot release → hawkish central bank → strong currency
-       → bearish gold. For Unemployment-Claims (inverse=True) a hot
-       print means WEAKER labor → DOVISH CB → so XAU and ECU still
-       move opposite (ECU weakens, XAU strengthens). Either way the
-       opposite-of-ECU rule holds.
-
-    User-requested layout (2026-05-23): "ส่งมาเป็นผลต่อ XAU |
-    ผลต่อ currency ที่เกี่ยวข้องอีก 2 ตัว" — 3 pills total.
+    User-requested layout 2026-05-23: "ส่งมาเป็นผลต่อ XAU | ผลต่อ
+    currency ที่เกี่ยวข้องอีก 2 ตัว" — 3 pills.
     """
     from .fred import parse_forecast_value
     ecu = (event.country or "").upper() or "USD"
     counter = "EUR" if ecu == "USD" else "USD"
-    pills: list[tuple[str, str]] = [
+    pills_neutral: list[tuple[str, str]] = [
         (ecu, "neutral"), (counter, "neutral"), ("XAU", "neutral"),
     ]
-    if not event.forecast or not event.previous:
-        return pills
-    fc = parse_forecast_value(event.forecast)
-    pv = parse_forecast_value(event.previous)
-    if fc is None or pv is None:
-        return pills
-    diff = fc - pv
-    if abs(diff) < 0.01:
-        return pills
 
-    # Look up the inverse/non-inverse rule for this title.
+    if actual_text is not None:
+        # Post-release: surprise direction (actual vs forecast)
+        ref = event.forecast
+        comparison = actual_text
+    else:
+        # Pre-release: forecast direction (forecast vs previous)
+        ref = event.previous
+        comparison = event.forecast
+
+    if not ref or not comparison:
+        return pills_neutral
+    ref_v = parse_forecast_value(ref)
+    cmp_v = parse_forecast_value(comparison)
+    if ref_v is None or cmp_v is None:
+        return pills_neutral
+    diff = cmp_v - ref_v
+    if abs(diff) < 0.01:
+        return pills_neutral
+
     title_low = event.title.lower()
     inverse = False
     for pat, inv, _ in _GOLD_IMPACT_RULES:
@@ -271,16 +284,13 @@ def event_impact_pills(event: "CalEvent") -> list[tuple[str, str]]:
             inverse = inv
             break
 
-    # Higher value → currency STRENGTHENS unless inverse (claims etc).
     higher_strengthens_ecu = not inverse
     if diff > 0:
         ecu_dir = "bullish" if higher_strengthens_ecu else "bearish"
     else:
         ecu_dir = "bearish" if higher_strengthens_ecu else "bullish"
     counter_dir = "bearish" if ecu_dir == "bullish" else "bullish"
-    # XAU = opposite of ECU (hawkish CB on ECU side = bearish gold).
     xau_dir = "bearish" if ecu_dir == "bullish" else "bullish"
-
     return [(ecu, ecu_dir), (counter, counter_dir), ("XAU", xau_dir)]
 
 

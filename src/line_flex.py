@@ -917,16 +917,13 @@ def post_release_bubble(
                 "size": "sm", "weight": "bold",
                 "color": "#374151", "margin": "md",
             })
-        # 3-pill currency impact row (ECU + counter + XAU). Uses the
-        # same logic as pre-release; for the released-with-actual path
-        # we let the FRED verdict override the XAU pill direction since
-        # we have the actual print to grade direction against forecast.
+        # 3-pill currency impact row (ECU + counter + XAU) using the
+        # ACTUAL print as the comparison baseline (actual vs forecast =
+        # surprise direction). All 3 pills derive from the same diff so
+        # they're internally consistent — no need for a FRED-verdict
+        # XAU override hack.
         from .calendar import event_impact_pills
-        pills = event_impact_pills(event)
-        verdict_word = _verdict_word(verdict).lower()
-        if verdict_word in ("bullish", "bearish"):
-            # Replace the XAU pill (last) with the FRED-derived verdict.
-            pills = pills[:-1] + [("XAU", verdict_word)]
+        pills = event_impact_pills(event, actual_text=actual_text)
         body_contents.append({
             "type": "text", "text": "Currency Impact (POST)",
             "size": "xxs", "color": "#9CA3AF", "weight": "bold",
