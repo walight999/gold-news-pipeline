@@ -1,14 +1,15 @@
 name: weekly-preview
 on:
   schedule:
-    # Three attempts — FF free JSON only ships ISO-week-current data and
-    # rolls over Sunday morning ET (Saturday night UTC). Saturday-morning
-    # ICT will usually find no next-week events yet, so we retry Sunday
-    # and Monday-early. The ISO-week sent_log key gates double-sends, so
-    # whichever attempt first finds the new week wins.
-    - cron: "0 23 * * 5"   # Fri 23:00 UTC = Sat 06:00 ICT
-    - cron: "0 23 * * 6"   # Sat 23:00 UTC = Sun 06:00 ICT (likely has next-week data)
-    - cron: "0 21 * * 0"   # Sun 21:00 UTC = Mon 04:00 ICT (last chance)
+    # User-requested 2026-05-23: weekend silence except Sat 06:00 ICT.
+    # Two attempts only:
+    #   Sat 06:00 ICT → main delivery slot
+    #   Mon 04:00 ICT → last-chance backup BEFORE the trading week opens,
+    #                   in case Saturday cron dropped on GH free tier
+    # The middle Sun 06:00 ICT backup was removed to keep the weekend
+    # silent. ISO-week sent_log key gates double-sends.
+    - cron: "0 23 * * 5"   # Fri 23:00 UTC = Sat 06:00 ICT — main slot
+    - cron: "0 21 * * 0"   # Sun 21:00 UTC = Mon 04:00 ICT — last chance
   workflow_dispatch: {}
 
 concurrency:
