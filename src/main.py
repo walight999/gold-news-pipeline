@@ -101,8 +101,22 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
 
     # Skip ICT weekends. Forex/gold markets are closed Sat 04:00 ICT to
     # Mon 04:00 ICT — no point burning Sheets writes / cron minutes.
+    #
+    # BUT — still bump the heartbeat so the watchdog doesn't fire a
+    # silence warning all weekend. The pipeline IS alive; it's just
+    # idle. Caught live on 2026-05-23: 3 spam Health Check pushes
+    # complained about silent cron when in fact cron was running every
+    # 5 min and weekend-skipping correctly.
     if is_weekend_ict() and mode != "event":
         log.info("weekend (ICT) — skipping %s run", mode)
+        try:
+            store = Store.from_env()
+            store.connect()
+            store.load_all()
+            health.write_heartbeat(store, items_seen=0)
+            store.flush()
+        except Exception as e:
+            log.warning("weekend heartbeat write failed: %s", e)
         return 0
 
     store = Store.from_env()
