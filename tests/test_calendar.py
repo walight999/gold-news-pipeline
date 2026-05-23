@@ -276,28 +276,61 @@ def test_xau_pill_neutral_is_amber():
     assert pill["contents"][0]["text"] == "XAU ≈"
 
 
-def test_calendar_price_strip_placeholder_for_missing_ticker():
-    """Off-hours (yfinance None) → "—" / "(no data)" placeholder cell
-    instead of disappearing. Strip layout stays stable."""
+def test_calendar_price_strip_drops_missing_tickers():
+    """Batch N: cells with no data are HIDDEN (not rendered as placeholders).
+    Strip contains only the tickers we actually have a snapshot for."""
     from src.calendar import CalEvent
     e = CalEvent(event_id="x", title="CPI", country="USD", impact="High",
                  forecast="0.5%", previous="0.3%",
                  dt_utc=datetime(2026, 5, 22, 12, 0, tzinfo=timezone.utc))
-    # XAU has data, DXY/HUI/GLD/THB missing
+    # Only XAU has data; the other 4 are missing
     b = calendar_day_bubble(
         [e], "Fri 22 May 2026",
         xau_snapshot=(4500.0, 0.5),
-        dxy_snapshot=None,
-        hui_snapshot=None,
-        gld_snapshot=None,
-        thb_snapshot=None,
+        dxy_snapshot=None, hui_snapshot=None,
+        gld_snapshot=None, thb_snapshot=None,
     )
     texts = _all_texts(b["body"])
-    # Placeholder text "—" appears for each missing ticker
-    dash_count = sum(1 for t in texts if t == "—")
-    assert dash_count == 4
-    # No-data labels appear too
-    assert texts.count("(no data)") == 4
+    # The strip contains XAU label
+    assert "XAU" in texts
+    # No "—" placeholder + no "(no data)" leftover
+    assert "—" not in texts
+    assert "(no data)" not in texts
+    # Other ticker labels absent
+    assert "DXY" not in texts
+    assert "HUI" not in texts
+
+
+def test_calendar_price_strip_relabels_gld_as_spdr():
+    """User preference 2026-05-23: 'SPDR' reads more clearly than 'GLD'."""
+    from src.calendar import CalEvent
+    e = CalEvent(event_id="x", title="CPI", country="USD", impact="High",
+                 forecast="0.5%", previous="0.3%",
+                 dt_utc=datetime(2026, 5, 22, 12, 0, tzinfo=timezone.utc))
+    b = calendar_day_bubble(
+        [e], "Fri 22 May 2026",
+        gld_snapshot=(410.0, 0.3),   # GLD ETF data → labelled SPDR
+    )
+    texts = _all_texts(b["body"])
+    assert "SPDR" in texts
+    assert "GLD" not in texts
+
+
+def test_weekly_preview_header_carries_date_range():
+    """Batch N: date range goes inside the title parens, not the right-side
+    sub-label."""
+    from src.calendar import CalEvent
+    from src.line_flex import weekly_preview_bubble
+    e = CalEvent(event_id="x", title="CPI", country="USD", impact="High",
+                 forecast="0.5%", previous="0.3%",
+                 dt_utc=datetime(2026, 5, 25, 12, 0, tzinfo=timezone.utc))
+    b = weekly_preview_bubble([e], {}, "25/5/26 – 29/5/26")
+    header_texts = _all_texts(b["header"])
+    # Title text contains the date range in parens
+    assert any("Week Ahead" in t and "25/5/26" in t for t in header_texts)
+    # The right-side sub-label is empty or absent (no separate date text)
+    title_with_range = [t for t in header_texts if "25/5/26" in t]
+    assert len(title_with_range) == 1
 
 
 def test_calendar_price_strip_dropped_when_all_missing():

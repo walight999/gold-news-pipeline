@@ -704,36 +704,33 @@ def _fmt_value(v: float, prefix: str = "", decimals: int = 2) -> str:
 
 
 def _price_cell(label: str, snap: tuple[float, float] | None,
-                value_fmt) -> dict[str, Any]:
+                value_fmt) -> dict[str, Any] | None:
     """One column of the price strip. `value_fmt(last)` returns the
     display string (e.g. "$4,542.40" or "฿35.21").
 
-    When `snap` is None (yfinance off-hours / fetch failure), render a
-    placeholder cell with "—" and "(no data)" instead of dropping the
-    cell — keeps the 5-column layout stable across hours of day.
+    Returns None when `snap` is None — user feedback 2026-05-23: "ถ้าจะ
+    ไม่มี currency ก็ไม่มีให้หมดเลย" — empty cells with "(no data)"
+    placeholders looked inconsistent next to live cells. Caller filters
+    out None and renders only the cells with real data, so the strip
+    width adjusts compactly instead of carrying dead air.
+
+    Every text inside is `align: center` so the columns visually line up
+    regardless of value width ($4,510.50 vs $99.32 vs ฿32.64).
     """
     if not snap:
-        return {
-            "type": "box", "layout": "vertical", "flex": 1,
-            "contents": [
-                {"type": "text", "text": label, "size": "xxs", "color": "#9CA3AF"},
-                {"type": "text", "text": "—", "size": "sm",
-                 "weight": "bold", "color": "#9CA3AF"},
-                {"type": "text", "text": "(no data)", "size": "xxs",
-                 "color": "#9CA3AF"},
-            ],
-        }
+        return None
     last, pct = snap
     color = "#059669" if pct > 0 else "#DC2626" if pct < 0 else "#374151"
     sign = "+" if pct > 0 else ""
     return {
         "type": "box", "layout": "vertical", "flex": 1,
         "contents": [
-            {"type": "text", "text": label, "size": "xxs", "color": "#9CA3AF"},
+            {"type": "text", "text": label, "size": "xxs",
+             "color": "#9CA3AF", "align": "center"},
             {"type": "text", "text": value_fmt(last), "size": "sm",
-             "weight": "bold", "color": "#111827"},
+             "weight": "bold", "color": "#111827", "align": "center"},
             {"type": "text", "text": f"{sign}{pct:.2f}%", "size": "xxs",
-             "color": color},
+             "color": color, "align": "center"},
         ],
     }
 
@@ -784,19 +781,22 @@ def calendar_day_bubble(
 
     # Price snapshot strip (XAU spot in $, DXY index, HUI gold-miners,
     # GLD SPDR ETF price, USD/THB).
+    # "SPDR" instead of the ticker "GLD" because the SPDR Gold Trust
+    # name reads more clearly to most traders than the raw symbol.
     price_specs = (
         ("XAU", xau_snapshot, lambda v: _fmt_value(v, "$")),
         ("DXY", dxy_snapshot, lambda v: _fmt_value(v, "")),
         ("HUI", hui_snapshot, lambda v: _fmt_value(v, "")),
-        ("GLD", gld_snapshot, lambda v: _fmt_value(v, "$")),
+        ("SPDR", gld_snapshot, lambda v: _fmt_value(v, "$")),
         ("USDTHB", thb_snapshot, lambda v: _fmt_value(v, "฿")),
     )
-    # Always render all 5 cells (placeholders when off-hours / API
-    # failure) so the strip width is stable. Strip is dropped entirely
-    # only when EVERY ticker is missing — common during weekend.
-    cells = [_price_cell(lbl, snap, fmt) for lbl, snap, fmt in price_specs]
-    has_any_data = any(snap is not None for _, snap, _ in price_specs)
-    if has_any_data:
+    # Render only cells that have data — user prefers consistent
+    # all-real-data formatting over fixed-width with placeholders.
+    cells = [
+        c for c in (_price_cell(lbl, snap, fmt) for lbl, snap, fmt in price_specs)
+        if c is not None
+    ]
+    if cells:
         body_contents.append({
             "type": "box", "layout": "horizontal", "spacing": "md",
             "contents": cells,
@@ -1017,9 +1017,14 @@ def weekly_preview_bubble(
                 ],
             })
 
+    # Per user 2026-05-23: bundle the date range into the title and
+    # drop the right-aligned sub-label. "📅 Week Ahead (25/5/26 – 29/5/26)"
+    # reads in one glance rather than splitting attention between
+    # the left title and right date.
+    title = f"📅 Week Ahead ({week_label})" if week_label else "📅 Week Ahead"
     return {
         "type": "bubble", "size": "giga",
-        "header": _header("📅 Week Ahead", week_label, COLOR["digest"]),
+        "header": _header(title, "", COLOR["digest"]),
         "body": {"type": "box", "layout": "vertical", "spacing": "sm",
                  "contents": sections, "paddingAll": "16px"},
     }

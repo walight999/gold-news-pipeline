@@ -679,7 +679,11 @@ async def run_weekly_preview() -> int:
     from datetime import timedelta
     start = min(e.dt_ict for e in filtered)
     end = max(e.dt_ict for e in filtered)
-    week_label = f"{start.strftime('%a %d %b')} – {end.strftime('%a %d %b')}"
+    # Short DD/M/YY range — gets folded into the title by the
+    # weekly_preview_bubble header (e.g. "Week Ahead (25/5/26 – 29/5/26)").
+    def _short(dt):
+        return f"{dt.day}/{dt.month}/{dt.year % 100}"
+    week_label = f"{_short(start)} – {_short(end)}"
 
     bubble = weekly_preview_bubble(filtered, effects, week_label)
     if bubble is None:
