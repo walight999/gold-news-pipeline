@@ -73,8 +73,21 @@ def warning_open_minutes(store: Store, source_id: str, warning_type: str) -> flo
 
 
 def raise_warning(store: Store, source_id: str, warning_type: str, cooldown_min: int = 60) -> bool:
-    """Returns True if a NEW warning row was written (caller should push to health channel).
-    Returns False if suppressed by cooldown."""
+    """Returns True if a NEW warning row was written (caller should push to
+    health channel). Returns False if suppressed by cooldown.
+
+    Cooldown auto-extends on repeat fires of the same condition so an
+    ongoing outage doesn't spam every cycle:
+      1st fire: now (base cooldown)
+      2nd fire: ≥4h since last
+      3rd+ fire: ≥12h since last
+    After 24h with no new fires the counter resets — a fresh outage
+    gets the normal cooldown again."""
+    recent_24h = _count_recent_warnings(store, source_id, warning_type, hours=24)
+    if recent_24h >= 2:
+        cooldown_min = max(cooldown_min, 12 * 60)
+    elif recent_24h >= 1:
+        cooldown_min = max(cooldown_min, 4 * 60)
     if _recent_alert_for(store, source_id, warning_type, cooldown_min):
         return False
     ts = iso_utc(now_utc())
@@ -85,6 +98,20 @@ def raise_warning(store: Store, source_id: str, warning_type: str, cooldown_min:
         "resolved_ts": "",
     })
     return True
+
+
+def _count_recent_warnings(store: Store, source_id: str, warning_type: str, hours: int = 24) -> int:
+    """How many warnings of this (source, type) fired in the last N
+    hours. Used to back off cooldown on ongoing conditions."""
+    cutoff = now_utc() - timedelta(hours=hours)
+    n = 0
+    for row in store.all_rows("health_log"):
+        if row.get("source_id") != source_id or row.get("warning_type") != warning_type:
+            continue
+        ts = parse_iso(row.get("warning_ts"))
+        if ts and ts >= cutoff:
+            n += 1
+    return n
 
 
 def resolve_warning(store: Store, source_id: str, warning_type: str) -> int:

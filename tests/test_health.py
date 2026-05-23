@@ -5,6 +5,7 @@ from datetime import datetime, timedelta, timezone
 
 from src.health import (
     HEARTBEAT_SOURCE_ID,
+    _count_recent_warnings,
     check_pipeline_health,
     check_source_health,
     raise_warning,
@@ -32,11 +33,78 @@ def test_resolved_warning_still_suppressed_by_cooldown(store):
 
 
 def test_cooldown_expires_then_can_fire(store):
-    """After the cooldown window passes, a new warning IS allowed."""
-    assert raise_warning(store, "forexlive", "tier2_no_item", cooldown_min=60) is True
-    resolve_warning(store, "forexlive", "tier2_no_item")
-    # With 0-minute cooldown the warning is no longer suppressed.
+    """After the cooldown window passes, a new warning IS allowed.
+
+    Note: the cooldown for the 2nd fire is auto-extended to 4h regardless
+    of the caller's `cooldown_min` arg — that's the new anti-spam behavior
+    introduced after observing health-alert spam every 2h. The test
+    backdates the first fire by 5h so the 4h floor has already cleared."""
+    from datetime import datetime, timedelta, timezone
+    from src.utils_time import iso_utc
+    # Backdate the first warning so the 4h auto-extended cooldown is past.
+    old_ts = iso_utc(datetime.now(timezone.utc) - timedelta(hours=5))
+    store.upsert("health_log", {
+        "source_id": "forexlive", "warning_type": "tier2_no_item",
+        "warning_ts": old_ts, "resolved_ts": old_ts,
+    })
+    # A fresh raise with cooldown=0 — the global 4h floor for a 2nd fire
+    # is satisfied (last fire was 5h ago), so this is allowed.
     assert raise_warning(store, "forexlive", "tier2_no_item", cooldown_min=0) is True
+
+
+def test_anti_spam_extends_cooldown_on_repeat_fires(store):
+    """User report 2026-05-23: same Health Check at 1:15 / 3:19 / 5:57 ICT.
+    Cooldown was 120min so each ~2h gap allowed re-fire. Anti-spam
+    auto-extends cooldown to 4h after the 1st fire, 12h after the 2nd.
+
+    Direct-data-store manipulation here because health_log's primary key
+    includes warning_ts — a normal upsert with a new ts would CREATE a
+    new row rather than mutate. The test directly rewrites the in-memory
+    rows to simulate the passage of time.
+    """
+    from datetime import datetime, timedelta, timezone
+
+    def _rewrite_only_row_time(hours_ago: int) -> None:
+        tab = store.data["health_log"]
+        ts = iso_utc(datetime.now(timezone.utc) - timedelta(hours=hours_ago))
+        rows = list(tab.values())
+        assert len(rows) == 1
+        rows[0]["warning_ts"] = ts
+        new_key = "|".join((rows[0]["source_id"], rows[0]["warning_type"], ts))
+        tab.clear()
+        tab[new_key] = rows[0]
+
+    # 1st fire ok
+    assert raise_warning(store, "_pipeline_heartbeat", "watchdog_silence",
+                          cooldown_min=120) is True
+    # 2nd fire immediately — auto 4h cooldown floor → suppressed
+    assert raise_warning(store, "_pipeline_heartbeat", "watchdog_silence",
+                          cooldown_min=120) is False
+
+    # Move the existing fire back 3h → still inside the 4h floor → suppressed
+    _rewrite_only_row_time(3)
+    assert raise_warning(store, "_pipeline_heartbeat", "watchdog_silence",
+                          cooldown_min=120) is False
+
+    # Move it back 5h → past the 4h floor → can fire again
+    _rewrite_only_row_time(5)
+    assert raise_warning(store, "_pipeline_heartbeat", "watchdog_silence",
+                          cooldown_min=120) is True
+
+
+def test_count_recent_warnings_24h(store):
+    """Counter used by anti-spam — only counts warnings inside the
+    24h window."""
+    from datetime import datetime, timedelta, timezone
+    now = datetime.now(timezone.utc)
+    # 2 fresh + 1 old (26h ago)
+    for hours_ago in (1, 12, 26):
+        store.upsert("health_log", {
+            "source_id": "test", "warning_type": "demo",
+            "warning_ts": iso_utc(now - timedelta(hours=hours_ago)),
+            "resolved_ts": "",
+        })
+    assert _count_recent_warnings(store, "test", "demo", hours=24) == 2
 
 
 def test_tier1_no_success_flagged(store):
