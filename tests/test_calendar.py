@@ -107,6 +107,35 @@ def test_gold_impact_directional_cpi_bearish():
     assert "Bullish" in info["lower_is"]
 
 
+def test_gold_impact_directional_unemployment_claims_inverse():
+    """User report 2026-05-23: 'Unemployment Claims' on the weekly preview
+    showed XAU ↓ when forecast > previous, but higher claims = weaker
+    labor = bullish gold. The regex was missing the FF series title
+    'Unemployment Claims' (it only matched 'Unemployment Rate' and
+    'Jobless Claims'), so the event fell through to the default
+    higher=bearish rule."""
+    from src.calendar import gold_impact_directional, CalEvent
+    e = CalEvent(event_id="x", title="Unemployment Claims", country="USD",
+                 impact="High", forecast="240K", previous="220K",
+                 dt_utc=datetime(2026, 5, 29, 12, 30, tzinfo=timezone.utc))
+    out = gold_impact_directional(e)
+    assert "Bullish" in out["higher_is"], \
+        f"Unemployment Claims should be inverse (higher=bullish gold), got {out}"
+
+
+def test_gold_impact_adp_treated_as_payroll_not_claims():
+    """Defensive — ADP Employment Change is jobs CREATED, so higher =
+    stronger labor = bearish gold (same direction as NFP). It must NOT
+    accidentally match the claims/unemployment regex."""
+    from src.calendar import gold_impact_directional, CalEvent
+    e = CalEvent(event_id="x", title="ADP Employment Change", country="USD",
+                 impact="Medium", forecast="180K", previous="160K",
+                 dt_utc=datetime(2026, 5, 29, 12, 30, tzinfo=timezone.utc))
+    out = gold_impact_directional(e)
+    assert "Bearish" in out["higher_is"], \
+        f"ADP higher should be bearish (jobs created), got {out}"
+
+
 def test_gold_impact_directional_unemployment_inverse():
     e = cal.parse_ff_payload([_ff_item("Unemployment Rate", "USD", "2026-05-15T08:30:00-04:00", "High")])[0]
     info = cal.gold_impact_directional(e)

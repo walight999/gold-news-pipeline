@@ -165,7 +165,13 @@ def minutes_until(event: CalEvent, ref: datetime | None = None) -> int:
 # inverse=True  means higher value is BULLISH gold (e.g., higher unemployment).
 # inverse=False means higher value is BEARISH gold (e.g., higher CPI).
 _GOLD_IMPACT_RULES: list[tuple[re.Pattern[str], bool, str]] = [
-    (re.compile(r"\b(unemployment rate|jobless claims|continuing claims)\b"), True,
+    # Labor weakness (higher value = WORSE labor market = dovish Fed = BULLISH gold).
+    # ForexFactory uses "Unemployment Claims" for the weekly US series (the regex
+    # was missing this title and falling through to the default 'higher=bearish'
+    # rule, so user saw XAU ↓ on a forecast > previous unemployment claims event).
+    (re.compile(r"\b(unemployment rate|unemployment claims|initial claims|"
+                r"initial jobless claims|jobless claims|continuing claims|"
+                r"claimant count)\b"), True,
      "Weaker labor data softens USD/yields"),
     (re.compile(r"\b(cpi|core cpi|pce|core pce|ppi|inflation expectations)\b"), False,
      "Higher inflation lifts USD/yields"),
