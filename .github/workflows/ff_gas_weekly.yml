@@ -1,0 +1,48 @@
+name: ff-gas-weekly
+
+# Scrape ForexFactory HTML calendar?week=next and POST the parsed events
+# to the gold-analyst GAS WeeklyCache WebApp. The LINE bot's Saturday
+# Weekly Brief reads this cache via `getCachedNextWeekEvents()` so it can
+# deliver before 08:00 ICT even though FF's nextweek.json doesn't roll
+# until Sat afternoon ICT.
+#
+# Three Fri-evening / Sat-morning slots — first success wins (the GAS
+# side overwrites cache idempotently; later runs are harmless).
+#   Fri 22:00 ICT = Fri 15:00 UTC — primary
+#   Sat 03:00 ICT = Fri 20:00 UTC — retry
+#   Sat 06:00 ICT = Fri 23:00 UTC — last chance (Sat 06:30 brief reads cache)
+
+on:
+  schedule:
+    - cron: "0 15 * * 5"
+    - cron: "0 20 * * 5"
+    - cron: "0 23 * * 5"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run — fetch + parse but skip GAS POST"
+        type: boolean
+        default: false
+
+concurrency:
+  # Distinct from `gold-news` so a slow news-cron run doesn't block this.
+  group: ff-gas-push
+  cancel-in-progress: false
+
+jobs:
+  push:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      GAS_WEBAPP_URL:   ${{ secrets.GAS_WEBAPP_URL }}
+      GAS_WEBAPP_TOKEN: ${{ secrets.GAS_WEBAPP_TOKEN }}
+      DRY_RUN:          ${{ inputs.dry_run && '1' || '' }}
+      PYTHONUNBUFFERED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: python scripts/push_ff_to_gas.py --mode weekly

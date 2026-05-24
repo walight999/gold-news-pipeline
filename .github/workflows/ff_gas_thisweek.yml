@@ -1,0 +1,48 @@
+name: ff-gas-thisweek
+
+# Fetch FF's ff_calendar_thisweek.json (the public CDN) from a US IP and
+# POST it raw to the gold-analyst GAS WeeklyCache WebApp. The LINE bot's
+# Calendar V2 broadcasts at 05/13/21 ICT use this as a fallback when FF's
+# CDN rate-limits the GAS UrlFetchApp (HTTP 429 on shared egress IPs).
+#
+# Runs 30 minutes before each broadcast slot, Mon-Fri only:
+#   04:30 ICT Mon-Fri = 21:30 UTC Sun-Thu  →  before 05:00 ICT preview
+#   12:30 ICT Mon-Fri = 05:30 UTC Mon-Fri  →  before 13:00 ICT midday
+#   20:30 ICT Mon-Fri = 13:30 UTC Mon-Fri  →  before 21:00 ICT review
+#
+# Cache is short-lived (overwritten each run), so a single dropped cron
+# slot just falls back to GAS doing its own fetch like before.
+
+on:
+  schedule:
+    - cron: "30 21 * * 0-4"
+    - cron: "30 5  * * 1-5"
+    - cron: "30 13 * * 1-5"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run — fetch + parse but skip GAS POST"
+        type: boolean
+        default: false
+
+concurrency:
+  group: ff-gas-push
+  cancel-in-progress: false
+
+jobs:
+  push:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    env:
+      GAS_WEBAPP_URL:   ${{ secrets.GAS_WEBAPP_URL }}
+      GAS_WEBAPP_TOKEN: ${{ secrets.GAS_WEBAPP_TOKEN }}
+      DRY_RUN:          ${{ inputs.dry_run && '1' || '' }}
+      PYTHONUNBUFFERED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: python scripts/push_ff_to_gas.py --mode thisweek
