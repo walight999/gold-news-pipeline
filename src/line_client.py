@@ -95,6 +95,35 @@ def get_line_quota_status(store) -> dict[str, int | str]:
             "limit": LINE_FREE_TIER_QUOTA, "pct": pct}
 
 
+def _split_targets(target: str | list[str] | None) -> list[str]:
+    """Parse a comma-separated string or list into a clean dedup'd target list.
+
+    Accepts:
+      - "U123..."                          → ["U123..."]
+      - "U123...,C456...,C789..."          → ["U123...", "C456...", "C789..."]
+      - ["U123...", "C456..."]             → ["U123...", "C456..."]
+      - "" / None / []                     → []
+
+    Whitespace around each entry is stripped. Duplicate IDs are kept once
+    (first occurrence wins). Used by LineClient.push / push_flex to support
+    multi-recipient delivery from a single LINE_NEWS_TARGET env var.
+    """
+    if not target:
+        return []
+    items: list[str]
+    if isinstance(target, str):
+        items = [t.strip() for t in target.split(",")]
+    else:
+        items = [str(t).strip() for t in target]
+    seen: set[str] = set()
+    out: list[str] = []
+    for t in items:
+        if t and t not in seen:
+            seen.add(t)
+            out.append(t)
+    return out
+
+
 @dataclass
 class LineClient:
     token: str
@@ -124,10 +153,44 @@ class LineClient:
             log.warning("line push http error: %s", e)
             return {"status": 0, "body": str(e)}
 
-    def push(self, target: str, text: str) -> dict[str, Any]:
-        return self._send(target, [{"type": "text", "text": text[:4900]}])
+    def _broadcast(self, target: str | list[str] | None,
+                   messages: list[dict[str, Any]]) -> dict[str, Any]:
+        """Send `messages` to one or many targets.
 
-    def push_flex(self, target: str, alt_text: str, contents: dict[str, Any]) -> dict[str, Any]:
+        Returns the original {"status", "body"} shape for backward compat.
+        When multiple targets are given, aggregates:
+          - status: 200 if ALL targets returned 200, else the first non-200 seen
+          - body:   "multi:<ok>/<total>_ok" summary
+          - results: list of per-target outcomes (extra field, ignored by old callers)
+
+        Single-target callers see identical behaviour to the old _send().
+        """
+        targets = _split_targets(target)
+        if not targets:
+            return {"status": 0, "body": "no_targets"}
+        if len(targets) == 1:
+            return self._send(targets[0], messages)
+        results: list[dict[str, Any]] = []
+        worst_status = 200
+        ok_count = 0
+        for t in targets:
+            r = self._send(t, messages)
+            results.append({"to": t, **r})
+            if r["status"] == 200:
+                ok_count += 1
+            elif worst_status == 200:
+                worst_status = r["status"]
+        return {
+            "status": 200 if ok_count == len(targets) else worst_status,
+            "body": f"multi:{ok_count}/{len(targets)}_ok",
+            "results": results,
+        }
+
+    def push(self, target: str | list[str], text: str) -> dict[str, Any]:
+        return self._broadcast(target, [{"type": "text", "text": text[:4900]}])
+
+    def push_flex(self, target: str | list[str], alt_text: str,
+                  contents: dict[str, Any]) -> dict[str, Any]:
         """Send a Flex Message. `contents` is a bubble or carousel dict."""
         msg = {"type": "flex", "altText": alt_text[:400], "contents": contents}
-        return self._send(target, [msg])
+        return self._broadcast(target, [msg])
