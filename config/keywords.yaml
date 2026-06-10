@@ -74,28 +74,62 @@ topics:
   geopolitics:
     base_impact: 4
     keywords:
+      # Mideast core
       - iran
       - israel
       - hormuz
+      - gaza
+      - "west bank"
+      - hamas
+      - hezbollah
+      - lebanon
+      - syria
+      - yemen
+      - houthi
+      - houthis
+      - "red sea"
+      # Russia / Ukraine
+      - russia
+      - ukraine
+      - kremlin
+      - moscow
+      # East Asia
+      - "north korea"
+      - taiwan
+      - "south china sea"
+      - "cross-strait"
+      # Generic conflict / weapons
       - missile
       - drone
       - war
       - ceasefire
+      - airstrike
+      - "air strike"
+      - "missile strike"
+      - "rocket attack"
+      - bombing
+      - "ground operation"
+      - "ground invasion"
+      - "military operation"
+      - "military strike"
+      - "military aid"
+      - ballistic
+      - escalation
+      - "de-escalation"
+      - retaliation
+      - evacuation
+      - jihadist
+      - militants
+      - militia
+      - nato
+      # Trade / economic warfare
       - "trade war"
       - tariff
       - tariffs
       - sanctions
       - "safe haven"
-      - russia
-      - ukraine
-      - "north korea"
-      - taiwan
-      - "south china sea"
-      - escalation
-      - "de-escalation"
-      - retaliation
-      - evacuation
-    entities:  [mideast, us, china, russia]
+      - "flight to safety"
+    entities:  [mideast, us, china, russia, israel, ukraine]
 
   usd_yields:
     base_impact: 3
