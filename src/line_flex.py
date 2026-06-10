@@ -1043,29 +1043,31 @@ def weekly_preview_bubble(
 def pre_release_bubble(event: CalEvent, minutes_to_release: int,
                        impact: dict[str, str] | None = None,
                        effect: dict[str, str] | None = None) -> dict[str, Any]:
-    """Pre-release bubble — title-led, Forecast/Previous row + 3-pill
-    Currency Impact row.
+    """Pre-release bubble — restyled 2026-06-10 to match breaking/alert/digest
+    visual rhythm (chip-row → title → F/P → separator → impact pills → separator
+    → source footer with countdown).
 
-    The 3-pill design (ECU + counter + XAU) was requested 2026-05-23 —
-    actionable for currency traders because they see at a glance how
-    BOTH the event's currency AND its counter are positioned, not just
-    the XAU side.
+    The 3-pill Currency Impact (ECU + counter + XAU) is preserved from the
+    2026-05-23 design — actionable for currency traders seeing how BOTH the
+    event's currency AND its counter are positioned, not just the XAU side.
     """
     from .calendar import event_impact_pills
     header_color, _ = _impact_color(event.impact)
+    countdown = f"T-{minutes_to_release}m" if minutes_to_release > 0 else "NOW"
 
     body_contents: list[dict[str, Any]] = [
-        {"type": "text", "text": event.title, "weight": "bold", "size": "md",
-         "wrap": True, "color": "#111827"},
+        # Top row: category text + impact pill — parity with breaking/alert
         {"type": "box", "layout": "horizontal", "spacing": "sm",
-         "alignItems": "center", "margin": "sm",
-         "contents": [
+         "alignItems": "center", "contents": [
+             {"type": "text", "text": f"{event.country} Economic Release",
+              "size": "xs", "weight": "bold", "color": "#374151", "flex": 0},
              _impact_pill_calendar(event.impact),
-             {"type": "text", "text": event.country, "size": "xs",
-              "weight": "bold", "color": "#374151", "flex": 0},
         ]},
-        # Forecast / Previous on the right-hand side, compact
-        {"type": "box", "layout": "horizontal", "margin": "lg",
+        # Bold title (event name)
+        {"type": "text", "text": event.title, "weight": "bold", "size": "md",
+         "wrap": True, "color": "#111827", "margin": "md"},
+        # Forecast / Previous compact row
+        {"type": "box", "layout": "horizontal", "margin": "md",
          "contents": [
              {"type": "text", "text": "Actual ——", "size": "xs",
               "color": "#9CA3AF", "flex": 1, "align": "start"},
@@ -1073,17 +1075,19 @@ def pre_release_bubble(event: CalEvent, minutes_to_release: int,
               "text": f"F: {event.forecast or '-'} / P: {event.previous or '-'}",
               "size": "xs", "color": "#6B7280", "flex": 1, "align": "end"},
         ]},
-        # Section label + 3-pill row
+        # Separator → 3-pill Currency Impact section
+        {"type": "separator", "margin": "lg"},
         {"type": "text", "text": "Currency Impact (PRE)",
          "size": "xxs", "color": "#9CA3AF", "weight": "bold",
          "margin": "md"},
         _impact_pills_row(event_impact_pills(event)),
+        # Separator → source footer (matches breaking/alert/digest bottom row)
+        {"type": "separator", "margin": "lg"},
+        _source_link("ForexFactory", countdown, None),
     ]
-    # Header sub-label dropped — bubble timing in LINE already conveys
-    # "this is happening soon"; "T-Xmin" was just noise.
     return {
         "type": "bubble", "size": "giga",
-        "header": _header("⏰ Pre-Release", "", header_color),
+        "header": _header("⏰ Pre-Release", countdown, header_color),
         "body": {"type": "box", "layout": "vertical", "spacing": "sm",
                  "paddingAll": "16px", "contents": body_contents},
     }
