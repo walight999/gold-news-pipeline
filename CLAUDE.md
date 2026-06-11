@@ -31,9 +31,11 @@ normalize → dedup.cluster → scorer.score → router.decide
 
 Economic **calendar + upcoming** are NOT here anymore — they moved to the GAS
 project **newsupdate-linebot** (`C:\Users\usEr\newsupdate-linebot\Code.gs`,
-gist 972fa38d) because GitHub cron is too unreliable for T-15 timing. The
-pipeline's `calendar_daily` + `calendar_check` workflows are **disabled** (do
-not re-enable — GAS owns them). FF data is pushed INTO that GAS via
+gist 972fa38d) because GitHub cron is too unreliable for T-15 timing. The pipeline's
+`calendar_daily` workflow is **disabled** (GAS owns the daily calendar).
+`calendar_check` is **active in POST-only mode** (`calendar.pre_release_enabled:
+false`) — it sends Released News (FRED actuals + XAU reaction), which GAS can't
+do; never re-enable its pre-release side or it duplicates the GAS T-15 cards. FF data is pushed INTO that GAS via
 `ff_gas_thisweek`/`ff_gas_weekly` (the `GAS_WEBAPP_*` secrets).
 
 ## Working conventions (IMPORTANT)
@@ -53,7 +55,7 @@ not re-enable — GAS owns them). FF data is pushed INTO that GAS via
 `digest` · `eod_recap` (23:00 ICT) · `weekly_preview` (Sat) · `verify_sources`
 (weekly health probe) · `maintain` (purge) · `watchdog` (self-monitor) ·
 `social_post` (post approved drafts to X, cron */20) · `social_seed` (append one
-test draft) · `calendar_daily`/`calendar_check` (**retired — GAS owns these**).
+test draft) · `calendar_daily` (**retired — GAS owns it**) · `calendar_check` (**post-only: Released News**).
 
 ## Key modules
 
