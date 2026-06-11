@@ -171,6 +171,7 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
                 list(apify_cfg.get("handles") or []),
                 since_minutes=int(apify_cfg.get("since_minutes", 20)),
                 max_per_handle=int(apify_cfg.get("max_per_handle", 8)),
+                tier=int(apify_cfg.get("tier", 2)),
             )
             raw_entries.extend(tweets)
             store.upsert("source_state", {"source_id": "_apify",

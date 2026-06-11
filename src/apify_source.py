@@ -67,7 +67,7 @@ def _tweet_handle(t: dict[str, Any]) -> str:
     return str(_pick(t, ["username", "screenName"]) or "x")
 
 
-def _tweet_to_entry(t: dict[str, Any]) -> dict[str, Any] | None:
+def _tweet_to_entry(t: dict[str, Any], tier: int = 2) -> dict[str, Any] | None:
     # Skip retweets / replies — we want each account's own breaking lines.
     if _pick(t, ["isRetweet", "retweeted"]) in (True, "true"):
         return None
@@ -85,6 +85,10 @@ def _tweet_to_entry(t: dict[str, Any]) -> dict[str, Any] | None:
         return None
     return {
         "source_id": f"x_{handle.lower()}",
+        # tier 2 = fast wire (like forexlive/benzinga). Required by normalize;
+        # also drives dedup ranking (lower tier wins the representative slot).
+        "tier": tier,
+        "role": "trader_macro",     # required by normalize
         "title": text[:280],
         "summary": "",
         "url": str(url),
@@ -97,7 +101,8 @@ def _tweet_to_entry(t: dict[str, Any]) -> dict[str, Any] | None:
 
 
 def fetch_tweets(token: str, handles: list[str], since_minutes: int = 20,
-                 max_per_handle: int = 8, timeout: float = 90.0) -> list[dict[str, Any]]:
+                 max_per_handle: int = 8, tier: int = 2,
+                 timeout: float = 90.0) -> list[dict[str, Any]]:
     """Return RSS-shaped entries for recent tweets from `handles`. Never raises
     — on any error returns []. Caller adds these to the raw entry pool."""
     if not token or not handles:
@@ -120,7 +125,7 @@ def fetch_tweets(token: str, handles: list[str], since_minutes: int = 20,
     entries: list[dict[str, Any]] = []
     for t in items if isinstance(items, list) else []:
         if isinstance(t, dict):
-            e = _tweet_to_entry(t)
+            e = _tweet_to_entry(t, tier=tier)
             if e:
                 entries.append(e)
     log.info("apify: %d tweet entries from %d handles", len(entries), len(handles))
