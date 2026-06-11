@@ -250,6 +250,28 @@ class Store:
             self.dirty.setdefault(tab, set()).add("__purge__")
         return removed
 
+    def append_feed(self, tab: str, headers: list[str], rows: list[list[Any]]) -> None:
+        """Append-only writer for externally-consumed feeds (e.g. social_feed).
+
+        Unlike flush(), this NEVER clears the sheet — rows accumulate at the
+        bottom so an external automation's "watch new rows" stays stable and a
+        column it owns (e.g. `posted`) is never clobbered. The tab is NOT part
+        of SCHEMAS and is not loaded into in-memory state.
+        """
+        if not self._sh or not rows:
+            return
+        try:
+            ws = _ws_worksheet(self._sh, tab)
+            self.api_calls += 1
+        except gspread.WorksheetNotFound:
+            ws = _ws_add(self._sh, tab, rows=2000, cols=max(20, len(headers) + 2))
+            _ws_update(ws, "A1", [headers])
+            self.api_calls += 2
+        ws.append_rows([[_cell(c) for c in r] for r in rows],
+                       value_input_option="RAW")
+        self.api_calls += 1
+        log.info("store.append_feed tab=%s appended=%d", tab, len(rows))
+
     def flush(self) -> None:
         """Write back only dirty rows. One batch write per tab."""
         if not self._sh:
