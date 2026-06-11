@@ -13,35 +13,19 @@ def test_sanitize_strips_em_dash():
     assert sf._sanitize("a   b\n\nc") == "a b c"
 
 
-def test_tone_emoji_gold_context():
-    assert sf._tone_emoji("dovish") == "🟢"
-    assert sf._tone_emoji("risk_off") == "🟢"
-    assert sf._tone_emoji("hawkish") == "🔴"
-    assert sf._tone_emoji("risk_on") == "🔴"
-    assert sf._tone_emoji("neutral") == "🟡"
-    assert sf._tone_emoji("") == "🟡"
-
-
-def test_build_tweet_no_em_dash_and_has_one_emoji():
-    t = sf.build_tweet("เฟดส่งสัญญาณ—ผ่อนคลาย", "ทองมีแนวโน้มขึ้น", "dovish")
+def test_build_tweet_no_emoji_no_url_no_source():
+    # @tradetongkam voice: no emoji, no link, no source. Brand #ข่าวทอง tags.
+    t = sf.build_tweet("เฟดส่งสัญญาณ—ผ่อนคลาย", "ทองมีแนวโน้มขึ้น")
     assert "—" not in t
-    emojis = [c for c in t if c in ("🟢", "🔴", "🟡")]
-    assert len(emojis) == 1 and emojis[0] == "🟢"
-    assert "#ทองคำ" in t
-
-
-def test_build_tweet_no_url_no_source():
-    # PR-voice drafts carry no link and no source attribution (keeps X cost at
-    # $0.015/post instead of $0.20 with a URL).
-    t = sf.build_tweet("ทองพุ่ง", "ผลกระทบ", "neutral")
-    assert "http" not in t
-    assert "Reuters" not in t and "·" not in t
+    assert not any(c in t for c in ("🟢", "🔴", "🟡", "📊"))
+    assert "http" not in t and "Reuters" not in t
+    assert t.endswith(sf.TAGS) and "#ข่าวทอง" in t
 
 
 def test_build_tweet_within_limit_long_input():
     long_head = "ข่าว" * 200
     long_impact = "ผลกระทบ" * 200
-    t = sf.build_tweet(long_head, long_impact, "hawkish")
+    t = sf.build_tweet(long_head, long_impact)
     assert _weighted(t) <= 280
     assert t.endswith(sf.TAGS)
 

@@ -12,10 +12,11 @@ Design notes:
   so the feed uses Store.append_feed() (native append, never clears).
 - The tweet draft is a DRAFT for review, not auto-fired. The `posted` column is
   left blank for the autopost step to stamp.
-- The draft obeys the no-ai-slop discipline for public copy: no em-dash, exactly
-  one direction emoji, no AI-isms, factual. No URL and no source attribution —
-  the brand's X is its own announcement channel (PR voice), and a link would
-  13× the X pay-per-use cost. The url + source stay in their own feed columns.
+- The draft is written in @tradetongkam's own voice by the Claude tweet_writer
+  (analytical, actor-led, no emoji, brand #ข่าวทอง hashtags), independent of the
+  LINE rewrite. no-ai-slop: no em-dash, no AI-isms, no emoji. No URL and no
+  source attribution — the brand's X is its own announcement channel and a link
+  would 13× the X pay-per-use cost. The url + source stay in feed columns.
 """
 from __future__ import annotations
 
@@ -35,13 +36,10 @@ FEED_HEADERS = [
 # scenario searches for approved=yes AND posted empty, posts to X, then stamps
 # `posted`. So nothing reaches Twitter without an explicit per-row yes.
 
-TAGS = "#ทองคำ #XAUUSD"
+# Brand hashtag line for NEWS posts — @tradetongkam's own #ข่าวทอง set
+# (studied from their real tweets), NOT the generic #XAUUSD.
+TAGS = "#ทองวันนี้ #ข่าวทอง #เทรดทอง #ทองคำ"
 TWEET_LIMIT = 280
-
-# Gold-context tone → single direction emoji. dovish / risk-off lift gold;
-# hawkish / risk-on weigh on it. Exactly one emoji per tweet (no-ai-slop).
-_BULLISH_TONES = {"dovish", "risk_off"}
-_BEARISH_TONES = {"hawkish", "risk_on"}
 
 _TOPIC_TH = {
     "inflation": "เงินเฟ้อ",
@@ -51,15 +49,6 @@ _TOPIC_TH = {
     "usd_yields": "ดอลลาร์/บอนด์",
     "gold_flow": "ฟันด์โฟลว์ทอง",
 }
-
-
-def _tone_emoji(tone: str) -> str:
-    t = (tone or "neutral").lower()
-    if t in _BULLISH_TONES:
-        return "🟢"
-    if t in _BEARISH_TONES:
-        return "🔴"
-    return "🟡"
 
 
 def _sanitize(text: str) -> str:
@@ -77,42 +66,55 @@ def _trim(s: str, n: int) -> str:
     return s if len(s) <= n else s[: n - 1].rstrip() + "…"
 
 
-def build_tweet(headline_th: str | None, impact_th: str | None, tone: str) -> str:
-    """Assemble a ≤280-char Thai tweet draft: one direction emoji + headline +
-    impact line + hashtags. NO URL and NO source attribution — this is the
-    brand's own announcement channel (PR voice), and a URL would 13× the X
-    pay-per-use cost ($0.20 with a link vs $0.015 without). The article URL and
-    source still live in their own feed columns for the operator's reference.
-    Thai characters count as 1 each toward the 280 limit."""
-    emoji = _tone_emoji(tone)
+def build_tweet(headline_th: str | None, impact_th: str | None) -> str:
+    """Fallback template tweet (used only when the Claude tweet_writer is
+    unavailable): headline + impact line + brand hashtags. NO emoji, NO URL,
+    NO source — matches @tradetongkam's voice and keeps X cost at $0.015/post.
+    The primary path is tweet_writer.compose_tweet(); this is the safety net."""
     head = _sanitize(headline_th or "")
     impact = _sanitize(impact_th or "")
 
     footer = TAGS
     budget = TWEET_LIMIT - (len(footer) + 2)            # +2 blank line
 
-    block = (emoji + " " + head).strip() if head else emoji
+    block = head
     if impact:
         if len(block) + 2 + len(impact) <= budget:
-            block = block + "\n\n" + impact
+            block = (block + "\n\n" + impact).strip()
         else:
             room = budget - len(block) - 2
             if room > 12:
-                block = block + "\n\n" + _trim(impact, room)
+                block = (block + "\n\n" + _trim(impact, room)).strip()
+    block = block.strip()
     if len(block) > budget:
         block = _trim(block, budget)
 
-    return block + "\n\n" + footer
+    return (block + "\n\n" + footer).strip()
 
 
 def record_news_event(*, route: str, category: str, tone: str,
                       impact_level: str, headline_th: str | None,
                       body_th: list[str] | None, impact_th: str | None,
-                      source: str, url: str) -> dict[str, Any]:
-    """Build a feed record for a single pushed breaking/alert/digest event."""
+                      source: str, url: str,
+                      en_title: str = "", en_summary: str = "") -> dict[str, Any]:
+    """Build a feed record for a single pushed breaking/alert/digest event.
+
+    The tweet draft is composed in @tradetongkam's voice by the Claude
+    tweet_writer (independent of the LINE rewrite); if that's unavailable it
+    falls back to the simple build_tweet template."""
     now = now_utc()
     summary_th = _sanitize(" ".join(body_th or []))
-    tweet = build_tweet(headline_th, impact_th, tone)
+    tweet = None
+    try:
+        from . import tweet_writer
+        tweet = tweet_writer.compose_tweet(
+            headline_th=headline_th, body_th=body_th, impact_th=impact_th,
+            category=category, en_title=en_title, en_summary=en_summary,
+        )
+    except Exception:  # noqa: BLE001 — composer is best-effort
+        tweet = None
+    if not tweet:
+        tweet = build_tweet(headline_th, impact_th)
     return {
         "ts_utc": iso_utc(now),
         "ts_ict": to_ict(now).strftime("%Y-%m-%d %H:%M:%S"),
@@ -143,7 +145,7 @@ def record_recap(stats: dict[str, Any], date_label: str) -> dict[str, Any]:
     if top_th:
         parts.append(f"เด่น: {top_th}")
     impact = " · ".join(parts)
-    tweet = build_tweet(f"📊 {headline}", impact, "neutral")
+    tweet = build_tweet(headline, impact)
     return {
         "ts_utc": iso_utc(now),
         "ts_ict": to_ict(now).strftime("%Y-%m-%d %H:%M:%S"),
