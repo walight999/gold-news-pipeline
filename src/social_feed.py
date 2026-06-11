@@ -26,8 +26,12 @@ FEED_TAB = "social_feed"
 FEED_HEADERS = [
     "ts_utc", "ts_ict", "type", "category", "tone", "impact_level",
     "headline_th", "summary_th", "impact_th", "source", "url",
-    "tweet_text", "posted",
+    "tweet_text", "approved", "posted",
 ]
+# Approval flow: `approved` is the human gate — left blank by the pipeline; the
+# operator types "yes" in the Sheet to release a draft. The Make autopost
+# scenario searches for approved=yes AND posted empty, posts to X, then stamps
+# `posted`. So nothing reaches Twitter without an explicit per-row yes.
 
 TAGS = "#ทองคำ #XAUUSD"
 TWEET_LIMIT = 280
@@ -125,6 +129,7 @@ def record_news_event(*, route: str, category: str, tone: str,
         "source": source or "",
         "url": url or "",
         "tweet_text": tweet,
+        "approved": "",
         "posted": "",
     }
 
@@ -155,6 +160,7 @@ def record_recap(stats: dict[str, Any], date_label: str) -> dict[str, Any]:
         "source": "",
         "url": "",
         "tweet_text": tweet,
+        "approved": "",
         "posted": "",
     }
 
