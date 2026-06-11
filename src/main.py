@@ -241,6 +241,8 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
                         impact_th=alert_obj.impact_th,
                         source=_source_label(ev.source_list),
                         url=_pick_article_url(ev.items),
+                        en_title=ev.representative_title,
+                        en_summary=ev.representative_summary,
                     ))
                 except Exception:
                     log.exception("social_feed record (breaking/alert) failed event=%s", ev.event_id)
@@ -385,6 +387,8 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
                                     impact_th=a.impact_th,
                                     source=_source_label(ev.source_list),
                                     url=_pick_article_url(ev.items),
+                                    en_title=ev.representative_title,
+                                    en_summary=ev.representative_summary,
                                 ))
                         except Exception:
                             log.exception("social_feed record (digest) failed event=%s", ev.event_id)
