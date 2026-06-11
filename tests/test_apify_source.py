@@ -21,6 +21,7 @@ def test_tweet_to_entry_basic():
     assert e["source_id"] == "x_deitaone"
     assert e["organization"] == "x_deitaone"
     assert e["source_class"] == "wire"
+    assert e["tier"] == 2          # required by normalize
     assert e["title"] == "Fed signals a pause in hikes"   # whitespace collapsed
     assert e["url"].endswith("/123")
     assert e["published_ts"].year == 2026
