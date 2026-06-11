@@ -68,6 +68,13 @@ calendar:
   # Pre-release alert — broad currency set, both impacts. FF free data
   # gives ~4-12 such events per day, so expect 4-12 pre-release pushes.
   # Tighten back to High-only if it gets spammy after a week of data.
+  #
+  # pre_release_enabled: false since 2026-06-11 — the GAS newsupdate-linebot
+  # owns pre-release T-15 (its one-shot triggers fire on time; GHA cron drops
+  # most */10 slots). The pipeline's calendar_check now runs for POST-release
+  # (Released News) only, which GAS can't do (needs FRED actuals + XAU
+  # reaction). The currencies/impacts/window below still apply to post.
+  pre_release_enabled: false
   pre_release_window_low_min:  15   # alert if event is >= this many minutes out
   pre_release_window_high_min: 25   # ... and < this many minutes out
   pre_release_currencies: [CAD, CHF, CNY, EUR, GBP, JPY, USD]

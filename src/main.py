@@ -942,6 +942,14 @@ async def run_calendar_check() -> int:
     relevant = cal.filter_by_impact(cal.filter_by_country(events, countries), impacts)
 
     upcoming = cal.filter_upcoming(relevant, pre_lo, pre_hi)
+    # Pre-release is owned by the GAS newsupdate-linebot since 2026-06-11
+    # (precise T-15 one-shot triggers). When disabled here, this mode sends
+    # POST-release (Released News) only — re-enabling pre here would double
+    # up with the GAS cards.
+    if not cal_cfg.get("pre_release_enabled", True):
+        if upcoming:
+            log.info("calendar_check: pre-release disabled (GAS owns it) — skipping %d event(s)", len(upcoming))
+        upcoming = []
     just_released = cal.filter_upcoming(relevant, post_lo, post_hi)
     log.info("calendar_check: pre=%d in [%d,%d) min, post=%d in [%d,%d) min",
              len(upcoming), pre_lo, pre_hi, len(just_released), post_lo, post_hi)
