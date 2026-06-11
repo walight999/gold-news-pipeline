@@ -58,7 +58,12 @@ log = logging.getLogger("push_ff_to_gas")
 def _post_to_gas(url: str, token: str, payload: dict) -> dict:
     body = dict(payload)
     body["token"] = token
-    with httpx.Client(timeout=30.0) as c:
+    # GAS WebApp /exec answers a POST with a 302 redirect to
+    # script.googleusercontent.com that carries the real JSON body. httpx does
+    # NOT follow redirects by default, so without follow_redirects the call
+    # raises on the 302 and the response is never read. (Same GAS quirk that
+    # bites TradingView/Telegram POSTs.)
+    with httpx.Client(timeout=30.0, follow_redirects=True) as c:
         r = c.post(url, json=body)
     r.raise_for_status()
     try:
