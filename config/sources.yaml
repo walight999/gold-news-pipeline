@@ -1,3 +1,21 @@
+# Apify X/Twitter fast-news source. Scrapes high-signal macro/gold accounts that
+# break headlines before RSS. Gated by the APIFY_TOKEN secret — if the token is
+# unset this whole block is a no-op, so `enabled: true` is safe to leave on.
+# Cost: ~$0.18/1,000 tweets (kaitoeasyapi). min_interval_min caps run frequency.
+x_accounts:
+  enabled: true
+  min_interval_min: 12        # don't re-scrape more often than this (cost guard)
+  since_minutes: 20           # look back this far each scrape
+  max_per_handle: 8
+  handles:
+    - DeItaone                # Walter Bloomberg — fast Fed/macro headlines
+    - FirstSquawk             # geopolitical + macro wire
+    - financialjuice          # macro headlines
+    - KobeissiLetter          # macro analysis
+    - NickTimiraos            # WSJ Fed reporter (rate-path signals)
+    - KitcoNewsNOW            # gold-specific
+    - GoldTelegraph_          # gold + macro
+
 sources:
   # source_class + organization: both used by independent_source_count.
   # Phase 2.3 (2026-05-23) — was previously single-axis source_class

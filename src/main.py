@@ -153,6 +153,32 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
                 state["source_id"] = r.source["id"]
                 store.upsert("source_state", state)
             health.mark_validated(store, r.source["id"])
+    # 2b. Apify X/Twitter fast-news — feed high-signal accounts into the SAME
+    # pool (reaches LINE + social). Gated by APIFY_TOKEN + config + a min-interval
+    # cost guard tracked in source_state under the synthetic id "_apify".
+    apify_cfg = src_cfg.get("x_accounts") or {}
+    apify_token = os.environ.get("APIFY_TOKEN", "")
+    if apify_cfg.get("enabled") and apify_token and apify_cfg.get("handles"):
+        from .utils_time import parse_iso
+        interval_min = int(apify_cfg.get("min_interval_min", 12))
+        last = store.get("source_state", ("_apify",)) or {}
+        last_ts = parse_iso(last.get("last_attempt_ts"))
+        due = (last_ts is None) or (now_utc() - last_ts).total_seconds() >= interval_min * 60
+        if due:
+            from . import apify_source
+            tweets = apify_source.fetch_tweets(
+                apify_token,
+                list(apify_cfg.get("handles") or []),
+                since_minutes=int(apify_cfg.get("since_minutes", 20)),
+                max_per_handle=int(apify_cfg.get("max_per_handle", 8)),
+            )
+            raw_entries.extend(tweets)
+            store.upsert("source_state", {"source_id": "_apify",
+                                          "last_attempt_ts": iso_utc(now_utc()),
+                                          "last_success_ts": iso_utc(now_utc()),
+                                          "items_last_hour": len(tweets)})
+            log.info("apify: added %d tweet entries to pool", len(tweets))
+
     items = normalize(raw_entries)
     log.info("items normalized: %d (from %d entries)", len(items), len(raw_entries))
 
