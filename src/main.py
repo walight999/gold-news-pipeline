@@ -609,6 +609,22 @@ async def run_eod_recap() -> int:
     return 0
 
 
+async def run_social_post() -> int:
+    """Post approved social_feed drafts to X. Reads the social_feed worksheet,
+    finds rows where `approved`=yes AND `posted` is empty, posts each via the X
+    API, and stamps `posted` with the tweet URL. The operator gates every post
+    by typing yes in the Sheet — nothing is posted automatically.
+
+    Lightweight: no load_all / flush — it reads the feed tab and writes single
+    cells directly. Per-tweet failures are logged and retried next run."""
+    store = Store.from_env()
+    store.connect()
+    limit = int(os.environ.get("SOCIAL_POST_LIMIT", "5"))
+    n = social_feed.post_pending(store, limit=limit)
+    log.info("social_post: posted %d tweet(s)", n)
+    return 0
+
+
 async def run_maintain() -> int:
     """Purge stale rows so the Sheet doesn't grow unbounded.
 
@@ -1109,7 +1125,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--mode", choices=(
         "cron", "event", "digest", "calendar_daily", "calendar_check",
         "weekly_preview", "eod_recap", "verify_sources", "maintain",
-        "watchdog",
+        "watchdog", "social_post",
     ), default="cron")
     p.add_argument("--event-duration-min", type=int, default=30)
     p.add_argument("--event-sleep-sec", type=int, default=60)
@@ -1130,6 +1146,8 @@ def main(argv: list[str] | None = None) -> int:
         return asyncio.run(run_maintain())
     if args.mode == "watchdog":
         return asyncio.run(run_watchdog())
+    if args.mode == "social_post":
+        return asyncio.run(run_social_post())
     return asyncio.run(run_once(mode=args.mode))
 
 

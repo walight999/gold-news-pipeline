@@ -20,3 +20,5 @@ deep-translator>=1.11.0
 # Claude Haiku for higher-quality Thai translation of finance jargon.
 # Falls back to deep-translator (Google) when ANTHROPIC_API_KEY is unset.
 anthropic>=0.30.0
+# X/Twitter posting for the social_post mode (approved social_feed drafts).
+tweepy>=4.14.0

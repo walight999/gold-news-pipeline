@@ -182,3 +182,70 @@ def flush(store, records: list[dict[str, Any]]) -> int:
         import logging
         logging.getLogger("social_feed").exception("social_feed append failed")
         return 0
+
+
+# ---------------------------------------------------------------------------
+# Posting side — pipeline posts approved drafts straight to X (Make has no
+# native X connector). Operator gates each row by typing yes in `approved`.
+# ---------------------------------------------------------------------------
+
+_YES = {"yes", "y", "true", "1", "✓", "approve", "approved"}
+
+
+def _is_yes(v: Any) -> bool:
+    return str(v or "").strip().lower() in _YES
+
+
+def x_post(text: str) -> str:
+    """Post a single tweet via the X API v2 (user-context OAuth 1.0a) and return
+    its URL. Requires the 4 X app credentials in env. Raises on failure so the
+    caller can leave the row unposted for the next run to retry."""
+    import os
+    import tweepy  # lazy — only needed in the social_post run
+
+    client = tweepy.Client(
+        consumer_key=os.environ["X_API_KEY"],
+        consumer_secret=os.environ["X_API_SECRET"],
+        access_token=os.environ["X_ACCESS_TOKEN"],
+        access_token_secret=os.environ["X_ACCESS_TOKEN_SECRET"],
+    )
+    resp = client.create_tweet(text=text)
+    tweet_id = resp.data["id"]
+    return f"https://x.com/i/web/status/{tweet_id}"
+
+
+def post_pending(store, poster=x_post, limit: int = 5) -> int:
+    """Find rows where `approved` is yes AND `posted` is empty, post each via
+    `poster(text)`, and write the returned URL back into `posted`. Per-row
+    failures are logged and left unposted (retried next run). Returns the count
+    actually posted. `limit` caps posts per run (X free-tier friendliness)."""
+    import logging
+    log = logging.getLogger("social_feed")
+
+    headers, rows = store.read_feed(FEED_TAB)
+    if not rows or "posted" not in headers or "tweet_text" not in headers:
+        return 0
+    posted_col = headers.index("posted") + 1
+
+    n = 0
+    for r in rows:
+        if n >= limit:
+            break
+        if not _is_yes(r.get("approved")):
+            continue
+        if str(r.get("posted") or "").strip():
+            continue
+        text = str(r.get("tweet_text") or "").strip()
+        if not text:
+            continue
+        try:
+            url = poster(text)
+        except Exception:  # noqa: BLE001 — one bad tweet must not stop the rest
+            log.exception("X post failed row=%s", r.get("_row"))
+            continue
+        try:
+            store.set_feed_cell(FEED_TAB, r["_row"], posted_col, url or "posted")
+        except Exception:  # noqa: BLE001
+            log.exception("mark-posted failed row=%s (tweet WAS posted: %s)", r.get("_row"), url)
+        n += 1
+    return n

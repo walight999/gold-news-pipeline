@@ -100,3 +100,86 @@ def test_flush_appends_and_swallows_errors():
         def append_feed(self, *a):
             raise RuntimeError("sheets down")
     assert sf.flush(_Boom(), [rec]) == 0   # never raises
+
+
+# ---------------- posting side (post_pending) ----------------
+
+class _FeedStore:
+    """Fake store exposing read_feed + set_feed_cell like Store."""
+    def __init__(self, headers, rows):
+        self._headers = headers
+        # rows: list of dicts WITHOUT _row; we assign row numbers from 2
+        self._rows = []
+        for i, r in enumerate(rows, start=2):
+            d = dict(r); d["_row"] = i
+            self._rows.append(d)
+        self.cell_writes = []  # (row, col, value)
+    def read_feed(self, tab):
+        return self._headers, [dict(r) for r in self._rows]
+    def set_feed_cell(self, tab, row, col, value):
+        self.cell_writes.append((row, col, value))
+
+
+_HEADERS = sf.FEED_HEADERS
+
+
+def _row(**kw):
+    base = {h: "" for h in _HEADERS}
+    base.update(kw)
+    return base
+
+
+def test_is_yes_variants():
+    assert sf._is_yes("yes") and sf._is_yes("YES") and sf._is_yes(" Yes ")
+    assert sf._is_yes("true") and sf._is_yes("1") and sf._is_yes("✓")
+    assert not sf._is_yes("") and not sf._is_yes("no") and not sf._is_yes(None)
+
+
+def test_post_pending_only_approved_unposted():
+    rows = [
+        _row(tweet_text="A", approved="yes", posted=""),     # post
+        _row(tweet_text="B", approved="",    posted=""),     # skip (not approved)
+        _row(tweet_text="C", approved="yes", posted="http"), # skip (already posted)
+        _row(tweet_text="D", approved="YES", posted=""),     # post
+    ]
+    s = _FeedStore(_HEADERS, rows)
+    posted = []
+    def fake(text):
+        posted.append(text)
+        return f"https://x.com/i/web/status/{len(posted)}"
+    n = sf.post_pending(s, poster=fake, limit=10)
+    assert n == 2
+    assert posted == ["A", "D"]
+    posted_col = _HEADERS.index("posted") + 1
+    # rows 2 (A) and 5 (D) get the posted URL written
+    assert (2, posted_col, "https://x.com/i/web/status/1") in s.cell_writes
+    assert (5, posted_col, "https://x.com/i/web/status/2") in s.cell_writes
+
+
+def test_post_pending_respects_limit():
+    rows = [_row(tweet_text=str(i), approved="yes", posted="") for i in range(10)]
+    s = _FeedStore(_HEADERS, rows)
+    n = sf.post_pending(s, poster=lambda t: "u", limit=3)
+    assert n == 3
+    assert len(s.cell_writes) == 3
+
+
+def test_post_pending_failure_leaves_unposted():
+    rows = [
+        _row(tweet_text="boom", approved="yes", posted=""),
+        _row(tweet_text="ok",   approved="yes", posted=""),
+    ]
+    s = _FeedStore(_HEADERS, rows)
+    def flaky(text):
+        if text == "boom":
+            raise RuntimeError("X 403")
+        return "https://x.com/i/web/status/9"
+    n = sf.post_pending(s, poster=flaky, limit=10)
+    assert n == 1                      # only the good one counted
+    # the failed row was NOT marked posted (will retry next run)
+    assert all(w[2] == "https://x.com/i/web/status/9" for w in s.cell_writes)
+    assert len(s.cell_writes) == 1
+
+
+def test_post_pending_empty_feed():
+    assert sf.post_pending(_FeedStore([], []), poster=lambda t: "u") == 0
