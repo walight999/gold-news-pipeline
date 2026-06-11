@@ -13,7 +13,9 @@ Design notes:
 - The tweet draft is a DRAFT for review, not auto-fired. The `posted` column is
   left blank for the autopost step to stamp.
 - The draft obeys the no-ai-slop discipline for public copy: no em-dash, exactly
-  one direction emoji, no AI-isms, source attribution, factual.
+  one direction emoji, no AI-isms, factual. No URL and no source attribution —
+  the brand's X is its own announcement channel (PR voice), and a link would
+  13× the X pay-per-use cost. The url + source stay in their own feed columns.
 """
 from __future__ import annotations
 
@@ -35,7 +37,6 @@ FEED_HEADERS = [
 
 TAGS = "#ทองคำ #XAUUSD"
 TWEET_LIMIT = 280
-URL_WEIGHT = 23          # Twitter wraps any URL to a fixed 23-char t.co cost.
 
 # Gold-context tone → single direction emoji. dovish / risk-off lift gold;
 # hawkish / risk-on weigh on it. Exactly one emoji per tweet (no-ai-slop).
@@ -76,20 +77,19 @@ def _trim(s: str, n: int) -> str:
     return s if len(s) <= n else s[: n - 1].rstrip() + "…"
 
 
-def build_tweet(headline_th: str | None, impact_th: str | None,
-                source: str, url: str, tone: str) -> str:
-    """Assemble a ≤280-char Thai tweet draft. URL costs a fixed 23 chars
-    (t.co); Thai characters count as 1 each."""
+def build_tweet(headline_th: str | None, impact_th: str | None, tone: str) -> str:
+    """Assemble a ≤280-char Thai tweet draft: one direction emoji + headline +
+    impact line + hashtags. NO URL and NO source attribution — this is the
+    brand's own announcement channel (PR voice), and a URL would 13× the X
+    pay-per-use cost ($0.20 with a link vs $0.015 without). The article URL and
+    source still live in their own feed columns for the operator's reference.
+    Thai characters count as 1 each toward the 280 limit."""
     emoji = _tone_emoji(tone)
     head = _sanitize(headline_th or "")
     impact = _sanitize(impact_th or "")
-    src = _sanitize(source or "")
 
-    url = (url or "").strip()
-    url_cost = (URL_WEIGHT + 1) if url else 0          # +1 newline
-    footer = TAGS + (f" · {src}" if src else "")
-    footer_cost = len(footer) + 2                       # +2 blank line
-    budget = TWEET_LIMIT - url_cost - footer_cost
+    footer = TAGS
+    budget = TWEET_LIMIT - (len(footer) + 2)            # +2 blank line
 
     block = (emoji + " " + head).strip() if head else emoji
     if impact:
@@ -102,10 +102,7 @@ def build_tweet(headline_th: str | None, impact_th: str | None,
     if len(block) > budget:
         block = _trim(block, budget)
 
-    tweet = block + "\n\n" + footer
-    if url:
-        tweet += "\n" + url
-    return tweet
+    return block + "\n\n" + footer
 
 
 def record_news_event(*, route: str, category: str, tone: str,
@@ -115,7 +112,7 @@ def record_news_event(*, route: str, category: str, tone: str,
     """Build a feed record for a single pushed breaking/alert/digest event."""
     now = now_utc()
     summary_th = _sanitize(" ".join(body_th or []))
-    tweet = build_tweet(headline_th, impact_th, source, url, tone)
+    tweet = build_tweet(headline_th, impact_th, tone)
     return {
         "ts_utc": iso_utc(now),
         "ts_ict": to_ict(now).strftime("%Y-%m-%d %H:%M:%S"),
@@ -146,7 +143,7 @@ def record_recap(stats: dict[str, Any], date_label: str) -> dict[str, Any]:
     if top_th:
         parts.append(f"เด่น: {top_th}")
     impact = " · ".join(parts)
-    tweet = build_tweet(f"📊 {headline}", impact, "", "", "neutral")
+    tweet = build_tweet(f"📊 {headline}", impact, "neutral")
     return {
         "ts_utc": iso_utc(now),
         "ts_ict": to_ict(now).strftime("%Y-%m-%d %H:%M:%S"),

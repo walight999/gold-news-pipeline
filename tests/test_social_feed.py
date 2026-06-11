@@ -2,16 +2,9 @@ from src import social_feed as sf
 
 
 def _weighted(tweet: str) -> int:
-    """Approximate Twitter weighted length: each URL (last line, starts http)
-    counts as 23 regardless of length; everything else counts per char."""
-    total = 0
-    for i, line in enumerate(tweet.split("\n")):
-        if line.startswith("http"):
-            total += 23
-        else:
-            total += len(line)
-    total += tweet.count("\n")  # newlines count as 1 each
-    return total
+    """Weighted length: Thai/other chars count 1, newlines count 1. Drafts carry
+    no URL anymore, so there's no 23-char URL weighting to apply."""
+    return len(tweet)
 
 
 def test_sanitize_strips_em_dash():
@@ -30,27 +23,27 @@ def test_tone_emoji_gold_context():
 
 
 def test_build_tweet_no_em_dash_and_has_one_emoji():
-    t = sf.build_tweet("เฟดส่งสัญญาณ—ผ่อนคลาย", "ทองมีแนวโน้มขึ้น", "Reuters",
-                       "https://example.com/x", "dovish")
+    t = sf.build_tweet("เฟดส่งสัญญาณ—ผ่อนคลาย", "ทองมีแนวโน้มขึ้น", "dovish")
     assert "—" not in t
     emojis = [c for c in t if c in ("🟢", "🔴", "🟡")]
     assert len(emojis) == 1 and emojis[0] == "🟢"
-    assert "#ทองคำ" in t and "Reuters" in t
+    assert "#ทองคำ" in t
+
+
+def test_build_tweet_no_url_no_source():
+    # PR-voice drafts carry no link and no source attribution (keeps X cost at
+    # $0.015/post instead of $0.20 with a URL).
+    t = sf.build_tweet("ทองพุ่ง", "ผลกระทบ", "neutral")
+    assert "http" not in t
+    assert "Reuters" not in t and "·" not in t
 
 
 def test_build_tweet_within_limit_long_input():
     long_head = "ข่าว" * 200
     long_impact = "ผลกระทบ" * 200
-    t = sf.build_tweet(long_head, long_impact, "MarketWatch",
-                       "https://example.com/very/long/url/path", "hawkish")
+    t = sf.build_tweet(long_head, long_impact, "hawkish")
     assert _weighted(t) <= 280
-    assert t.endswith("https://example.com/very/long/url/path")
-
-
-def test_build_tweet_no_url():
-    t = sf.build_tweet("สั้น", "ผลกระทบสั้น", "Kitco", "", "neutral")
-    assert _weighted(t) <= 280
-    assert "http" not in t
+    assert t.endswith(sf.TAGS)
 
 
 def test_record_news_event_has_all_headers():
