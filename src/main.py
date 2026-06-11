@@ -22,10 +22,12 @@ from typing import Any
 import yaml
 
 from . import calendar as cal
-from . import dedup, digest, fred, health, news_alert, price_feed, scorer, translator
+from . import dedup, digest, fred, health, news_alert, price_feed, scorer, social_feed, translator
 from .fetcher import fetch_all, plan_fetch
 from .line_client import LineClient
 from .line_flex import (
+    _pick_article_url,
+    _source_label,
     alert_bubble,
     alt_text_for_event,
     breaking_bubble,
@@ -36,6 +38,7 @@ from .line_flex import (
     health_recovered_bubble,
     post_release_bubble,
     pre_release_bubble,
+    score_to_impact,
     weekly_preview_bubble,
 )
 from .normalizer import normalize
@@ -122,6 +125,10 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
     store = Store.from_env()
     store.connect()
     store.load_all()
+
+    # Social-feed records collected during this run (breaking/alert/digest) and
+    # appended once before flush. Best-effort: never blocks the LINE push.
+    social_records: list[dict[str, Any]] = []
 
     sources = src_cfg["sources"]
     if tier_filter is not None:
@@ -223,6 +230,20 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
                     "sent_ts": iso_utc(now_utc()),
                     "line_status": resp["status"],
                 })
+                try:
+                    social_records.append(social_feed.record_news_event(
+                        route=d.route.value,
+                        category=alert_obj.category,
+                        tone=alert_obj.tone,
+                        impact_level=score_to_impact(d.score)[0],
+                        headline_th=alert_obj.headline_th,
+                        body_th=alert_obj.body_th,
+                        impact_th=alert_obj.impact_th,
+                        source=_source_label(ev.source_list),
+                        url=_pick_article_url(ev.items),
+                    ))
+                except Exception:
+                    log.exception("social_feed record (breaking/alert) failed event=%s", ev.event_id)
             else:
                 log.warning("LINE push failed event=%s status=%s — not marking sent", ev.event_id, resp["status"])
 
@@ -351,11 +372,32 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
                             "sent_ts": iso_utc(now_utc()),
                             "line_status": resp["status"],
                         })
+                        try:
+                            a = ranked_alerts.get(ev.event_id)
+                            if a:
+                                social_records.append(social_feed.record_news_event(
+                                    route="digest",
+                                    category=a.category,
+                                    tone=a.tone,
+                                    impact_level=score_to_impact(scores.get(ev.event_id, 0))[0],
+                                    headline_th=a.headline_th,
+                                    body_th=a.body_th,
+                                    impact_th=a.impact_th,
+                                    source=_source_label(ev.source_list),
+                                    url=_pick_article_url(ev.items),
+                                ))
+                        except Exception:
+                            log.exception("social_feed record (digest) failed event=%s", ev.event_id)
 
     # 8. Heartbeat — stamp pipeline liveness before flush so the watchdog
     # can distinguish "cron stopped" from "cron ran but no news today".
     if mode in ("cron", "event"):
         health.write_heartbeat(store, items_seen=len(items))
+
+    # 8b. Append social-feed rows (best-effort; never blocks the run)
+    n_feed = social_feed.flush(store, social_records)
+    if n_feed:
+        log.info("social_feed: appended %d row(s)", n_feed)
 
     # 9. Flush state
     store.flush()
@@ -558,6 +600,10 @@ async def run_eod_recap() -> int:
             "event_id": sent_key, "route_type": "eod_recap",
             "sent_ts": iso_utc(now_utc()), "line_status": 200,
         })
+        try:
+            social_feed.flush(store, [social_feed.record_recap(stats, short_date)])
+        except Exception:
+            log.exception("social_feed recap record failed")
     store.flush()
     log.info("eod_recap done: %s", stats)
     return 0
