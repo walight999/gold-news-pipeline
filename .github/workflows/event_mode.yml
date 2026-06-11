@@ -28,6 +28,7 @@ jobs:
       # Optional — Claude Haiku translator for breaking/alert during CPI/NFP/FOMC.
       # Falls back to Google Translate (free) when unset.
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
       PYTHONUNBUFFERED: "1"
     steps:
       - uses: actions/checkout@v4
