@@ -272,6 +272,38 @@ class Store:
         self.api_calls += 1
         log.info("store.append_feed tab=%s appended=%d", tab, len(rows))
 
+    def read_feed(self, tab: str) -> tuple[list[str], list[dict[str, Any]]]:
+        """Read an append-only feed tab (e.g. social_feed) verbatim. Returns
+        (headers, rows) where each row dict also carries `_row` = its 1-based
+        sheet row number (for targeted cell updates). Empty on missing tab."""
+        if not self._sh:
+            return [], []
+        try:
+            ws = _ws_worksheet(self._sh, tab)
+        except gspread.WorksheetNotFound:
+            return [], []
+        self.api_calls += 1
+        values = ws.get_all_values()
+        self.api_calls += 1
+        if not values:
+            return [], []
+        headers = values[0]
+        rows: list[dict[str, Any]] = []
+        for i, r in enumerate(values[1:], start=2):
+            d: dict[str, Any] = {headers[j]: (r[j] if j < len(r) else "") for j in range(len(headers))}
+            d["_row"] = i
+            rows.append(d)
+        return headers, rows
+
+    def set_feed_cell(self, tab: str, row: int, col_index_1based: int, value: Any) -> None:
+        """Write a single cell in a feed tab (targeted, non-clobbering)."""
+        if not self._sh:
+            return
+        ws = _ws_worksheet(self._sh, tab)
+        self.api_calls += 1
+        ws.update_cell(row, col_index_1based, _cell(value))
+        self.api_calls += 1
+
     def flush(self) -> None:
         """Write back only dirty rows. One batch write per tab."""
         if not self._sh:

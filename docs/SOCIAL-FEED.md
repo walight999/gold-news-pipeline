@@ -42,32 +42,39 @@ Built to the no-ai-slop discipline for public copy:
 It is a **draft for review**, not auto-fired. Review (or let an approval step
 gate it), then post.
 
-## Wiring Make → Twitter (approval flow — the Sheet IS the review surface)
+## Posting to X (pipeline-direct, approval-gated)
 
-Chosen design (2026-06-11): review-before-post, gated by the `approved` column.
-The operator reviews drafts in the Sheet and types `yes` in `approved` for the
-ones to publish. Make picks those up on a schedule and posts.
+Chosen design (2026-06-11): the **pipeline** posts approved drafts straight to X.
+Make was dropped for posting — it no longer has a native "post to your X account"
+connector (X removed free API write in 2023), and the third-party schedulers
+(Late / Blotato / …) need an extra paid middleman. Posting from the pipeline via
+the X API is cleaner and fully under our control. The Google Sheet stays as the
+archive + review surface.
 
-**Prereqs (user, one-time, needs your login):**
-1. A **Google Sheets** connection in Make (OAuth your Google account).
-2. An **X/Twitter** connection in Make — needs an X developer app with *write*
-   access (X API free tier allows ~1,500 posts/month).
+**Flow:** `social-post` mode (GHA cron `*/20`) → reads `social_feed` → for each
+row where `approved` = yes AND `posted` is empty → posts `tweet_text` via the X
+API (tweepy) → writes the tweet URL into `posted`. `SOCIAL_POST_LIMIT` (default 5)
+caps posts per run. Per-tweet failures are logged and retried next run; nothing is
+posted without an explicit per-row `yes`.
 
-**Scenario (`social-autopost`, scheduled every ~15 min):**
-1. **Google Sheets → Search Rows** on `social_feed`, filter:
-   `approved = yes` AND `posted` is empty. (Search Rows, not Watch Rows, because
-   approval is an *edit* to an existing row, which Watch-new-rows wouldn't catch.)
-2. **(optional) Router** — only `impact_level = HIGH` if you want the big ones.
-3. **X/Twitter → Create a Tweet** with `{{tweet_text}}`.
-4. **Google Sheets → Update Row** — set `posted` = the new tweet URL (or `yes`)
-   so it is never reposted.
+**Operator loop:** glance at the Sheet → type `yes` in `approved` on the rows
+worth posting → within ~20 min (GitHub cron throttling makes it longer, fine for
+social) the pipeline posts them and stamps `posted`.
 
-Operator loop: glance at the Sheet → type `yes` in `approved` on the rows worth
-posting → Make posts them within 15 min and stamps `posted`. Nothing reaches X
-without an explicit per-row `yes`.
+**Secrets to add on `gold-news-pipeline` (GitHub → Settings → Secrets):**
+from your X developer app (App permissions = Read **and** Write):
 
-Alternative consumers: the feed is plain Sheets, so Zapier / Apps Script / the
-Agent HQ X-API path (`docs/PATH-B-SETUP.md`) can read it the same way.
+| secret | from X developer portal |
+|---|---|
+| `X_API_KEY` | API Key (Consumer Key) |
+| `X_API_SECRET` | API Secret (Consumer Secret) |
+| `X_ACCESS_TOKEN` | Access Token (created with Read+Write) |
+| `X_ACCESS_TOKEN_SECRET` | Access Token Secret |
+
+`GSHEET_ID` + `GSHEET_CREDS` are already set (the pipeline uses them).
+
+Alternative consumers: the feed is plain Sheets, so Zapier / Apps Script can also
+read it — but the built-in `social-post` mode needs nothing extra.
 
 ## Notes
 

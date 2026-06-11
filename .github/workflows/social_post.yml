@@ -1,0 +1,36 @@
+name: social-post
+on:
+  schedule:
+    # Every 20 min. Posts only rows an operator marked approved=yes in the
+    # social_feed sheet, so cadence just bounds how fast an approved draft goes
+    # out (GitHub throttles public-repo crons — effective interval is longer,
+    # which is fine for social). Runs all week.
+    - cron: "*/20 * * * *"
+  workflow_dispatch: {}
+
+concurrency:
+  group: gold-news-social
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    env:
+      GSHEET_ID:               ${{ secrets.GSHEET_ID }}
+      GSHEET_CREDS:            ${{ secrets.GSHEET_CREDS }}
+      X_API_KEY:               ${{ secrets.X_API_KEY }}
+      X_API_SECRET:            ${{ secrets.X_API_SECRET }}
+      X_ACCESS_TOKEN:          ${{ secrets.X_ACCESS_TOKEN }}
+      X_ACCESS_TOKEN_SECRET:   ${{ secrets.X_ACCESS_TOKEN_SECRET }}
+      SOCIAL_POST_LIMIT:       "5"
+      PYTHONUNBUFFERED:        "1"
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: python -m src.main --mode social_post
