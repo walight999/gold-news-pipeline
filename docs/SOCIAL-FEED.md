@@ -28,7 +28,8 @@ stable and the `posted` column you own is never overwritten.
 | `source` | human-readable source name |
 | `url` | article link |
 | `tweet_text` | **ready-to-post Thai draft** (≤280, no-ai-slop applied) |
-| `posted` | left blank — your autopost stamps this after posting |
+| `approved` | **human gate** — blank by default; type `yes` to release a draft |
+| `posted` | left blank — the autopost stamps this (tweet URL) after posting |
 
 ## The tweet draft
 
@@ -41,19 +42,32 @@ Built to the no-ai-slop discipline for public copy:
 It is a **draft for review**, not auto-fired. Review (or let an approval step
 gate it), then post.
 
-## Wiring Make → Twitter (suggested)
+## Wiring Make → Twitter (approval flow — the Sheet IS the review surface)
 
-1. **Trigger** — Google Sheets → *Watch Rows* on the `social_feed` worksheet.
-2. **Filter** — only rows where `posted` is empty (skip already-posted).
-   Optionally filter `impact_level = HIGH` if you only want the big ones.
-3. **(optional) Approval** — route `tweet_text` to LINE/Slack for a yes/no
-   before posting (recommended at first, to tune voice).
-4. **Action** — X/Twitter → *Create a Tweet* with `{{tweet_text}}`.
-5. **Write-back** — Google Sheets → *Update Row*, set `posted` = the tweet URL
-   or `yes`, so it isn't reposted.
+Chosen design (2026-06-11): review-before-post, gated by the `approved` column.
+The operator reviews drafts in the Sheet and types `yes` in `approved` for the
+ones to publish. Make picks those up on a schedule and posts.
 
-Alternative: the feed is plain Sheets, so Zapier / Apps Script / the Agent HQ
-X-API path (`docs/PATH-B-SETUP.md`) can consume it the same way.
+**Prereqs (user, one-time, needs your login):**
+1. A **Google Sheets** connection in Make (OAuth your Google account).
+2. An **X/Twitter** connection in Make — needs an X developer app with *write*
+   access (X API free tier allows ~1,500 posts/month).
+
+**Scenario (`social-autopost`, scheduled every ~15 min):**
+1. **Google Sheets → Search Rows** on `social_feed`, filter:
+   `approved = yes` AND `posted` is empty. (Search Rows, not Watch Rows, because
+   approval is an *edit* to an existing row, which Watch-new-rows wouldn't catch.)
+2. **(optional) Router** — only `impact_level = HIGH` if you want the big ones.
+3. **X/Twitter → Create a Tweet** with `{{tweet_text}}`.
+4. **Google Sheets → Update Row** — set `posted` = the new tweet URL (or `yes`)
+   so it is never reposted.
+
+Operator loop: glance at the Sheet → type `yes` in `approved` on the rows worth
+posting → Make posts them within 15 min and stamps `posted`. Nothing reaches X
+without an explicit per-row `yes`.
+
+Alternative consumers: the feed is plain Sheets, so Zapier / Apps Script / the
+Agent HQ X-API path (`docs/PATH-B-SETUP.md`) can read it the same way.
 
 ## Notes
 
