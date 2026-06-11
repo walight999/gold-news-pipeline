@@ -6,7 +6,12 @@ on:
     # out (GitHub throttles public-repo crons — effective interval is longer,
     # which is fine for social). Runs all week.
     - cron: "*/20 * * * *"
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "social_post (post approved) or social_seed (append a test draft)"
+        default: "social_post"
+        required: false
 
 concurrency:
   group: gold-news-social
@@ -33,4 +38,4 @@ jobs:
           python-version: "3.11"
           cache: pip
       - run: pip install -r requirements.txt
-      - run: python -m src.main --mode social_post
+      - run: python -m src.main --mode ${{ github.event.inputs.mode || 'social_post' }}

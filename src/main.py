@@ -609,6 +609,24 @@ async def run_eod_recap() -> int:
     return 0
 
 
+async def run_social_seed() -> int:
+    """Append one test draft to social_feed (creating the worksheet if needed).
+    Lets you exercise the approve→post path without waiting for live news. The
+    draft is clearly labelled as a test; delete the tweet from X afterwards."""
+    store = Store.from_env()
+    store.connect()
+    rec = social_feed.record_news_event(
+        route="test", category="Test", tone="neutral", impact_level="LOW",
+        headline_th="ทดสอบระบบ social feed (ลบได้)",
+        body_th=["draft ทดสอบจาก pipeline"],
+        impact_th="ทดสอบการโพสต์อัตโนมัติขึ้น X",
+        source="Pipeline", url="",
+    )
+    n = social_feed.flush(store, [rec])
+    log.info("social_seed: appended %d test row(s) to social_feed", n)
+    return 0
+
+
 async def run_social_post() -> int:
     """Post approved social_feed drafts to X. Reads the social_feed worksheet,
     finds rows where `approved`=yes AND `posted` is empty, posts each via the X
@@ -1125,7 +1143,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--mode", choices=(
         "cron", "event", "digest", "calendar_daily", "calendar_check",
         "weekly_preview", "eod_recap", "verify_sources", "maintain",
-        "watchdog", "social_post",
+        "watchdog", "social_post", "social_seed",
     ), default="cron")
     p.add_argument("--event-duration-min", type=int, default=30)
     p.add_argument("--event-sleep-sec", type=int, default=60)
@@ -1148,6 +1166,8 @@ def main(argv: list[str] | None = None) -> int:
         return asyncio.run(run_watchdog())
     if args.mode == "social_post":
         return asyncio.run(run_social_post())
+    if args.mode == "social_seed":
+        return asyncio.run(run_social_seed())
     return asyncio.run(run_once(mode=args.mode))
 
 
