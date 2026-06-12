@@ -333,7 +333,8 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
     if mode in ("cron", "digest"):
         slots_ict = sched_cfg["digest"]["slots_ict"]
         window = int(sched_cfg["digest"]["window_minutes"])
-        slot = within_digest_slot(slots_ict, window)
+        catch_up = int(sched_cfg["digest"].get("catch_up_minutes", window))
+        slot = within_digest_slot(slots_ict, window, catch_up_min=catch_up)
         if slot and not digest.already_sent(store, slot):
             digest_floor = float(sched_cfg["digest"].get("min_score", 0.5))
             max_events = int(sched_cfg["digest"].get("max_events", 10))
