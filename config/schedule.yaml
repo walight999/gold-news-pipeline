@@ -7,7 +7,8 @@ digest:
   slots_ict: ["05:30", "13:30", "21:30"]
   window_minutes: 5
   catch_up_minutes: 240     # fire a missed slot's digest on any run within 4h after it
-  max_events: 10
+  max_events: 15     # candidates to classify; the classifier + relevance gate
+                     # trim this, then the carousel paginates at 3 readable cards/page
   # Lower than spec §4.5's 2.5 — see main.run_once digest section for why.
   # Most RSS items have published_ts that's hours old by the time we
   # fetch, so freshness_factor drops to 0.1 and even base-5 inflation
