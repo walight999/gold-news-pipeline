@@ -346,47 +346,71 @@ def alert_bubble(ev: Event, score: float, kw_cfg: dict[str, Any],
 
 # ---------- digest ----------
 
-def _digest_event_row(ev: Event, score: float, kw_cfg: dict[str, Any],
-                      alert: MarketAlert | None = None,
-                      title_th: str | None = None,
-                      summary_th: str | None = None) -> dict[str, Any]:
-    """Compact event row for the digest carousel.
-
-    Prefers MarketAlert (headline_th + ≤3 bullets) when available. Falls
-    back to legacy title_th + summary_th strings, and finally to the
-    English title when no translation is set.
+def _digest_event_card(ev: Event, score: float,
+                       alert: MarketAlert | None = None,
+                       title_th: str | None = None,
+                       summary_th: str | None = None) -> dict[str, Any]:
+    """One readable event block for the digest — designed so the reader
+    understands the story at a glance WITHOUT opening the link.
 
     Layout:
-      {Thai headline — bold sm}
-        • {bullet 1 — xxs gray}
-        • {bullet 2 — xxs gray}
-      ForexLive · 12m ago                          Read ↗
+      [TOPIC chip] [HIGH/MED/LOW]                         12m ago
+      {Thai headline — bold md, full, wraps}
+      {summary line 1 — sm, wraps}
+      {summary line 2 — sm, wraps}
+      💡 {gold-impact line — xs gray}
+      Source ↗
     """
-    en_title = _trim(ev.representative_title, TOPIC_TITLE_LIMIT)
+    en_title = _trim(ev.representative_title, 160)
+    en_summary = _trim(ev.representative_summary, 240)
     if alert and alert.should_send and alert.headline_th:
         display_title = alert.headline_th
-        bullets = list(alert.body_th or [])[:2]
+        body_lines = [b for b in (alert.body_th or []) if b][:3]
+        impact_line = alert.impact_th
+        category = alert.category or ev.topic_bucket.replace("_", " ").title()
     else:
         display_title = title_th.strip() if title_th else en_title
-        bullets = [summary_th.strip()] if summary_th else []
+        body_lines = [summary_th.strip()] if summary_th else ([en_summary] if en_summary else [])
+        impact_line = None
+        category = ev.topic_bucket.replace("_", " ").title()
+
     src_name = _source_label(ev.source_list, max_n=2)
     age = _ago_label(_earliest_ts(ev))
     url = _pick_article_url(ev.items)
+    _, topic_fg = _topic_chip_color(ev.topic_bucket)
 
+    # Top row: category label + impact pill on the left, age on the right.
+    impact_label, _, _ = score_to_impact(score)
+    top_row = {
+        "type": "box", "layout": "horizontal", "alignItems": "center",
+        "contents": [
+            {"type": "text", "text": category, "size": "xs", "weight": "bold",
+             "color": topic_fg, "flex": 1, "wrap": False},
+            {"type": "text", "text": age or "", "size": "xxs",
+             "color": "#9CA3AF", "align": "end", "flex": 0},
+        ],
+    }
     contents: list[dict[str, Any]] = [
-        {"type": "text", "text": display_title, "size": "sm",
-         "wrap": True, "color": "#111827", "weight": "bold"},
+        top_row,
+        {"type": "text", "text": display_title, "size": "md", "weight": "bold",
+         "wrap": True, "color": "#111827", "margin": "sm"},
     ]
-    for b in bullets:
-        if not b:
-            continue
+    # Readable summary lines — full sentences, sm so they don't strain the eye.
+    for b in body_lines:
         contents.append({
-            "type": "text", "text": f"• {_trim(b, 200)}",
-            "size": "xxs", "color": "#374151", "wrap": True, "margin": "sm",
+            "type": "text", "text": _trim(b, 220),
+            "size": "sm", "color": "#1F2937", "wrap": True, "margin": "sm",
         })
+    if impact_line:
+        contents.append({
+            "type": "text", "text": f"💡 {_trim(impact_line, 200)}",
+            "size": "xs", "color": "#6B7280", "wrap": True, "margin": "md",
+            "weight": "bold",
+        })
+    contents.append({"type": "separator", "margin": "md"})
     contents.append(_source_link(src_name, age, url))
 
-    return {"type": "box", "layout": "vertical", "spacing": "xs",
+    return {"type": "box", "layout": "vertical", "spacing": "none",
             "margin": "md", "contents": contents}
 
 
@@ -400,38 +424,20 @@ def _build_digest_bubble(
     header_label: str,
     header_sub: str,
 ) -> dict[str, Any]:
-    """One bubble with its own topic grouping for the events in `chunk`."""
-    groups: dict[str, list[Event]] = {}
-    for ev in chunk:
-        groups.setdefault(ev.topic_bucket, []).append(ev)
-    sorted_topics = sorted(
-        groups.keys(),
-        key=lambda t: -max(scores.get(e.event_id, 0) for e in groups[t]),
-    )
+    """One bubble = up to DIGEST_PER_PAGE readable event cards (score order)."""
+    ranked = sorted(chunk, key=lambda e: -scores.get(e.event_id, 0))
     sections: list[dict[str, Any]] = []
-    for i, topic in enumerate(sorted_topics):
-        evs = sorted(groups[topic], key=lambda e: -scores.get(e.event_id, 0))
+    for i, ev in enumerate(ranked):
         if i > 0:
-            sections.append({"type": "separator", "margin": "lg"})
-        section_max_score = max(scores.get(e.event_id, 0) for e in evs)
-        sections.append({
-            "type": "box", "layout": "horizontal", "margin": "lg",
-            "alignItems": "center",
-            "contents": [
-                {"type": "text", "text": topic.upper(), "size": "sm",
-                 "color": "#374151", "weight": "bold", "flex": 1},
-                _impact_pill_small(section_max_score),
-            ],
-        })
-        for ev in evs:
-            tr = (translations or {}).get(ev.event_id, {})
-            alert = (alerts or {}).get(ev.event_id)
-            sections.append(_digest_event_row(
-                ev, scores.get(ev.event_id, 0), kw_cfg,
-                alert=alert,
-                title_th=tr.get("title_th") if tr else None,
-                summary_th=tr.get("summary_th") if tr else None,
-            ))
+            sections.append({"type": "separator", "margin": "xl", "color": "#E5E7EB"})
+        tr = (translations or {}).get(ev.event_id, {})
+        alert = (alerts or {}).get(ev.event_id)
+        sections.append(_digest_event_card(
+            ev, scores.get(ev.event_id, 0),
+            alert=alert,
+            title_th=tr.get("title_th") if tr else None,
+            summary_th=tr.get("summary_th") if tr else None,
+        ))
     return {
         "type": "bubble", "size": "giga",
         "header": _header(header_label, header_sub, COLOR["digest"]),
@@ -440,8 +446,13 @@ def _build_digest_bubble(
     }
 
 
-# Above this many events, split the digest into a 2-bubble carousel.
-DIGEST_SPLIT_THRESHOLD = 5
+# Events per digest bubble — fewer, fuller cards so each is readable without
+# opening the link. The carousel adds more pages as needed (the user prefers
+# 3-per-page over cramming).
+DIGEST_PER_PAGE = 3
+DIGEST_MAX_PAGES = 5
+# Legacy alias kept for any external import.
+DIGEST_SPLIT_THRESHOLD = DIGEST_PER_PAGE
 
 
 def digest_carousel(
@@ -462,22 +473,22 @@ def digest_carousel(
     if not events:
         return None
     ranked = sorted(events, key=lambda e: -scores.get(e.event_id, 0))
-    n = len(ranked)
+    # Cap total so the carousel stays scannable; paginate at DIGEST_PER_PAGE.
+    ranked = ranked[: DIGEST_PER_PAGE * DIGEST_MAX_PAGES]
+    pages = [ranked[i:i + DIGEST_PER_PAGE] for i in range(0, len(ranked), DIGEST_PER_PAGE)]
 
-    if n <= DIGEST_SPLIT_THRESHOLD:
+    if len(pages) == 1:
         return _build_digest_bubble(
-            ranked, scores, slot, kw_cfg, translations, alerts,
+            pages[0], scores, slot, kw_cfg, translations, alerts,
             header_label="📰 Latest News Update",
             header_sub=f"{slot} ICT",
         )
 
-    mid = (n + 1) // 2
-    chunks = [ranked[:mid], ranked[mid:]]
     bubbles = []
-    for i, chunk in enumerate(chunks, start=1):
+    for i, page in enumerate(pages, start=1):
         bubbles.append(_build_digest_bubble(
-            chunk, scores, slot, kw_cfg, translations, alerts,
-            header_label=f"📰 News Update {i}/{len(chunks)}",
+            page, scores, slot, kw_cfg, translations, alerts,
+            header_label=f"📰 News Update {i}/{len(pages)}",
             header_sub=f"{slot} ICT",
         ))
     return {"type": "carousel", "contents": bubbles}

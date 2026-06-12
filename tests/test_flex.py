@@ -67,7 +67,13 @@ def test_alert_bubble_shape(kw_config):
     assert b["header"]["backgroundColor"] == "#D97706"
 
 
-def test_digest_single_bubble_groups_by_topic(kw_config):
+def _count_event_cards(bubble):
+    """Each digest event is a top-level vertical box in the bubble body."""
+    return sum(1 for sec in bubble["body"]["contents"]
+               if sec.get("type") == "box" and sec.get("layout") == "vertical")
+
+
+def test_digest_single_bubble_up_to_three(kw_config):
     evs = [
         _ev("inflation",   "hawkish", ["forexlive"]),
         _ev("inflation",   "neutral", ["marketwatch"]),
@@ -78,57 +84,43 @@ def test_digest_single_bubble_groups_by_topic(kw_config):
     scores = {ev.event_id: 3.0 + i * 0.1 for i, ev in enumerate(evs)}
     b = digest_carousel(evs, scores, "13:30", kw_config)
     assert b is not None
-    # Single long bubble, not carousel
+    # 3 events → a single readable bubble (3 cards, no carousel)
     assert b["type"] == "bubble"
     assert b["size"] == "giga"
     assert b["header"]["backgroundColor"] == "#2563EB"
-    # Body should contain heading + rows for 2 distinct topics
-    body_contents = b["body"]["contents"]
-    headings = [c for c in body_contents
-                if c.get("type") == "box" and c.get("layout") == "horizontal"
-                and any(x.get("text", "").upper() in {"INFLATION", "GEOPOLITICS"}
-                        for x in c.get("contents", []))]
-    assert len(headings) == 2
+    assert _count_event_cards(b) == 3
 
 
-def test_digest_splits_when_more_than_five(kw_config):
-    """≤5 events stays single bubble; >5 splits into a 2-bubble carousel."""
+def test_digest_paginates_at_three(kw_config):
+    """>3 events split into a carousel of 3-card pages."""
     topics = ["inflation", "jobs", "rate_policy", "geopolitics", "usd_yields", "gold_flow", "other"]
     evs = []
     for i, t in enumerate(topics):
         ev = _ev(t, "neutral", ["forexlive"])
         ev.event_id = f"e{i}"
         evs.append(ev)
-    scores = {ev.event_id: 3.0 for ev in evs}
+    scores = {ev.event_id: 3.0 + i * 0.01 for i, ev in enumerate(evs)}
     b = digest_carousel(evs, scores, "21:30", kw_config)
     assert b is not None
-    # 7 events → carousel with 2 bubbles, 4/3 split
+    # 7 events → 3 pages of 3/3/1
     assert b["type"] == "carousel"
-    assert len(b["contents"]) == 2
-    # First bubble carries the ceiling half
-    # _digest_event_row is nested inside a topic-section box, so we count
-    # the topic-section heading boxes that match topic names.
-    def count_events(bubble):
-        n = 0
-        for sec in bubble["body"]["contents"]:
-            if sec.get("type") == "box" and sec.get("layout") == "vertical":
-                # this is _digest_event_row
-                n += 1
-        return n
-    assert count_events(b["contents"][0]) == 4   # ceil(7/2)
-    assert count_events(b["contents"][1]) == 3
+    assert len(b["contents"]) == 3
+    assert _count_event_cards(b["contents"][0]) == 3
+    assert _count_event_cards(b["contents"][1]) == 3
+    assert _count_event_cards(b["contents"][2]) == 1
 
 
-def test_digest_no_split_at_five(kw_config):
-    """Exactly 5 events stays single bubble."""
+def test_digest_caps_total_pages(kw_config):
+    """More than PER_PAGE*MAX_PAGES events are capped to the max pages."""
     evs = []
-    for i in range(5):
+    for i in range(40):
         ev = _ev("inflation", "neutral", ["forexlive"])
         ev.event_id = f"e{i}"
         evs.append(ev)
     scores = {ev.event_id: 3.0 for ev in evs}
     b = digest_carousel(evs, scores, "13:30", kw_config)
-    assert b["type"] == "bubble"
+    assert b["type"] == "carousel"
+    assert len(b["contents"]) == 5   # DIGEST_MAX_PAGES
 
 
 def test_health_bubble_shape():

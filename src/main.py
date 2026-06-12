@@ -344,17 +344,14 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
                 e for e in non_breaking
                 if scores.get(e.event_id, 0) >= digest_floor
             ]
-            # Fallback: if even with the relaxed floor the filtered pool
-            # is empty (very slow hour), still surface the top events
-            # ordered by score. Guarantees the slot bubble always has
-            # something to look at.
-            if not digest_events and non_breaking:
-                digest_events = non_breaking
+            # No "surface everything" fallback — better to send fewer (or skip
+            # the slot) than to show personal-finance / crypto / garbled junk.
+            # The classifier below is the real quality gate.
             ranked = sorted(digest_events, key=lambda e: -scores.get(e.event_id, 0))[:max_events]
-            # Classify + rewrite each event. Rejected items are filtered
-            # out of the carousel entirely — the classifier drops personal
-            # finance / evergreen / opinion / stale articles that used to
-            # leak through via keyword matching alone.
+            # Classify + rewrite each event. Only items the classifier KEEPS
+            # *and* that are gold-relevant (relevance != none) make the digest —
+            # this drops personal-finance / crypto / single-stock / preview /
+            # garbled-data noise that score-only filtering let through.
             ranked_alerts: dict[str, news_alert.MarketAlert] = {}
             kept: list[dedup.Event] = []
             for ev in ranked:
@@ -369,12 +366,12 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
                     age_hours=age_hours,
                     store=store,
                 )
-                if a.should_send:
+                if a.should_send and (a.relevance_to_gold or "none") != "none":
                     ranked_alerts[ev.event_id] = a
                     kept.append(ev)
                 else:
-                    log.info("digest classifier rejected event_id=%s reason=%s",
-                             ev.event_id, a.reason)
+                    log.info("digest dropped event_id=%s reason=%s relevance=%s",
+                             ev.event_id, a.reason, a.relevance_to_gold)
             log.info("digest classifier: %d/%d events kept", len(kept), len(ranked))
             if not kept:
                 store.flush()
