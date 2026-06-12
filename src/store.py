@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 import os
 from dataclasses import dataclass, field
 from typing import Any
@@ -316,6 +317,14 @@ class Store:
             self.api_calls += 1
             all_rows = list(self.data[tab].values())
             cols = SCHEMAS[tab]
+            # Diagnostic — surface which column carried a non-finite float so the
+            # upstream source can be fixed (the value itself is coerced by _cell).
+            for r in all_rows:
+                for c in cols:
+                    val = r.get(c)
+                    if isinstance(val, float) and not math.isfinite(val):
+                        log.warning("store.flush non-finite float in tab=%s col=%s key=%s value=%r",
+                                    tab, c, _row_key(tab, r), val)
             values = [cols] + [[_cell(r.get(c, "")) for c in cols] for r in all_rows]
             _ws_clear(ws)
             self.api_calls += 1
@@ -327,6 +336,12 @@ class Store:
 
 def _cell(v: Any) -> Any:
     if v is None:
+        return ""
+    # NaN / Infinity are not JSON-compliant — gspread's writer raises
+    # InvalidJSONError("Out of range float values") and crashes the whole
+    # flush (taking down the run). Coerce to "" so one bad float can never
+    # nuke a state write. (Source is logged in flush via _scan_nonfinite.)
+    if isinstance(v, float) and not math.isfinite(v):
         return ""
     if isinstance(v, (list, tuple)):
         return ",".join(str(x) for x in v)
