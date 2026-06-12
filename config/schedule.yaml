@@ -1,7 +1,12 @@
 digest:
-  # All times Asia/Bangkok (ICT). ±5m window around each slot triggers a digest build.
+  # All times Asia/Bangkok (ICT). A digest fires if a run lands from
+  # window_minutes BEFORE a slot up to catch_up_minutes AFTER it (once per
+  # slot per day via already_sent). The catch-up exists because GitHub throttles
+  # the */5 news cron down to roughly one run every 2-4h, so the old tight ±5m
+  # window was almost always missed → NewsUpdate digests silently stopped firing.
   slots_ict: ["05:30", "13:30", "21:30"]
   window_minutes: 5
+  catch_up_minutes: 240     # fire a missed slot's digest on any run within 4h after it
   max_events: 10
   # Lower than spec §4.5's 2.5 — see main.run_once digest section for why.
   # Most RSS items have published_ts that's hours old by the time we

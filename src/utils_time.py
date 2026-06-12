@@ -114,14 +114,26 @@ def freshness_factor(anchor_utc: datetime, ref_utc: datetime | None = None) -> f
     return 0.1
 
 
-def within_digest_slot(slots_ict: list[str], window_min: int, dt: datetime | None = None) -> str | None:
-    """Return the slot label (e.g. '13:30') if now_ict is within ±window_min of any slot, else None."""
+def within_digest_slot(slots_ict: list[str], window_min: int,
+                       dt: datetime | None = None,
+                       catch_up_min: int | None = None) -> str | None:
+    """Return the slot label (e.g. '13:30') if now_ict falls from `window_min`
+    minutes BEFORE a slot up to `catch_up_min` minutes AFTER it, else None.
+
+    The asymmetric catch-up window lets a digest still fire when GitHub's cron
+    throttling means no run lands in the tight ±window around the slot — any run
+    within catch_up_min after the slot picks it up (idempotency upstream sends
+    it once per slot per day). catch_up_min defaults to window_min (symmetric)
+    for backward compatibility.
+    """
+    if catch_up_min is None:
+        catch_up_min = window_min
     dt_ict = to_ict(dt) if dt else now_ict()
     for slot in slots_ict:
         hh, mm = (int(x) for x in slot.split(":"))
         slot_dt = dt_ict.replace(hour=hh, minute=mm, second=0, microsecond=0)
-        delta = abs((dt_ict - slot_dt).total_seconds()) / 60.0
-        if delta <= window_min:
+        delta_min = (dt_ict - slot_dt).total_seconds() / 60.0
+        if -window_min <= delta_min <= catch_up_min:
             return slot
     return None
 
