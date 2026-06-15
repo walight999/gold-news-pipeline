@@ -77,7 +77,14 @@ def _ws_add(sh: gspread.Spreadsheet, name: str, rows: int, cols: int) -> gspread
 
 @_retry
 def _ws_get_all_records(ws: gspread.Worksheet, expected_headers: list[str]) -> list[dict]:
-    return ws.get_all_records(expected_headers=expected_headers)
+    # numericise_ignore=['all'] keeps EVERY cell a string. Without it gspread
+    # auto-converts numeric-looking text — and a sha256 event_id whose first 20
+    # hex chars parse as scientific notation (e.g. "1e234567890123456789")
+    # becomes float('inf'), which then crashes flush() with InvalidJSONError.
+    # Genuinely numeric columns (score, source_count, hits) are already cast
+    # with int()/float() at their read sites, so reading them as strings is safe.
+    return ws.get_all_records(expected_headers=expected_headers,
+                              numericise_ignore=["all"])
 
 
 @_retry

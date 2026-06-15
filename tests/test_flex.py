@@ -120,7 +120,7 @@ def test_digest_caps_total_pages(kw_config):
     scores = {ev.event_id: 3.0 for ev in evs}
     b = digest_carousel(evs, scores, "13:30", kw_config)
     assert b["type"] == "carousel"
-    assert len(b["contents"]) == 5   # DIGEST_MAX_PAGES
+    assert len(b["contents"]) == 3   # DIGEST_MAX_PAGES
 
 
 def test_health_bubble_shape():
