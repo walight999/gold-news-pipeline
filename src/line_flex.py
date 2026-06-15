@@ -362,16 +362,16 @@ def _digest_event_card(ev: Event, score: float,
       Source ↗
     """
     en_title = _trim(ev.representative_title, 160)
-    en_summary = _trim(ev.representative_summary, 240)
+    en_summary = _trim(ev.representative_summary, 200)
     if alert and alert.should_send and alert.headline_th:
         display_title = alert.headline_th
-        body_lines = [b for b in (alert.body_th or []) if b][:3]
-        impact_line = alert.impact_th
+        # Prefer the gold-impact line (one clean, self-contained sentence). Fall
+        # back to the first body bullet only if impact is missing.
+        detail = (alert.impact_th or "").strip() or next((b for b in (alert.body_th or []) if b), "")
         category = alert.category or ev.topic_bucket.replace("_", " ").title()
     else:
         display_title = title_th.strip() if title_th else en_title
-        body_lines = [summary_th.strip()] if summary_th else ([en_summary] if en_summary else [])
-        impact_line = None
+        detail = summary_th.strip() if summary_th else en_summary
         category = ev.topic_bucket.replace("_", " ").title()
 
     src_name = _source_label(ev.source_list, max_n=2)
@@ -379,12 +379,13 @@ def _digest_event_card(ev: Event, score: float,
     url = _pick_article_url(ev.items)
     _, topic_fg = _topic_chip_color(ev.topic_bucket)
 
-    # Top row: category label + impact pill on the left, age on the right.
-    impact_label, _, _ = score_to_impact(score)
+    # Compact card: category + age, a complete bold headline, one complete
+    # gold-impact line. No raw multi-bullet body — that bulked the card up and
+    # cut mid-sentence. Headline + impact read as a finished thought at a glance.
     top_row = {
         "type": "box", "layout": "horizontal", "alignItems": "center",
         "contents": [
-            {"type": "text", "text": category, "size": "xs", "weight": "bold",
+            {"type": "text", "text": category, "size": "xxs", "weight": "bold",
              "color": topic_fg, "flex": 1, "wrap": False},
             {"type": "text", "text": age or "", "size": "xxs",
              "color": "#9CA3AF", "align": "end", "flex": 0},
@@ -392,26 +393,18 @@ def _digest_event_card(ev: Event, score: float,
     }
     contents: list[dict[str, Any]] = [
         top_row,
-        {"type": "text", "text": display_title, "size": "md", "weight": "bold",
-         "wrap": True, "color": "#111827", "margin": "sm"},
+        {"type": "text", "text": display_title, "size": "sm", "weight": "bold",
+         "wrap": True, "color": "#111827", "margin": "xs"},
     ]
-    # Readable summary lines — full sentences, sm so they don't strain the eye.
-    for b in body_lines:
+    if detail:
         contents.append({
-            "type": "text", "text": _trim(b, 220),
-            "size": "sm", "color": "#1F2937", "wrap": True, "margin": "sm",
+            "type": "text", "text": _trim(detail, 180),
+            "size": "xs", "color": "#4B5563", "wrap": True, "margin": "xs",
         })
-    if impact_line:
-        contents.append({
-            "type": "text", "text": f"💡 {_trim(impact_line, 200)}",
-            "size": "xs", "color": "#6B7280", "wrap": True, "margin": "md",
-            "weight": "bold",
-        })
-    contents.append({"type": "separator", "margin": "md"})
     contents.append(_source_link(src_name, age, url))
 
     return {"type": "box", "layout": "vertical", "spacing": "none",
-            "margin": "md", "contents": contents}
+            "margin": "sm", "contents": contents}
 
 
 def _build_digest_bubble(
@@ -429,7 +422,7 @@ def _build_digest_bubble(
     sections: list[dict[str, Any]] = []
     for i, ev in enumerate(ranked):
         if i > 0:
-            sections.append({"type": "separator", "margin": "xl", "color": "#E5E7EB"})
+            sections.append({"type": "separator", "margin": "md", "color": "#E5E7EB"})
         tr = (translations or {}).get(ev.event_id, {})
         alert = (alerts or {}).get(ev.event_id)
         sections.append(_digest_event_card(
@@ -450,7 +443,7 @@ def _build_digest_bubble(
 # opening the link. The carousel adds more pages as needed (the user prefers
 # 3-per-page over cramming).
 DIGEST_PER_PAGE = 3
-DIGEST_MAX_PAGES = 5
+DIGEST_MAX_PAGES = 3
 # Legacy alias kept for any external import.
 DIGEST_SPLIT_THRESHOLD = DIGEST_PER_PAGE
 
