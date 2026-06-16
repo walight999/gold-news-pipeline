@@ -15,20 +15,19 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -r requirements.txt
-      - name: Gemini classify smoke
+      - name: Gemini raw REST smoke
         run: |
           python - <<'PY'
-          from src.news_alert import _classify_gemini_with_usage
-          alert, tin, tout = _classify_gemini_with_usage(
-              "US CPI comes in hot at 3.5% vs 3.3% expected",
-              "Headline inflation accelerated, reducing odds of a near-term Fed cut.",
-              "forexlive", "0.4")
-          print("=== GEMINI SMOKE RESULT ===")
-          if alert is None:
-              print("RESULT: NONE (key invalid / 429 / parse fail) -> chain would fall to Google Translate")
-          else:
-              print(f"RESULT: OK action={alert.action} category={alert.category} tone={alert.tone}")
-              print(f"headline_th={alert.headline_th}")
-              print(f"body_th={alert.body_th}")
-              print(f"tokens in={tin} out={tout}")
+          import os, httpx, json
+          k = os.environ.get("GEMINI_API_KEY", "").strip()
+          print("=== GEMINI RAW SMOKE ===")
+          print("key present:", bool(k), "len:", len(k), "prefix:", (k[:4] if k else ""))
+          url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
+          body = {"contents": [{"parts": [{"text": "reply with the single word ok"}]}]}
+          try:
+              r = httpx.post(url, json=body, headers={"x-goog-api-key": k}, timeout=30.0)
+              print("STATUS:", r.status_code)
+              print("BODY:", r.text[:400])
+          except Exception as e:
+              print("EXC:", repr(e)[:300])
           PY
