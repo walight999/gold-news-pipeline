@@ -391,7 +391,16 @@ def classify_and_rewrite(
         return cached
 
     age_h_str = f"{age_hours:.1f}" if age_hours is not None else "unknown"
+    # Provider chain: Claude (primary) → Gemini (secondary, e.g. when the
+    # Anthropic monthly spend cap is hit) → literal-translation fallback.
+    # Gemini uses the SAME prompt + JSON contract, so a Claude outage no
+    # longer drops card quality to "Other"/garbled — it just switches model.
     result, tin, tout = _classify_claude_with_usage(title, summary or "", source_id, age_h_str)
+    if result is None:
+        g_result, g_tin, g_tout = _classify_gemini_with_usage(
+            title, summary or "", source_id, age_h_str)
+        if g_result is not None:
+            result, tin, tout = g_result, g_tin, g_tout
     used_fallback = False
     if result is None:
         result = _fallback_alert(title, summary or "", store=store)
@@ -600,6 +609,122 @@ def _parse_json_lenient(text: str) -> dict | None:
         return None
 
 
+def _build_prompt(title: str, summary: str, source_id: str, age_h: str) -> str:
+    """Render the shared classify+rewrite prompt. Used by every LLM
+    provider so Claude and Gemini produce identically-shaped JSON."""
+    # Avoid str.format() because the JSON schema in the prompt has many
+    # unescaped braces — use .replace() for the 4 placeholders.
+    return (
+        _SYSTEM_PROMPT
+        .replace("{source_id}", source_id or "unknown")
+        .replace("{age_hours}", age_h)
+        .replace("{title}", title[:300])
+        .replace("{summary}", (summary or "")[:1500])
+    )
+
+
+def _alert_from_text(text: str) -> MarketAlert | None:
+    """Parse an LLM response into a validated MarketAlert, applying the
+    same guards regardless of which provider produced it: keep-requires-
+    headline, and CJK-leak rejection. Returns None when the text can't be
+    parsed into a usable object (caller then tries the next provider)."""
+    d = _parse_json_lenient(text)
+    if d is None:
+        return None
+    alert = MarketAlert(
+        action=d.get("action", "reject"),
+        news_type=d.get("news_type", "other"),
+        relevance_to_gold=d.get("relevance_to_gold", "none"),
+        freshness=d.get("freshness", "unknown"),
+        tone=d.get("tone", "neutral"),
+        category=d.get("category", "Other"),
+        headline_th=d.get("headline_th"),
+        body_th=list(d.get("body_th") or [])[:3],
+        impact_th=d.get("impact_th"),
+        reason=str(d.get("reason") or ""),
+    )
+    if alert.action == "keep" and not alert.headline_th:
+        log.warning("LLM returned keep without headline_th — downgrading to reject")
+        return MarketAlert(action="reject", reason="malformed-keep-no-headline")
+    # CJK leak guard — models occasionally reach for Japanese / Chinese
+    # kanji when paraphrasing related-region news (e.g. ceasefire = 休戦).
+    # Reject so the caller doesn't publish mixed-script Thai.
+    if alert.action == "keep" and _has_cjk_in_alert(alert):
+        log.warning("LLM rewrite contained CJK characters — downgrading to reject")
+        return MarketAlert(action="reject", reason="cjk-leak-in-rewrite")
+    return alert
+
+
+def _classify_gemini_with_usage(
+    title: str, summary: str, source_id: str, age_h: str,
+) -> tuple["MarketAlert | None", int, int]:
+    """Secondary classifier — Google Gemini, used when Claude is
+    unavailable (e.g. Anthropic monthly spend cap). Uses the SAME prompt
+    and JSON contract as Claude so card quality is preserved, instead of
+    dropping to the literal Google-Translate fallback.
+
+    Gated by GEMINI_API_KEY. Calls the free `gemini-2.0-flash` model via
+    the REST endpoint (httpx — no extra SDK dependency). Returns
+    (alert, input_tokens, output_tokens); tokens come from usageMetadata.
+    Any failure returns (None, 0, 0) so the caller falls through."""
+    import time as _t
+    import httpx
+    api_key = os.environ.get("GEMINI_API_KEY", "").strip()
+    if not api_key:
+        return None, 0, 0
+    model = os.environ.get("GEMINI_MODEL", "gemini-2.0-flash").strip()
+    prompt = _build_prompt(title, summary, source_id, age_h)
+    url = (
+        f"https://generativelanguage.googleapis.com/v1beta/models/"
+        f"{model}:generateContent"
+    )
+    body = {
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {
+            "temperature": 0.2,
+            "maxOutputTokens": 900,
+            "responseMimeType": "application/json",
+        },
+    }
+    last_exc: Exception | None = None
+    for attempt in range(3):
+        try:
+            with httpx.Client(timeout=30.0) as client:
+                resp = client.post(
+                    url, json=body,
+                    headers={"x-goog-api-key": api_key},
+                )
+            if resp.status_code == 429 or resp.status_code >= 500:
+                raise RuntimeError(f"gemini transient {resp.status_code}")
+            resp.raise_for_status()
+            data = resp.json()
+            cands = data.get("candidates") or []
+            if not cands:
+                log.warning("gemini returned no candidates: %s", str(data)[:200])
+                return None, 0, 0
+            parts = (cands[0].get("content") or {}).get("parts") or []
+            text = "".join(p.get("text", "") for p in parts)
+            alert = _alert_from_text(text)
+            if alert is None:
+                raise ValueError(f"unparseable JSON from Gemini: {text[:200]}...")
+            usage = data.get("usageMetadata") or {}
+            tin = int(usage.get("promptTokenCount", 0) or 0)
+            tout = int(usage.get("candidatesTokenCount", 0) or 0)
+            return alert, tin, tout
+        except Exception as e:
+            last_exc = e
+            s = str(e)
+            transient = any(c in s for c in ("transient", " 429", " 503", " 502", " 504"))
+            if attempt < 2 and transient:
+                _t.sleep(1.5 * (attempt + 1))
+                continue
+            log.warning("gemini classify+rewrite failed: %s", e)
+            return None, 0, 0
+    if last_exc:
+        log.warning("gemini classify+rewrite exhausted retries: %s", last_exc)
+    return None, 0, 0
+
+
 def _classify_claude(title: str, summary: str, source_id: str, age_h: str) -> MarketAlert | None:
     """Back-compat wrapper — returns alert only."""
     alert, _, _ = _classify_claude_with_usage(title, summary, source_id, age_h)
@@ -617,15 +742,7 @@ def _classify_claude_with_usage(
     client = _get_anthropic_client()
     if not client:
         return None, 0, 0
-    # Avoid str.format() because the JSON schema in the prompt has many
-    # unescaped braces — use .replace() for the 4 placeholders.
-    prompt = (
-        _SYSTEM_PROMPT
-        .replace("{source_id}", source_id or "unknown")
-        .replace("{age_hours}", age_h)
-        .replace("{title}", title[:300])
-        .replace("{summary}", (summary or "")[:1500])
-    )
+    prompt = _build_prompt(title, summary, source_id, age_h)
     last_exc: Exception | None = None
     for attempt in range(4):
         try:
@@ -643,31 +760,9 @@ def _classify_claude_with_usage(
                 messages=[{"role": "user", "content": prompt}],
             )
             text = resp.content[0].text
-            d = _parse_json_lenient(text)
-            if d is None:
+            alert = _alert_from_text(text)
+            if alert is None:
                 raise ValueError(f"unparseable JSON from Claude: {text[:200]}...")
-            alert = MarketAlert(
-                action=d.get("action", "reject"),
-                news_type=d.get("news_type", "other"),
-                relevance_to_gold=d.get("relevance_to_gold", "none"),
-                freshness=d.get("freshness", "unknown"),
-                tone=d.get("tone", "neutral"),
-                category=d.get("category", "Other"),
-                headline_th=d.get("headline_th"),
-                body_th=list(d.get("body_th") or [])[:3],
-                impact_th=d.get("impact_th"),
-                reason=str(d.get("reason") or ""),
-            )
-            if alert.action == "keep" and not alert.headline_th:
-                log.warning("claude returned keep without headline_th — downgrading to reject")
-                alert = MarketAlert(action="reject", reason="malformed-keep-no-headline")
-            # CJK leak guard — Claude occasionally reaches for Japanese /
-            # Chinese kanji when paraphrasing related-region news (e.g.
-            # ceasefire = 休戦). Reject the rewrite so the caller doesn't
-            # publish mixed-script Thai.
-            if alert.action == "keep" and _has_cjk_in_alert(alert):
-                log.warning("claude rewrite contained CJK characters — downgrading to reject")
-                alert = MarketAlert(action="reject", reason="cjk-leak-in-rewrite")
             # Token usage — Anthropic SDK exposes it on resp.usage
             usage = getattr(resp, "usage", None)
             tin = int(getattr(usage, "input_tokens", 0) or 0)
