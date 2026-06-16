@@ -366,12 +366,17 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
                     age_hours=age_hours,
                     store=store,
                 )
-                if a.should_send and (a.relevance_to_gold or "none") != "none":
+                # Digest is quality-gated: a REAL Claude classification (not the
+                # Google-translate fallback, which keeps everything as "Other"
+                # with garbled cut Thai) AND gold-relevant (high/medium, not
+                # low/none — low is mostly tangential macro noise).
+                if (a.should_send and not a.is_fallback
+                        and (a.relevance_to_gold or "none") in ("high", "medium")):
                     ranked_alerts[ev.event_id] = a
                     kept.append(ev)
                 else:
-                    log.info("digest dropped event_id=%s reason=%s relevance=%s",
-                             ev.event_id, a.reason, a.relevance_to_gold)
+                    log.info("digest dropped event_id=%s reason=%s relevance=%s fallback=%s",
+                             ev.event_id, a.reason, a.relevance_to_gold, a.is_fallback)
             log.info("digest classifier: %d/%d events kept", len(kept), len(ranked))
             if not kept:
                 store.flush()

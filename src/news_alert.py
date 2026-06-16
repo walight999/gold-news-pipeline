@@ -58,6 +58,7 @@ class MarketAlert:
     body_th: list[str] = field(default_factory=list)
     impact_th: str | None = None
     reason: str = ""
+    is_fallback: bool = False    # True = permissive Google-translate accept (Claude down)
 
     @property
     def should_send(self) -> bool:
@@ -287,7 +288,11 @@ def _cache_key_alert(title: str, summary: str) -> str:
     rows written by `translator.to_thai()` — both live in the same Sheet
     tab and share the 24h TTL."""
     h = hashlib.sha256(f"{title}\n{summary or ''}".encode("utf-8")).hexdigest()[:14]
-    return f"al{h}"   # total 16 chars to fit existing cache_key column width
+    # Version prefix — bump to invalidate ALL old cached classifications when the
+    # classifier prompt / rules change. a3 (2026-06-16): new strict reject rules
+    # + relevance gate + complete-sentence summaries; also purges the fallback
+    # (Google-translate "Other") rows that used to be cached and re-served.
+    return f"a3{h}"   # total 16 chars to fit existing cache_key column width
 
 
 def _cache_lookup(store: "Store | None", key: str) -> MarketAlert | None:
@@ -386,7 +391,12 @@ def classify_and_rewrite(
         result = _fallback_alert(title, summary or "", store=store)
         used_fallback = True
 
-    _cache_write(store, key, title, result)
+    # NEVER cache the fallback — it's a permissive Google-translate accept used
+    # only during a Claude outage. Caching it poisoned the digest: a single
+    # rate-limited classify cached an "Other"/garbled keep that was then re-served
+    # for 24h, bypassing the real classifier + reject rules.
+    if not used_fallback:
+        _cache_write(store, key, title, result)
     _record_classifier_outcome(store, source_id, result,
                                 used_fallback=used_fallback, cache_hit=False,
                                 tokens_in=tin, tokens_out=tout)
@@ -691,4 +701,5 @@ def _fallback_alert(title: str, summary: str, store: "Store | None" = None) -> M
         body_th=body,
         impact_th=None,
         reason="claude-unavailable: literal-translation fallback",
+        is_fallback=True,
     )
