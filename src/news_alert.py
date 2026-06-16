@@ -309,6 +309,12 @@ def _cache_lookup(store: "Store | None", key: str) -> MarketAlert | None:
 
 _CACHE_HARD_CAP = 3000   # in-memory cap; maintain mode does the 24h TTL pass
 
+# Proactive spacing between Claude calls within a run (see _classify_claude_*).
+# 0.5s ≈ ≤120 calls/min, under typical Haiku per-minute limits, so the
+# classify burst stops tripping the rate limiter into the noisy fallback.
+_MIN_CLAUDE_GAP_S = 0.5
+_LAST_CLAUDE_CALL = [0.0]   # mutable module-level timestamp of the last call
+
 
 def _cache_write(store: "Store | None", key: str, src_title: str, alert: MarketAlert) -> None:
     """Upsert the alert into the translation_cache tab. Enforces a
@@ -621,8 +627,16 @@ def _classify_claude_with_usage(
         .replace("{summary}", (summary or "")[:1500])
     )
     last_exc: Exception | None = None
-    for attempt in range(3):
+    for attempt in range(4):
         try:
+            # Proactive spacing — a single news-cron run classifies dozens of
+            # breaking/alert/digest candidates back-to-back; without a gap they
+            # burst past Anthropic's per-minute limit and ~30% fall back to the
+            # noisy Google-translate path. Keep ≥_MIN_CLAUDE_GAP_S between calls.
+            _gap = _t.time() - _LAST_CLAUDE_CALL[0]
+            if _gap < _MIN_CLAUDE_GAP_S:
+                _t.sleep(_MIN_CLAUDE_GAP_S - _gap)
+            _LAST_CLAUDE_CALL[0] = _t.time()
             resp = client.messages.create(
                 model="claude-haiku-4-5-20251001",
                 max_tokens=900,
@@ -662,9 +676,9 @@ def _classify_claude_with_usage(
         except Exception as e:
             last_exc = e
             s = str(e)
-            transient = any(c in s for c in (" 529", " 503", " 502", " 504",
+            transient = any(c in s for c in (" 429", " 529", " 503", " 502", " 504",
                                              "overloaded", "rate_limit"))
-            if attempt < 2 and transient:
+            if attempt < 3 and transient:
                 wait = 2.0 * (attempt + 1)
                 log.info("claude transient (attempt %d): %s — sleeping %ss",
                          attempt + 1, s[:80], wait)
