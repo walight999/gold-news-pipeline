@@ -1,0 +1,51 @@
+name: snapshot-social
+# Every 30 min: snapshot social_feed drafts still awaiting review to
+# snapshots/social_pending.json and commit, so agent-hq's finisit-tradetongkam
+# editor adapter (social-pending) can read the review queue via raw GitHub.
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch: {}
+
+concurrency:
+  group: snapshot-social
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      GSHEET_ID: ${{ secrets.GSHEET_ID }}
+      GSHEET_CREDS: ${{ secrets.GSHEET_CREDS }}
+      PYTHONUNBUFFERED: "1"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - name: Snapshot pending social drafts
+        run: python scripts/snapshot_social_pending.py
+
+      - name: Commit snapshot if changed
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if [ -n "$(git status --porcelain snapshots/social_pending.json)" ]; then
+            git add snapshots/social_pending.json
+            git commit -m "chore(snapshot): refresh social_pending [skip ci]"
+            git push
+          else
+            echo "No pending-draft changes — skip commit."
+          fi
