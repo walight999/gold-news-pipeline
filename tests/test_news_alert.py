@@ -151,6 +151,8 @@ def test_classifier_counters_track_fallback(store):
     from src.news_alert import get_classifier_counters
     with patch("src.news_alert._classify_claude_with_usage",
                 return_value=(None, 0, 0)), \
+         patch("src.news_alert._classify_gemini_with_usage",
+                return_value=(None, 0, 0)), \
          patch("src.translator._translate_claude", return_value=None), \
          patch("src.translator._translate_google", return_value="ทอง"):
         classify_and_rewrite("Gold up", "Gold rallies", source_id="forexlive", store=store)
@@ -189,11 +191,92 @@ def test_cache_cap_evicts_oldest_when_full(store):
     assert store.get("translation_cache", ("newkey1234567890",)) is not None
 
 
+def test_gemini_used_when_claude_unavailable(store):
+    """When Claude returns None (e.g. Anthropic spend cap), the secondary
+    Gemini classifier is tried BEFORE the literal-translation fallback.
+    A Gemini `keep` is a real classify — it should be cached, not treated
+    as a fallback."""
+    gemini_alert = MarketAlert(
+        action="keep", news_type="central_bank", tone="dovish",
+        category="Central Bank", headline_th="Fed ส่งสัญญาณผ่อนคลาย",
+        body_th=["ถ้อยแถลงโทนนุ่มกว่าคาด"], impact_th="หนุนราคาทองคำ",
+    )
+    with patch("src.news_alert._classify_claude_with_usage",
+               return_value=(None, 0, 0)), \
+         patch("src.news_alert._classify_gemini_with_usage",
+               return_value=(gemini_alert, 120, 60)) as m_gem:
+        out1 = classify_and_rewrite("Fed dovish tilt", "Powell softer", store=store)
+        assert out1.should_send is True
+        assert out1.headline_th == "Fed ส่งสัญญาณผ่อนคลาย"
+        assert out1.category == "Central Bank"   # NOT the "Other" fallback
+        assert m_gem.call_count == 1
+
+        # Gemini result is cached like Claude's — 2nd call is a cache hit.
+        out2 = classify_and_rewrite("Fed dovish tilt", "Powell softer", store=store)
+        assert out2.should_send is True
+        assert m_gem.call_count == 1
+
+
+def test_classify_gemini_parses_rest_response(monkeypatch):
+    """_classify_gemini_with_usage parses the Gemini REST shape
+    (candidates[].content.parts[].text + usageMetadata) into a validated
+    MarketAlert, reusing the same JSON contract as Claude."""
+    import src.news_alert as na
+
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key")
+
+    payload = {
+        "candidates": [{
+            "content": {"parts": [{"text": json.dumps({
+                "action": "keep", "news_type": "data_release",
+                "relevance_to_gold": "high", "tone": "hawkish",
+                "category": "Inflation", "headline_th": "CPI สหรัฐสูงกว่าคาด",
+                "body_th": ["CPI 3.5% vs 3.3% คาด"], "impact_th": "กดดันทองคำ",
+            }, ensure_ascii=False)}]},
+        }],
+        "usageMetadata": {"promptTokenCount": 200, "candidatesTokenCount": 80},
+    }
+
+    class _Resp:
+        status_code = 200
+        def raise_for_status(self): pass
+        def json(self): return payload
+
+    class _Client:
+        def __init__(self, *a, **k): pass
+        def __enter__(self): return self
+        def __exit__(self, *a): return False
+        def post(self, *a, **k): return _Resp()
+
+    import httpx
+    monkeypatch.setattr(httpx, "Client", _Client)
+
+    alert, tin, tout = na._classify_gemini_with_usage(
+        "US CPI hot", "CPI prints 3.5%", "forexlive", "0.2")
+    assert alert is not None
+    assert alert.should_send is True
+    assert alert.headline_th == "CPI สหรัฐสูงกว่าคาด"
+    assert alert.category == "Inflation"
+    assert (tin, tout) == (200, 80)
+
+
+def test_classify_gemini_no_key_returns_none(monkeypatch):
+    """Without GEMINI_API_KEY, the secondary classifier no-ops cleanly
+    (so the chain falls through to the literal-translation fallback)."""
+    import src.news_alert as na
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    alert, tin, tout = na._classify_gemini_with_usage("x", "y", "s", "1.0")
+    assert alert is None
+    assert (tin, tout) == (0, 0)
+
+
 def test_classify_and_rewrite_fallback_when_claude_unavailable(store):
     """When Claude returns None (key missing / API down), we fall through
     to a permissive accept with literal translation, so the pipeline still
     publishes during a Claude outage rather than going silent."""
     with patch("src.news_alert._classify_claude", return_value=None), \
+         patch("src.news_alert._classify_claude_with_usage", return_value=(None, 0, 0)), \
+         patch("src.news_alert._classify_gemini_with_usage", return_value=(None, 0, 0)), \
          patch("src.translator._translate_claude", return_value=None), \
          patch("src.translator._translate_google", return_value="ราคาทองพุ่ง"):
         out = classify_and_rewrite("Gold surges", "Gold rallies on safe-haven bid",

@@ -81,9 +81,16 @@ test draft) · `calendar_daily` (**retired — GAS owns it**) · `calendar_check
 ## Secrets (GitHub Actions)
 
 `GSHEET_ID`, `GSHEET_CREDS`, `LINE_CHANNEL_TOKEN`, `LINE_NEWS_TARGET`,
-`ANTHROPIC_API_KEY`, `FRED_API_KEY`, `APIFY_TOKEN`, `GAS_WEBAPP_URL`,
-`GAS_WEBAPP_TOKEN`, and X: `X_API_KEY` `X_API_SECRET` `X_ACCESS_TOKEN`
-`X_ACCESS_TOKEN_SECRET` (OAuth 1.0a, @tradetongkam, Read+Write).
+`ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, `FRED_API_KEY`, `APIFY_TOKEN`,
+`GAS_WEBAPP_URL`, `GAS_WEBAPP_TOKEN`, and X: `X_API_KEY` `X_API_SECRET`
+`X_ACCESS_TOKEN` `X_ACCESS_TOKEN_SECRET` (OAuth 1.0a, @tradetongkam, Read+Write).
+
+**Classifier provider chain** (`news_alert.classify_and_rewrite`): Claude Haiku
+(primary) → **Gemini `gemini-2.0-flash`** (secondary, `GEMINI_API_KEY`, free tier,
+same prompt+JSON contract) → literal Google-Translate fallback (`category="Other"`,
+never cached). The Gemini tier exists so an Anthropic outage / monthly spend cap
+no longer drops card quality — it just switches model. Optional `GEMINI_MODEL`
+overrides the model id.
 ⚠️ `LINE_CHANNEL_TOKEN` was pasted in chat 2026-06-11 — rotation pending.
 
 ## Cost model (~ a few $/month)
