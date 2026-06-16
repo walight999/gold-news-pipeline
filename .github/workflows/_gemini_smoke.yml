@@ -1,0 +1,34 @@
+name: _gemini_smoke
+# Temporary: prove GEMINI_API_KEY works on the free tier (real classify call).
+# Delete after verification.
+on:
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - name: Gemini classify smoke
+        run: |
+          python - <<'PY'
+          from src.news_alert import _classify_gemini_with_usage
+          alert, tin, tout = _classify_gemini_with_usage(
+              "US CPI comes in hot at 3.5% vs 3.3% expected",
+              "Headline inflation accelerated, reducing odds of a near-term Fed cut.",
+              "forexlive", "0.4")
+          print("=== GEMINI SMOKE RESULT ===")
+          if alert is None:
+              print("RESULT: NONE (key invalid / 429 / parse fail) -> chain would fall to Google Translate")
+          else:
+              print(f"RESULT: OK action={alert.action} category={alert.category} tone={alert.tone}")
+              print(f"headline_th={alert.headline_th}")
+              print(f"body_th={alert.body_th}")
+              print(f"tokens in={tin} out={tout}")
+          PY
