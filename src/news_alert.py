@@ -691,19 +691,49 @@ def _classify_claude_with_usage(
     return None, 0, 0
 
 
+def _soft_trim(text: str, limit: int) -> str:
+    """Trim Thai text without cutting mid-word. Thai has no inter-word
+    spaces, so a hard `text[:limit]` slice almost always lands inside a
+    word and produces garbled output. Instead we trim at the last phrase
+    boundary (Thai DOES use spaces between clauses/phrases) at or before
+    the limit; if there is none, we keep the whole string rather than
+    cut it mid-word. An ellipsis marks a real truncation."""
+    text = text.strip()
+    if len(text) <= limit:
+        return text
+    # Prefer the last space-delimited phrase boundary within the budget.
+    cut = text.rfind(" ", 0, limit)
+    if cut >= limit * 0.5:        # a usable boundary reasonably close to the limit
+        return text[:cut].rstrip() + "…"
+    # No good boundary: keep the whole phrase intact rather than mangle it.
+    return text
+
+
 def _fallback_alert(title: str, summary: str, store: "Store | None" = None) -> MarketAlert:
     """Conservative fallback when Claude is unavailable. Accepts the item
     and runs a literal translation so the pipeline still publishes — we
-    prefer noisy output over a silent channel during a Claude outage."""
+    prefer noisy output over a silent channel during a Claude outage.
+
+    Output is built from COMPLETE translated sentences so the card reads
+    cleanly even though no Claude rewrite happened. We never hard-slice
+    Thai (no inter-word spaces → mid-word cuts); see `_soft_trim`."""
     from .translator import to_thai
     th_title = to_thai(title, max_len=200, store=store) or title
     th_summary = to_thai(summary, max_len=400, store=store) if summary else ""
     body: list[str] = []
     if th_summary:
-        # Split summary at sentence boundaries to make bullets
+        # Split at sentence boundaries; keep whole sentences up to a budget.
         parts = [p.strip() for p in th_summary.replace("\n", " ").split(".") if p.strip()]
-        for p in parts[:2]:
-            body.append(p[:120])
+        used = 0
+        for p in parts:
+            sentence = _soft_trim(p, 150)
+            if not sentence:
+                continue
+            body.append(sentence)
+            used += len(sentence)
+            # One full sentence is usually enough; take a 2nd only if short.
+            if len(body) >= 2 or used >= 150:
+                break
     return MarketAlert(
         action="keep",
         news_type="other",
@@ -711,7 +741,7 @@ def _fallback_alert(title: str, summary: str, store: "Store | None" = None) -> M
         freshness="unknown",
         tone="neutral",
         category="Other",
-        headline_th=th_title[:90],
+        headline_th=_soft_trim(th_title, 90),
         body_th=body,
         impact_th=None,
         reason="claude-unavailable: literal-translation fallback",
