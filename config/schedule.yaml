@@ -86,8 +86,12 @@ calendar:
   pre_release_currencies: [CAD, CHF, CNY, EUR, GBP, JPY, USD]
   pre_release_impacts:    [High, Medium]
 
-  # Post-release alert — fires once after release, directional gold impact
-  # plus FRED actual when supported (US series only — CAD/CHF/etc. stay
-  # directional only).
-  post_release_window_low_min:  -15
-  post_release_window_high_min:   0
+  # Post-release alert — fires once after release (sent_log idempotency), with
+  # the FRED/FF actual when supported. The window looks BACK far enough that a
+  # throttled calendar-check still catches recent releases: GitHub drops the
+  # */10 cron to ~one run every few hours, so a tight [-15,0) window missed
+  # every release. -180 = report any High/Medium release from the last 3h that
+  # hasn't been sent yet. The XAU-reaction is still measured at release+5m from
+  # historical price, so a late-delivered card is still accurate.
+  post_release_window_low_min:  -180
+  post_release_window_high_min:    0
