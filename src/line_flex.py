@@ -720,7 +720,7 @@ def _fmt_value(v: float, prefix: str = "", decimals: int = 2) -> str:
 def _price_cell(label: str, snap: tuple[float, float] | None,
                 value_fmt) -> dict[str, Any] | None:
     """One column of the price strip. `value_fmt(last)` returns the
-    display string (e.g. "$4,542.40" or "฿35.21").
+    display string (e.g. "4,542.40" or "35.21").
 
     Returns None when `snap` is None — user feedback 2026-05-23: "ถ้าจะ
     ไม่มี currency ก็ไม่มีให้หมดเลย" — empty cells with "(no data)"
@@ -729,7 +729,7 @@ def _price_cell(label: str, snap: tuple[float, float] | None,
     width adjusts compactly instead of carrying dead air.
 
     Every text inside is `align: center` so the columns visually line up
-    regardless of value width ($4,510.50 vs $99.32 vs ฿32.64).
+    regardless of value width (4,510.50 vs 99.32 vs 32.64).
     """
     if not snap:
         return None
@@ -741,7 +741,7 @@ def _price_cell(label: str, snap: tuple[float, float] | None,
         "contents": [
             {"type": "text", "text": label, "size": "xxs",
              "color": "#9CA3AF", "align": "center"},
-            {"type": "text", "text": value_fmt(last), "size": "sm",
+            {"type": "text", "text": value_fmt(last), "size": "xs",
              "weight": "bold", "color": "#111827", "align": "center"},
             {"type": "text", "text": f"{sign}{pct:.2f}%", "size": "xxs",
              "color": color, "align": "center"},
@@ -793,16 +793,18 @@ def calendar_day_bubble(
         return None
     body_contents: list[dict[str, Any]] = []
 
-    # Price snapshot strip (XAU spot in $, DXY index, HUI gold-miners,
-    # GLD SPDR ETF price, USD/THB).
+    # Price snapshot strip (XAU spot, DXY index, HUI gold-miners,
+    # GLD SPDR ETF price, USD/THB). Currency prefixes ($ / ฿) dropped
+    # per user feedback 2026-05-28 — ticker label above already names
+    # the asset, so the prefix was redundant and added visual noise.
     # "SPDR" instead of the ticker "GLD" because the SPDR Gold Trust
     # name reads more clearly to most traders than the raw symbol.
     price_specs = (
-        ("XAU", xau_snapshot, lambda v: _fmt_value(v, "$")),
+        ("XAU", xau_snapshot, lambda v: _fmt_value(v, "")),
         ("DXY", dxy_snapshot, lambda v: _fmt_value(v, "")),
         ("HUI", hui_snapshot, lambda v: _fmt_value(v, "")),
-        ("SPDR", gld_snapshot, lambda v: _fmt_value(v, "$")),
-        ("USDTHB", thb_snapshot, lambda v: _fmt_value(v, "฿")),
+        ("SPDR", gld_snapshot, lambda v: _fmt_value(v, "")),
+        ("USDTHB", thb_snapshot, lambda v: _fmt_value(v, "")),
     )
     # Render only cells that have data — user prefers consistent
     # all-real-data formatting over fixed-width with placeholders.
