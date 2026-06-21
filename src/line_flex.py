@@ -138,13 +138,41 @@ def _strip_filler(s: str) -> str:
     return s.strip()
 
 
+# World-leader names → canonical short Thai surname (White 2026-06-21). Two jobs:
+# (a) drop the given name — Thai macro headlines refer to leaders by surname
+# ("วลาดิเมียร์ ปูติน" → "ปูติน"); (b) normalise variant transliterations to the
+# spelling the rest of the pipeline uses ("พูติน" → "ปูติน", "เซเลนสกี้" →
+# "เซเลนสกี", "สีจิ้นผิง" → "สี จิ้นผิง"). LONGEST → SHORTEST so a full name is
+# collapsed before a variant suffix is touched. Claude already emits surnames
+# via its prompt glossary; this mainly cleans the literal-translate fallback +
+# any stray full/variant forms. Thai-only (substring) — English→Thai is handled
+# upstream by translator._NAME_PATCH.
+_TH_NAMES: tuple[tuple[str, str], ...] = (
+    ("วลาดิเมียร์ ปูติน", "ปูติน"),
+    ("วลาดิมีร์ ปูติน", "ปูติน"),
+    ("โวโลดิมีร์ เซเลนสกี", "เซเลนสกี"),
+    ("เบนจามิน เนทันยาฮู", "เนทันยาฮู"),
+    ("คริสตีน ลาการ์ด", "ลาการ์ด"),
+    ("เจอโรม พาวเวลล์", "พาวเวลล์"),
+    ("นเรนทรา โมดี", "โมดี"),
+    ("โดนัลด์ ทรัมป์", "ทรัมป์"),
+    ("เซเลนสกี้", "เซเลนสกี"),
+    ("สีจิ้นผิง", "สี จิ้นผิง"),
+    ("โจ ไบเดน", "ไบเดน"),
+    ("พูติน", "ปูติน"),
+)
+
+
 def _compact_th(s: str) -> str:
-    """Shorten card text: abbreviate long Thai terms (ประธานาธิบดี → ปธน.) then
-    strip filler words. Applied at render so it catches Claude, Gemini, and
-    fallback output alike. Idempotent — re-running on already-abbreviated text
-    is a no-op."""
+    """Shorten card text: normalise leader names to a short canonical surname,
+    abbreviate long Thai terms (ประธานาธิบดี → ปธน.), then strip filler. Applied
+    at render so it catches Claude, Gemini, and fallback output alike.
+    Idempotent — re-running on already-compacted text is a no-op."""
     if not s:
         return s
+    for full, canon in _TH_NAMES:
+        if full in s:
+            s = s.replace(full, canon)
     for long, short in _TH_ABBREV:
         if long in s:
             s = s.replace(long, short)

@@ -133,6 +133,22 @@ def test_compact_th_no_substring_mangle():
     assert _compact_th("เศรษฐกิจสหรัฐอเมริกาชะลอ") == "เศรษฐกิจสหรัฐฯชะลอ"
 
 
+def test_compact_th_leader_names():
+    from src.line_flex import _compact_th
+    # drop given name → surname
+    assert _compact_th("วลาดิเมียร์ ปูตินกล่าว") == "ปูตินกล่าว"
+    assert _compact_th("โดนัลด์ ทรัมป์ประกาศ") == "ทรัมป์ประกาศ"
+    assert _compact_th("โวโลดิมีร์ เซเลนสกีเรียกร้อง") == "เซเลนสกีเรียกร้อง"
+    # variant transliterations normalised to canonical
+    assert _compact_th("พูตินเตือน") == "ปูตินเตือน"
+    assert _compact_th("เซเลนสกี้") == "เซเลนสกี"
+    assert _compact_th("สีจิ้นผิงพบผู้นำ") == "สี จิ้นผิงพบผู้นำ"
+    # full + variant combined collapses to canonical surname
+    assert _compact_th("โวโลดิมีร์ เซเลนสกี้") == "เซเลนสกี"
+    # already canonical → unchanged (idempotent)
+    assert _compact_th("ปูตินพบสี จิ้นผิง") == "ปูตินพบสี จิ้นผิง"
+
+
 def test_compact_th_orgs_and_data_terms():
     from src.line_flex import _compact_th
     assert _compact_th("ธนาคารกลางญี่ปุ่น") == "BoJ"
