@@ -91,18 +91,39 @@ def _trim(s: str, n: int) -> str:
 _FILLER_WORDS = ("สามารถ",)
 
 # Long Thai terms → widely-understood standard abbreviations, to save card space
-# (White 2026-06-21). Order matters: longest / most specific FIRST so a prefix
-# isn't half-replaced (e.g. รัฐมนตรีว่าการกระทรวง before รัฐมนตรี). Only common,
-# unambiguous abbreviations a Thai reader reads instantly.
+# (White 2026-06-21). MUST be ordered LONGEST → SHORTEST so a longer term is
+# replaced before any shorter term that is a substring of it (e.g.
+# "ธนาคารกลางสหรัฐอเมริกา"→Fed before "สหรัฐอเมริกา"→สหรัฐฯ, else "Fedอเมริกา";
+# "รัฐมนตรีว่าการกระทรวง"→รมว. before "รัฐมนตรี"→รมต.). Only standard
+# abbreviations a Thai macro reader reads instantly. The English acronyms match
+# the channel's existing Fed/BoJ/CPI style and mainly catch the literal-translate
+# fallback path (Claude already emits the acronyms per the prompt). "รอง" /
+# "ตัวเลข" prefixes are preserved automatically (รองประธานาธิบดี → รองปธน.).
 _TH_ABBREV: tuple[tuple[str, str], ...] = (
+    # central banks (longest forms first) — catch the fallback's literal Thai
+    ("ธนาคารกลางสหรัฐอเมริกา", "Fed"),
+    ("ผลิตภัณฑ์มวลรวมภายในประเทศ", "GDP"),
+    ("กองทุนการเงินระหว่างประเทศ", "IMF"),
     ("รัฐมนตรีช่วยว่าการกระทรวง", "รมช."),
-    ("รัฐมนตรีว่าการกระทรวง", "รมว."),
-    ("คณะกรรมการนโยบายการเงิน", "กนง."),
-    ("ธนาคารแห่งประเทศไทย", "ธปท."),
     ("ผลิตภัณฑ์มวลรวมในประเทศ", "GDP"),
+    ("ดัชนีผู้จัดการฝ่ายจัดซื้อ", "PMI"),
+    ("คณะกรรมการนโยบายการเงิน", "กนง."),
+    ("รัฐมนตรีว่าการกระทรวง", "รมว."),
+    ("การจ้างงานนอกภาคเกษตร", "NFP"),
+    ("ธนาคารแห่งประเทศไทย", "ธปท."),
+    ("ธนาคารกลางสหรัฐฯ", "Fed"),
+    ("ดัชนีราคาผู้บริโภค", "CPI"),
+    ("ธนาคารกลางญี่ปุ่น", "BoJ"),
+    ("ธนาคารกลางอังกฤษ", "BoE"),
+    ("ดัชนีราคาผู้ผลิต", "PPI"),
+    ("ธนาคารกลางยุโรป", "ECB"),
+    ("ธนาคารกลางสหรัฐ", "Fed"),
     ("ประธานาธิบดี", "ปธน."),
     ("นายกรัฐมนตรี", "นายกฯ"),
     ("สหรัฐอเมริกา", "สหรัฐฯ"),
+    ("สหประชาชาติ", "UN"),
+    ("สหภาพยุโรป", "EU"),
+    ("เลขาธิการ", "เลขาฯ"),
     ("รัฐมนตรี", "รมต."),
 )
 
