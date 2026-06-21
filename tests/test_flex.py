@@ -67,6 +67,45 @@ def test_alert_bubble_shape(kw_config):
     assert b["header"]["backgroundColor"] == "#D97706"
 
 
+def _first_text(body_contents):
+    """First text component (skips a chip row box if present)."""
+    for c in body_contents:
+        if c.get("type") == "text":
+            return c
+    return None
+
+
+def test_alert_hides_other_and_neutral_chips(kw_config):
+    # Fallback-style event: category "Other" + direction "neutral" → both chips
+    # should be hidden, and the headline becomes the first body element.
+    ev = _ev("other", "neutral", ["forexlive"], title="ทดสอบข่าว", summary="")
+    body = alert_bubble(ev, 3.6, kw_config)["body"]["contents"]
+    # Chip row (a leading horizontal box) is suppressed → headline text is first.
+    assert body[0]["type"] == "text", "Other/neutral chip row should be hidden"
+    assert "ทดสอบข่าว" in body[0]["text"]
+
+
+def test_alert_headline_not_bold(kw_config):
+    ev = _ev("other", "neutral", ["forexlive"], title="ทดสอบ", summary="")
+    title = _first_text(alert_bubble(ev, 3.6, kw_config)["body"]["contents"])
+    assert title is not None and title.get("weight") != "bold"
+
+
+def test_alert_keeps_informative_chips(kw_config):
+    # Real signal — Inflation / hawkish — both chips must still render.
+    ev = _ev("inflation", "hawkish", ["bls"])
+    body = breaking_bubble(ev, 5.0, kw_config)["body"]["contents"]
+    assert body[0].get("type") == "box" and body[0].get("layout") == "horizontal", \
+        "informative category/direction should still show a chip row"
+
+
+def test_strip_filler_removes_samat():
+    from src.line_flex import _strip_filler
+    assert _strip_filler("ทองคำสามารถปรับขึ้น") == "ทองคำปรับขึ้น"
+    assert _strip_filler("a  b   c") == "a b c"
+    assert _strip_filler("") == ""
+
+
 def _count_event_cards(bubble):
     """Each digest event is a top-level vertical box in the bubble body."""
     return sum(1 for sec in bubble["body"]["contents"]
