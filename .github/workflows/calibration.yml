@@ -1,0 +1,41 @@
+name: calibration
+# On-demand: backfill xau_return_* into calibration_log, or print the alert
+# precision report (which topics/routes actually move gold). Backfill also runs
+# daily inside the maintain workflow; this lets you trigger either by hand.
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "which calibration job to run"
+        required: true
+        default: precision_report
+        type: choice
+        options:
+          - precision_report
+          - backfill_xau
+
+# Share the news-cron concurrency group: backfill_xau WRITES calibration_log,
+# and store.flush() clears+rewrites whole tabs — running it alongside news-cron
+# would risk a lost-update race. Serialize them.
+concurrency:
+  group: gold-news
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GSHEET_ID: ${{ secrets.GSHEET_ID }}
+      GSHEET_CREDS: ${{ secrets.GSHEET_CREDS }}
+      PYTHONUNBUFFERED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Run calibration job
+        run: python -m src.main --mode ${{ inputs.mode }}
