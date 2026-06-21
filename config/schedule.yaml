@@ -44,9 +44,13 @@ routing:
 
 retention:
   # Daily `--mode maintain` purges rows older than these thresholds.
-  # calibration_log is never purged (Phase 3 backfills xau_return_* there).
   event_state_days: 7
   sent_log_days:    30
+  # calibration_log keeps ~6 months — enough history for the precision report /
+  # weight tuning, while bounding growth (it's loaded every run). health_log is
+  # operational noise; 90 days is plenty for incident review.
+  calibration_log_days: 180
+  health_log_days:      90
 
 health:
   # Cooldown for repeating the same (source_id, warning_type) warning.

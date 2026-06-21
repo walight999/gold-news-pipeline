@@ -3,8 +3,27 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from src.dedup import Event, cluster, cluster_key_for
+from src.dedup import Event, _kw_in, cluster, cluster_key_for, detect_topic_and_entity
 from src.normalizer import Item
+
+
+def test_kw_in_word_boundary_for_short_tokens():
+    # Short tokens must match whole words only — no substring pollution.
+    assert _kw_in("us", "the us economy slows") is True
+    assert _kw_in("us", "thus the focus of discussion") is False
+    assert _kw_in("fed", "fed cuts rates") is True
+    assert _kw_in("fed", "federal court ruling") is False
+    assert _kw_in("ppi", "ppi rose 0.3%") is True
+    assert _kw_in("ppi", "online shopping surge") is False
+    assert _kw_in("uk", "uk inflation cools") is True
+    assert _kw_in("uk", "lukewarm demand") is False
+
+
+def test_kw_in_substring_for_long_terms_and_phrases():
+    assert _kw_in("inflation", "inflationary pressures build") is True   # stemming kept
+    assert _kw_in("rate cut", "fed signals a rate cut") is True          # phrase
+    assert _kw_in("non-farm", "non-farm payrolls beat") is True          # hyphen
+    assert _kw_in("powell", "powells remarks today") is True             # >4 chars
 
 
 def _event(items, topic="macro", direction="neutral"):

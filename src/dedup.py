@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import hashlib
 import logging
+import re
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -122,6 +123,24 @@ class Event:
         return "  ".join(parts)
 
 
+_WB_CACHE: dict[str, re.Pattern[str]] = {}
+
+
+def _kw_in(kw: str, text: str) -> bool:
+    """Keyword/entity membership test. SHORT single tokens (<=4 chars, no
+    space/hyphen) are matched on WORD BOUNDARIES so they don't pollute on
+    substrings — "us" must not match "thus"/"focus", "fed" must not match
+    "federal", "ppi" must not match "shopping". Longer terms and phrases keep
+    plain substring so stemming still works ("inflation" → "inflationary")."""
+    if len(kw) > 4 or " " in kw or "-" in kw:
+        return kw in text
+    pat = _WB_CACHE.get(kw)
+    if pat is None:
+        pat = re.compile(r"\b" + re.escape(kw) + r"\b")
+        _WB_CACHE[kw] = pat
+    return pat.search(text) is not None
+
+
 def detect_topic_and_entity(text: str, kw_config: dict[str, Any]) -> tuple[str, str]:
     """Return (topic_bucket, entity).
     Topic: highest keyword-hit count; ties broken by base_impact desc (impactful wins).
@@ -130,7 +149,7 @@ def detect_topic_and_entity(text: str, kw_config: dict[str, Any]) -> tuple[str, 
     t = text.lower()
     candidates: list[tuple[int, int, str]] = []  # (hits, base_impact, topic)
     for topic, cfg in kw_config["topics"].items():
-        hits = sum(1 for kw in cfg["keywords"] if kw in t)
+        hits = sum(1 for kw in cfg["keywords"] if _kw_in(kw, t))
         if hits > 0:
             candidates.append((hits, int(cfg.get("base_impact", 0)), topic))
     if not candidates:
@@ -138,7 +157,7 @@ def detect_topic_and_entity(text: str, kw_config: dict[str, Any]) -> tuple[str, 
     candidates.sort(key=lambda c: (-c[0], -c[1]))
     topic = candidates[0][2]
     ents = kw_config["topics"][topic].get("entities", ["global"])
-    chosen_entity = next((e for e in ents if e in t), ents[0])
+    chosen_entity = next((e for e in ents if _kw_in(e, t)), ents[0])
     return topic, chosen_entity
 
 
@@ -147,7 +166,7 @@ def detect_direction(text: str, kw_config: dict[str, Any]) -> str:
     t = text.lower()
     scores: dict[str, int] = {}
     for direction, words in kw_config.get("direction_keywords", {}).items():
-        scores[direction] = sum(1 for w in words if w in t)
+        scores[direction] = sum(1 for w in words if _kw_in(w, t))
     if not scores or max(scores.values()) == 0:
         return "neutral"
     return max(scores.items(), key=lambda kv: kv[1])[0]
