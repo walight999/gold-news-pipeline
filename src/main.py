@@ -706,13 +706,125 @@ async def run_maintain() -> int:
     removed_tc = store.purge_older_than("translation_cache", 1, ts_col="updated_at")
     removed_tc_cap = _cap_translation_cache(store, max_rows=2000)
 
+    # Close the calibration feedback loop: fill xau_return_* for events that
+    # just matured (35min-5day old). Reuses the already-loaded store; the
+    # flush below writes the backfilled rows along with the purges.
+    bf_attempted, bf_filled = _backfill_xau_on_store(store, now_utc())
+
     store.flush()
 
     log.info(
         "maintain done: event_state purged=%d, sent_log purged=%d, "
-        "translation_cache TTL purged=%d + capped=%d, api_calls=%d",
-        removed_es, removed_sl, removed_tc, removed_tc_cap, store.api_calls,
+        "translation_cache TTL purged=%d + capped=%d, xau backfilled=%d/%d, api_calls=%d",
+        removed_es, removed_sl, removed_tc, removed_tc_cap, bf_filled, bf_attempted, store.api_calls,
     )
+    return 0
+
+
+# ---------- calibration feedback loop (xau_return backfill + precision) ----------
+
+def _backfill_due(row: dict[str, Any], now: datetime) -> bool:
+    """True if a calibration_log row should be attempted for xau_return backfill:
+    not already filled, parseable timestamp, and 35min-5day old (30-min window
+    closed AND still inside the yfinance 5-min intraday window)."""
+    from .utils_time import parse_iso
+    if str(row.get("xau_return_30m") or "").strip():
+        return False
+    ts = parse_iso(row.get("first_seen_ts"))
+    if ts is None:
+        return False
+    age_min = (now - ts).total_seconds() / 60.0
+    return 35.0 <= age_min <= 5 * 24 * 60.0
+
+
+def _backfill_xau_on_store(store: "Store", now: datetime, max_rows: int = 80) -> tuple[int, int]:
+    """Fill xau_return_5m/15m/30m for due rows on an already-loaded store.
+    Caps yfinance calls (one per row) at max_rows/run. Returns (attempted,
+    filled). Does NOT flush — the caller owns that."""
+    from . import price_feed
+    from .utils_time import parse_iso
+    attempted = 0
+    filled = 0
+    for r in store.all_rows("calibration_log"):
+        if attempted >= max_rows:
+            break
+        if not _backfill_due(r, now):
+            continue
+        ts = parse_iso(r.get("first_seen_ts"))
+        if ts is None:
+            continue
+        attempted += 1
+        rets = price_feed.xau_returns_from_release(ts, (5, 15, 30))
+        if all(v is None for v in rets.values()):
+            continue   # off-hours / holiday / flake — leave empty, retry while <=5d
+        r["xau_return_5m"] = round(rets[5], 4) if rets[5] is not None else ""
+        r["xau_return_15m"] = round(rets[15], 4) if rets[15] is not None else ""
+        r["xau_return_30m"] = round(rets[30], 4) if rets[30] is not None else ""
+        store.upsert("calibration_log", r)
+        filled += 1
+    return attempted, filled
+
+
+async def run_backfill_xau() -> int:
+    """On-demand xau_return backfill (also runs daily inside maintain)."""
+    store = Store.from_env()
+    store.connect()
+    store.load_all()
+    attempted, filled = _backfill_xau_on_store(store, now_utc())
+    if filled:
+        store.flush()
+    log.info("backfill_xau: attempted=%d filled=%d", attempted, filled)
+    return 0
+
+
+def _precision_table(rows: list[dict[str, Any]], move_threshold_pct: float = 0.15) -> list[dict[str, Any]]:
+    """Pure: group backfilled calibration rows by (topic, route) and compute
+    sample size, hit-rate (|15m move| >= threshold), avg |move|, avg signed
+    move. Rows without a numeric xau_return_15m are ignored."""
+    def _f(v: Any) -> float | None:
+        try:
+            return float(v)
+        except (TypeError, ValueError):
+            return None
+    groups: dict[tuple[str, str], list[float]] = {}
+    for r in rows:
+        r15 = _f(r.get("xau_return_15m"))
+        if r15 is None:
+            continue
+        key = (r.get("topic_bucket") or "?", r.get("routed_as") or "?")
+        groups.setdefault(key, []).append(r15)
+    table: list[dict[str, Any]] = []
+    for (topic, route), vals in groups.items():
+        n = len(vals)
+        hits = sum(1 for v in vals if abs(v) >= move_threshold_pct)
+        table.append({
+            "topic": topic, "route": route, "n": n,
+            "hit_pct": hits / n * 100.0,
+            "avg_abs": sum(abs(v) for v in vals) / n,
+            "avg_signed": sum(vals) / n,
+        })
+    table.sort(key=lambda d: (-d["n"], d["topic"]))
+    return table
+
+
+async def run_precision_report(min_samples: int = 5, move_threshold_pct: float = 0.15) -> int:
+    """Log alert precision per (topic, route): did gold actually move after the
+    alert? Reads backfilled calibration_log. Log-only — read via GHA logs."""
+    store = Store.from_env()
+    store.connect()
+    store.load_all()
+    table = _precision_table(store.all_rows("calibration_log"), move_threshold_pct)
+    if not table:
+        log.info("precision_report: no backfilled xau returns yet — run --mode backfill_xau first")
+        return 0
+    total_n = sum(d["n"] for d in table)
+    log.info("=== PRECISION REPORT — %d events w/ returns | hit = |move|>=%.2f%% within 15m ===",
+             total_n, move_threshold_pct)
+    log.info("%-14s %-9s %5s %7s %9s %11s", "topic", "route", "n", "hit%", "avg|mv|", "avg_signed")
+    for d in table:
+        flag = "" if d["n"] >= min_samples else "  (low-n)"
+        log.info("%-14s %-9s %5d %5.0f%% %+9.3f %+10.3f%s",
+                 d["topic"], d["route"], d["n"], d["hit_pct"], d["avg_abs"], d["avg_signed"], flag)
     return 0
 
 
@@ -1201,6 +1313,7 @@ def main(argv: list[str] | None = None) -> int:
         "cron", "event", "digest", "calendar_daily", "calendar_check",
         "weekly_preview", "eod_recap", "verify_sources", "maintain",
         "watchdog", "social_post", "social_seed",
+        "backfill_xau", "precision_report",
     ), default="cron")
     p.add_argument("--event-duration-min", type=int, default=30)
     p.add_argument("--event-sleep-sec", type=int, default=60)
@@ -1225,6 +1338,10 @@ def main(argv: list[str] | None = None) -> int:
         return asyncio.run(run_social_post())
     if args.mode == "social_seed":
         return asyncio.run(run_social_seed())
+    if args.mode == "backfill_xau":
+        return asyncio.run(run_backfill_xau())
+    if args.mode == "precision_report":
+        return asyncio.run(run_precision_report())
     return asyncio.run(run_once(mode=args.mode))
 
 
