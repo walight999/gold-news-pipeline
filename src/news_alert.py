@@ -836,7 +836,10 @@ def _fallback_alert(title: str, summary: str, store: "Store | None" = None) -> M
         freshness="unknown",
         tone="neutral",
         category="Other",
-        headline_th=_soft_trim(th_title, 90),
+        # Body-less fallback cards carry the whole story in the headline, so give
+        # it room to be a complete thought (wraps to 2-3 lines) rather than a
+        # 90-char "..." cut mid-sentence (White 2026-06-21).
+        headline_th=_soft_trim(th_title, 180),
         body_th=body,
         impact_th=None,
         reason="claude-unavailable: literal-translation fallback",

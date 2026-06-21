@@ -86,6 +86,21 @@ def _trim(s: str, n: int) -> str:
     return s if len(s) <= n else s[: n - 1].rstrip() + "…"
 
 
+# Filler words that add length without meaning — dropped from card text to free
+# up space (White 2026-06-21). Kept tiny + conservative so grammar survives.
+_FILLER_WORDS = ("สามารถ",)
+
+
+def _strip_filler(s: str) -> str:
+    if not s:
+        return s
+    for w in _FILLER_WORDS:
+        s = s.replace(w, "")
+    while "  " in s:
+        s = s.replace("  ", " ")
+    return s.strip()
+
+
 def score_to_impact(score: float) -> tuple[str, str, str]:
     """Map raw score → (label, bg_color, fg_color).
 
@@ -291,22 +306,32 @@ def _event_bubble(label: str, color: str, ev: Event, score: float, kw_cfg: dict[
     _, topic_fg = _topic_chip_color(ev.topic_bucket)
     dir_bg, dir_fg = _direction_chip_color(tone_label)
 
-    body_contents: list[dict[str, Any]] = [
-        {"type": "box", "layout": "horizontal", "spacing": "sm",
-         "alignItems": "center", "contents": [
-             {"type": "text", "text": category_text,
-              "size": "xs", "weight": "bold", "color": topic_fg, "flex": 0},
-             _chip(tone_label, dir_bg, dir_fg),
-        ]},
-        {"type": "text", "text": display_title, "weight": "bold", "size": "md",
-         "wrap": True, "color": "#111827", "margin": "md"},
-    ]
-    # Bullets — render each as its own xs gray line. Limit to 3 bullets.
+    # Chip row — show only chips that carry signal. Hide the noise defaults
+    # ("Other" category, "neutral" direction) so they don't eat a whole row;
+    # the headline gets that space instead (White 2026-06-21).
+    chip_row: list[dict[str, Any]] = []
+    if category_text and category_text.strip().lower() != "other":
+        chip_row.append({"type": "text", "text": category_text,
+                         "size": "xs", "weight": "bold", "color": topic_fg, "flex": 0})
+    if tone_label and tone_label.strip().lower() not in ("neutral", "none", "flat", ""):
+        chip_row.append(_chip(tone_label, dir_bg, dir_fg))
+
+    body_contents: list[dict[str, Any]] = []
+    if chip_row:
+        body_contents.append({"type": "box", "layout": "horizontal", "spacing": "sm",
+                              "alignItems": "center", "contents": chip_row})
+    # Headline in regular weight (bold read heavy in Thai) with filler stripped,
+    # wrapping freely so nothing is cut mid-thought.
+    body_contents.append(
+        {"type": "text", "text": _strip_filler(display_title), "size": "md",
+         "wrap": True, "color": "#111827",
+         "margin": "md" if chip_row else "none"})
+    # Bullets — render each as its own line. Limit to 3 bullets.
     for bullet in body_lines[:3]:
         if not bullet:
             continue
         body_contents.append({
-            "type": "text", "text": f"• {bullet}",
+            "type": "text", "text": f"• {_strip_filler(bullet)}",
             "size": "sm", "wrap": True, "color": "#1F2937", "margin": "sm",
         })
     if impact_line:
