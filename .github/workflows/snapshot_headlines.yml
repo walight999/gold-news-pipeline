@@ -1,0 +1,50 @@
+name: snapshot-headlines
+# Every 30 min: snapshot top scored events to snapshots/headlines.json
+# and commit so agent-hq's gold-news-headlines adapter can read via raw GitHub.
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch: {}
+
+concurrency:
+  group: snapshot-headlines
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      GSHEET_ID: ${{ secrets.GSHEET_ID }}
+      GSHEET_CREDS: ${{ secrets.GSHEET_CREDS }}
+      PYTHONUNBUFFERED: "1"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - name: Snapshot headlines
+        run: python scripts/snapshot_headlines.py
+
+      - name: Commit snapshot if changed
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if [ -n "$(git status --porcelain snapshots/headlines.json)" ]; then
+            git add snapshots/headlines.json
+            git commit -m "chore(snapshot): refresh headlines [skip ci]"
+            git push
+          else
+            echo "No headline changes — skip commit."
+          fi
