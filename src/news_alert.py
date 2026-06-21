@@ -360,6 +360,7 @@ def classify_and_rewrite(
     source_id: str = "",
     age_hours: float | None = None,
     store: "Store | None" = None,
+    high_quality: bool = False,
 ) -> MarketAlert:
     """Returns a `MarketAlert`. Check `.should_send` to decide whether
     to publish. When `keep`, the returned object has headline_th /
@@ -383,19 +384,24 @@ def classify_and_rewrite(
 
     key = _cache_key_alert(title, summary or "")
 
-    cached = _cache_lookup(store, key)
-    if cached is not None:
-        _cache_write(store, key, title, cached)
-        _record_classifier_outcome(store, source_id, cached,
-                                    used_fallback=False, cache_hit=True)
-        return cached
+    # high_quality (BREAKING) skips the cache LOOKUP so it always gets the
+    # stronger model fresh — but it still writes its result back below, so a
+    # later alert/digest of the same event reuses the better classification.
+    if not high_quality:
+        cached = _cache_lookup(store, key)
+        if cached is not None:
+            _cache_write(store, key, title, cached)
+            _record_classifier_outcome(store, source_id, cached,
+                                        used_fallback=False, cache_hit=True)
+            return cached
 
     age_h_str = f"{age_hours:.1f}" if age_hours is not None else "unknown"
     # Provider chain: Claude (primary) → Gemini (secondary, e.g. when the
     # Anthropic monthly spend cap is hit) → literal-translation fallback.
     # Gemini uses the SAME prompt + JSON contract, so a Claude outage no
     # longer drops card quality to "Other"/garbled — it just switches model.
-    result, tin, tout = _classify_claude_with_usage(title, summary or "", source_id, age_h_str)
+    result, tin, tout = _classify_claude_with_usage(
+        title, summary or "", source_id, age_h_str, high_quality=high_quality)
     if result is None:
         g_result, g_tin, g_tout = _classify_gemini_with_usage(
             title, summary or "", source_id, age_h_str)
@@ -733,15 +739,22 @@ def _classify_claude(title: str, summary: str, source_id: str, age_h: str) -> Ma
 
 def _classify_claude_with_usage(
     title: str, summary: str, source_id: str, age_h: str,
+    high_quality: bool = False,
 ) -> tuple["MarketAlert | None", int, int]:
     """Claude call with built-in retry + token usage reporting.
     Returns (alert, input_tokens, output_tokens). Tokens default to 0
-    when call fails / fallback used."""
+    when call fails / fallback used.
+
+    `high_quality=True` (BREAKING route only) uses the stronger Sonnet model
+    for a sharper summary on the few highest-impact cards/day; everything else
+    stays on cheap Haiku. Override the breaking model via CLAUDE_BREAKING_MODEL."""
     import time as _t
     from .translator import _get_anthropic_client
     client = _get_anthropic_client()
     if not client:
         return None, 0, 0
+    model = (os.environ.get("CLAUDE_BREAKING_MODEL", "claude-sonnet-4-6").strip()
+             if high_quality else "claude-haiku-4-5-20251001")
     prompt = _build_prompt(title, summary, source_id, age_h)
     last_exc: Exception | None = None
     for attempt in range(4):
@@ -755,7 +768,7 @@ def _classify_claude_with_usage(
                 _t.sleep(_MIN_CLAUDE_GAP_S - _gap)
             _LAST_CLAUDE_CALL[0] = _t.time()
             resp = client.messages.create(
-                model="claude-haiku-4-5-20251001",
+                model=model,
                 max_tokens=900,
                 messages=[{"role": "user", "content": prompt}],
             )

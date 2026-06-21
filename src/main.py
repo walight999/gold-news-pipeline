@@ -234,10 +234,11 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
                 age_hours = (now_utc() - earliest).total_seconds() / 3600.0
             alert_obj = news_alert.classify_and_rewrite(
                 ev.representative_title,
-                ev.representative_summary,
+                ev.classify_summary,
                 source_id=",".join(ev.source_list[:2]),
                 age_hours=age_hours,
                 store=store,
+                high_quality=(d.route == Route.BREAKING),
             )
             if not alert_obj.should_send:
                 log.info("breaking/alert classifier rejected event_id=%s reason=%s",
@@ -361,7 +362,7 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
                     age_hours = (now_utc() - earliest).total_seconds() / 3600.0
                 a = news_alert.classify_and_rewrite(
                     ev.representative_title,
-                    ev.representative_summary,
+                    ev.classify_summary,
                     source_id=",".join(ev.source_list[:2]),
                     age_hours=age_hours,
                     store=store,

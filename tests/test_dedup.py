@@ -3,8 +3,57 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from src.dedup import cluster, cluster_key_for
+from src.dedup import Event, cluster, cluster_key_for
 from src.normalizer import Item
+
+
+def _event(items, topic="macro", direction="neutral"):
+    return Event(event_id="e", cluster_key="k", topic_bucket=topic,
+                 entity="us", direction_label=direction, items=items)
+
+
+def test_representative_summary_skips_empty_top_source():
+    # Top-priority item (tier 0, e.g. an X tweet) has no summary; a lower
+    # RSS source carries the real text → that text is used, not "".
+    items = [
+        _item("x_firstsquawk", "Breaking", summary="", tier=0),
+        _item("reuters", "Same story", summary="Full RSS body with figures.", tier=1),
+    ]
+    assert _event(items).representative_summary == "Full RSS body with figures."
+
+
+def test_representative_summary_empty_when_no_source_has_one():
+    items = [_item("x_a", "t1", summary="", tier=2),
+             _item("x_b", "t2", summary="", tier=2)]
+    assert _event(items).representative_summary == ""
+
+
+def test_classify_summary_combines_distinct_dedups_and_skips_empty():
+    items = [
+        _item("reuters", "t1", summary="First source body.", tier=1),
+        _item("cnbc", "t2", summary="Second distinct angle.", tier=1),
+        _item("x_a", "t3", summary="", tier=2),                 # empty → skipped
+        _item("forexlive", "t4", summary="First source body.", tier=1),  # dup → skipped
+    ]
+    cs = _event(items).classify_summary
+    assert "First source body." in cs and "Second distinct angle." in cs
+    assert cs.count("First source body.") == 1
+
+
+def test_classify_summary_caps_at_three_parts():
+    items = [_item(f"s{i}", f"t{i}", summary=f"body number {i}.", tier=1) for i in range(5)]
+    cs = _event(items).classify_summary
+    assert "body number 0." in cs and "body number 2." in cs
+    assert "body number 3." not in cs
+
+
+def test_classify_summary_stops_at_char_budget():
+    big = "A" * 500
+    # Distinct prefixes so the dedup (first-120-char) doesn't merge them.
+    items = [_item(f"s{i}", f"t{i}", summary=f"UNIQUE{i} {big}", tier=1) for i in range(5)]
+    cs = _event(items).classify_summary
+    assert "UNIQUE0" in cs and "UNIQUE1" in cs   # ~508 + ~1016>800 → stop after 2
+    assert "UNIQUE2" not in cs
 
 
 def _item(source_id, title, summary="", tier=1, role="macro", url=None):

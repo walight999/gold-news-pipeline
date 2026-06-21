@@ -88,8 +88,38 @@ class Event:
 
     @property
     def representative_summary(self) -> str:
+        # The highest-priority item that actually HAS a summary — the top item
+        # is often an X tweet whose summary is "" even when an RSS source in the
+        # same cluster carries the full text. Fall back to "" if none has one.
         ranked = sorted(self.items, key=lambda i: (i.tier, i.first_seen_ts))
-        return ranked[0].summary if ranked else ""
+        for it in ranked:
+            if (it.summary or "").strip():
+                return it.summary
+        return ""
+
+    @property
+    def classify_summary(self) -> str:
+        """Richer context for the classifier — up to 3 DISTINCT non-empty
+        source summaries (priority order, ~800-char budget) joined together, so
+        the model sees corroboration + extra detail instead of one source. The
+        classifier prompt truncates further. Empty for tweet-only clusters."""
+        ranked = sorted(self.items, key=lambda i: (i.tier, i.first_seen_ts))
+        seen: set[str] = set()
+        parts: list[str] = []
+        total = 0
+        for it in ranked:
+            s = (it.summary or "").strip()
+            if not s:
+                continue
+            norm = s[:120].lower()
+            if norm in seen:
+                continue
+            seen.add(norm)
+            parts.append(s)
+            total += len(s)
+            if len(parts) >= 3 or total > 800:
+                break
+        return "  ".join(parts)
 
 
 def detect_topic_and_entity(text: str, kw_config: dict[str, Any]) -> tuple[str, str]:
