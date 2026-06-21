@@ -1086,6 +1086,20 @@ async def run_watchdog() -> int:
 
     warnings = health.check_pipeline_health(store)
 
+    # Surface classifier token cost in the run log (no card) so model spend is
+    # observable without Sheet access — monthly total vs the high-quality
+    # (Sonnet/breaking) split.
+    try:
+        from . import news_alert as _na
+        _ch = store.get("source_state", ("_classifier_health",)) or {}
+        _blob = _na._parse_blob(_ch.get("items_last_hour"))
+        log.info("classifier cost %s: tokens_in=%s out=%s | hq/sonnet in=%s out=%s",
+                 _blob.get("month"), _blob.get("month_tokens_in", 0),
+                 _blob.get("month_tokens_out", 0),
+                 _blob.get("month_hq_tokens_in", 0), _blob.get("month_hq_tokens_out", 0))
+    except Exception as e:  # never let observability break the watchdog
+        log.debug("classifier cost log skipped: %s", e)
+
     # Workflow failure check — read GH Actions API for recent failed
     # runs. Requires GITHUB_TOKEN (auto-provided inside the workflow) +
     # GITHUB_REPOSITORY. Silent no-op when either is missing.

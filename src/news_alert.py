@@ -420,7 +420,8 @@ def classify_and_rewrite(
         _cache_write(store, key, title, result)
     _record_classifier_outcome(store, source_id, result,
                                 used_fallback=used_fallback, cache_hit=False,
-                                tokens_in=tin, tokens_out=tout)
+                                tokens_in=tin, tokens_out=tout,
+                                high_quality=high_quality)
     return result
 
 
@@ -432,6 +433,7 @@ def _record_classifier_outcome(
     cache_hit: bool,
     tokens_in: int = 0,
     tokens_out: int = 0,
+    high_quality: bool = False,
 ) -> None:
     """Increment classifier counters with a 24h rolling window so
     degradation alerts trigger on RECENT failure rate, not a months-old
@@ -490,14 +492,21 @@ def _record_classifier_outcome(
 
         blob["buckets"] = buckets
 
-        # Monthly token tally — separate from rolling window
+        # Monthly token tally — separate from rolling window. high-quality
+        # (Sonnet/breaking) tokens are ALSO tallied separately so the Sonnet
+        # share of monthly cost is measurable, not buried in the aggregate.
         if include_tokens:
             if blob.get("month") != month_key:
                 blob["month"] = month_key
                 blob["month_tokens_in"] = 0
                 blob["month_tokens_out"] = 0
+                blob["month_hq_tokens_in"] = 0
+                blob["month_hq_tokens_out"] = 0
             blob["month_tokens_in"] = int(blob.get("month_tokens_in", 0)) + tokens_in
             blob["month_tokens_out"] = int(blob.get("month_tokens_out", 0)) + tokens_out
+            if high_quality:
+                blob["month_hq_tokens_in"] = int(blob.get("month_hq_tokens_in", 0)) + tokens_in
+                blob["month_hq_tokens_out"] = int(blob.get("month_hq_tokens_out", 0)) + tokens_out
 
         row["source_id"] = row_id
         row["items_last_hour"] = json.dumps(blob)

@@ -113,6 +113,28 @@ def test_high_quality_bypasses_cache_and_forwards_flag(store):
         assert m.call_args.kwargs.get("high_quality") is True
 
 
+def test_high_quality_tokens_tracked_separately(store):
+    """Sonnet/breaking tokens land in BOTH the aggregate and the hq bucket so
+    the Sonnet share of monthly cost is measurable."""
+    fresh = MarketAlert(action="keep", tone="hawkish", category="Inflation",
+                        headline_th="x", body_th=["y"])
+    with patch("src.news_alert._classify_claude_with_usage", return_value=(fresh, 1500, 900)):
+        classify_and_rewrite("US CPI hot", "body", store=store, high_quality=True)
+    blob = json.loads(store.get("source_state", ("_classifier_health",))["items_last_hour"])
+    assert blob["month_tokens_in"] == 1500 and blob["month_tokens_out"] == 900
+    assert blob["month_hq_tokens_in"] == 1500 and blob["month_hq_tokens_out"] == 900
+
+
+def test_normal_quality_not_in_hq_bucket(store):
+    fresh = MarketAlert(action="keep", tone="hawkish", category="Inflation",
+                        headline_th="x", body_th=["y"])
+    with patch("src.news_alert._classify_claude_with_usage", return_value=(fresh, 1000, 500)):
+        classify_and_rewrite("Other news", "body", store=store, high_quality=False)
+    blob = json.loads(store.get("source_state", ("_classifier_health",))["items_last_hour"])
+    assert blob["month_tokens_in"] == 1000
+    assert blob.get("month_hq_tokens_in", 0) == 0   # Haiku stays out of the hq bucket
+
+
 def test_classify_and_rewrite_writes_to_cache(store):
     """First call hits Claude (mocked), writes to cache. Second call
     is a cache hit — Claude not re-called."""
