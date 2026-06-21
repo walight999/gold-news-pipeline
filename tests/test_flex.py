@@ -106,6 +106,22 @@ def test_strip_filler_removes_samat():
     assert _strip_filler("") == ""
 
 
+def test_compact_th_abbreviations():
+    from src.line_flex import _compact_th
+    out = _compact_th("ประธานาธิบดีทรัมป์ประกาศ")
+    assert "ปธน." in out and "ประธานาธิบดี" not in out
+    assert _compact_th("นายกรัฐมนตรีญี่ปุ่น") == "นายกฯญี่ปุ่น"
+    assert "สหรัฐฯ" in _compact_th("สหรัฐอเมริกา")
+    # longest-first: รัฐมนตรีว่าการกระทรวง → รมว. (not รมต.การ...)
+    assert "รมว." in _compact_th("รัฐมนตรีว่าการกระทรวงการคลังกล่าว")
+    # standalone รัฐมนตรี → รมต.
+    assert _compact_th("รัฐมนตรีต่างประเทศ") == "รมต.ต่างประเทศ"
+    # still strips filler, and is idempotent
+    assert "สามารถ" not in _compact_th("ทองสามารถขึ้น")
+    assert _compact_th("ปธน.ทรัมป์") == "ปธน.ทรัมป์"
+    assert _compact_th("") == ""
+
+
 def _count_event_cards(bubble):
     """Each digest event is a top-level vertical box in the bubble body."""
     return sum(1 for sec in bubble["body"]["contents"]

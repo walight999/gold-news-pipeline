@@ -90,6 +90,22 @@ def _trim(s: str, n: int) -> str:
 # up space (White 2026-06-21). Kept tiny + conservative so grammar survives.
 _FILLER_WORDS = ("สามารถ",)
 
+# Long Thai terms → widely-understood standard abbreviations, to save card space
+# (White 2026-06-21). Order matters: longest / most specific FIRST so a prefix
+# isn't half-replaced (e.g. รัฐมนตรีว่าการกระทรวง before รัฐมนตรี). Only common,
+# unambiguous abbreviations a Thai reader reads instantly.
+_TH_ABBREV: tuple[tuple[str, str], ...] = (
+    ("รัฐมนตรีช่วยว่าการกระทรวง", "รมช."),
+    ("รัฐมนตรีว่าการกระทรวง", "รมว."),
+    ("คณะกรรมการนโยบายการเงิน", "กนง."),
+    ("ธนาคารแห่งประเทศไทย", "ธปท."),
+    ("ผลิตภัณฑ์มวลรวมในประเทศ", "GDP"),
+    ("ประธานาธิบดี", "ปธน."),
+    ("นายกรัฐมนตรี", "นายกฯ"),
+    ("สหรัฐอเมริกา", "สหรัฐฯ"),
+    ("รัฐมนตรี", "รมต."),
+)
+
 
 def _strip_filler(s: str) -> str:
     if not s:
@@ -99,6 +115,19 @@ def _strip_filler(s: str) -> str:
     while "  " in s:
         s = s.replace("  ", " ")
     return s.strip()
+
+
+def _compact_th(s: str) -> str:
+    """Shorten card text: abbreviate long Thai terms (ประธานาธิบดี → ปธน.) then
+    strip filler words. Applied at render so it catches Claude, Gemini, and
+    fallback output alike. Idempotent — re-running on already-abbreviated text
+    is a no-op."""
+    if not s:
+        return s
+    for long, short in _TH_ABBREV:
+        if long in s:
+            s = s.replace(long, short)
+    return _strip_filler(s)
 
 
 def score_to_impact(score: float) -> tuple[str, str, str]:
@@ -323,7 +352,7 @@ def _event_bubble(label: str, color: str, ev: Event, score: float, kw_cfg: dict[
     # Headline in regular weight (bold read heavy in Thai) with filler stripped,
     # wrapping freely so nothing is cut mid-thought.
     body_contents.append(
-        {"type": "text", "text": _strip_filler(display_title), "size": "md",
+        {"type": "text", "text": _compact_th(display_title), "size": "md",
          "wrap": True, "color": "#111827",
          "margin": "md" if chip_row else "none"})
     # Bullets — render each as its own line. Limit to 3 bullets.
@@ -331,7 +360,7 @@ def _event_bubble(label: str, color: str, ev: Event, score: float, kw_cfg: dict[
         if not bullet:
             continue
         body_contents.append({
-            "type": "text", "text": f"• {_strip_filler(bullet)}",
+            "type": "text", "text": f"• {_compact_th(bullet)}",
             "size": "sm", "wrap": True, "color": "#1F2937", "margin": "sm",
         })
     if impact_line:
@@ -418,12 +447,12 @@ def _digest_event_card(ev: Event, score: float,
     }
     contents: list[dict[str, Any]] = [
         top_row,
-        {"type": "text", "text": display_title, "size": "sm", "weight": "bold",
+        {"type": "text", "text": _compact_th(display_title), "size": "sm", "weight": "bold",
          "wrap": True, "color": "#111827", "margin": "xs"},
     ]
     if detail:
         contents.append({
-            "type": "text", "text": _trim(detail, 180),
+            "type": "text", "text": _trim(_compact_th(detail), 180),
             "size": "xs", "color": "#4B5563", "wrap": True, "margin": "xs",
         })
     contents.append(_source_link(src_name, age, url))

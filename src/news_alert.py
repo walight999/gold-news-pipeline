@@ -180,6 +180,7 @@ REWRITE CONSTRAINTS — only when action="keep"
 - impact_th: ONE clear sentence on the XAU/USD/JPY/yields impact. If genuinely unclear: "ผลกระทบต่อทองคำยังไม่ชัดเจน".
 - NO restating the exact headline in the body — the body ADDS detail (the numbers, the why, the next thing to watch).
 - NO "ในซื้อขายวันศุกร์" / "ดึงเอียง" / "ผลกระทบของการเดินทาง" / awkward direct translations. Use natural Thai trading desk language.
+- ใช้ตัวย่อไทยมาตรฐานเพื่อประหยัดพื้นที่การ์ด: ประธานาธิบดี→ปธน., นายกรัฐมนตรี→นายกฯ, รัฐมนตรีว่าการกระทรวง→รมว., รัฐมนตรี→รมต., สหรัฐอเมริกา→สหรัฐฯ. ใช้เฉพาะตัวย่อที่ผู้อ่านไทยเข้าใจทันที.
 
 CATEGORY ROUTING — pick the most precise category:
 - Central-bank outlook / analyst forecasts of central-bank action → "Central Bank" (NOT "Inflation", even if the article mentions CPI)
