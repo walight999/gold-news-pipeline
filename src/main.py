@@ -692,6 +692,8 @@ async def run_maintain() -> int:
     retention = sched_cfg.get("retention", {}) or {}
     days_event_state = int(retention.get("event_state_days", 7))
     days_sent_log    = int(retention.get("sent_log_days", 30))
+    days_calibration = int(retention.get("calibration_log_days", 180))
+    days_health      = int(retention.get("health_log_days", 90))
 
     store = Store.from_env()
     store.connect()
@@ -699,6 +701,10 @@ async def run_maintain() -> int:
 
     removed_es = store.purge_older_than("event_state", days_event_state, ts_col="last_seen_ts")
     removed_sl = store.purge_older_than("sent_log",    days_sent_log,    ts_col="sent_ts")
+    # Bound the two formerly-unbounded tabs. calibration_log keeps ~6 months
+    # (precision report needs the history); health_log keeps 90 days.
+    removed_cl = store.purge_older_than("calibration_log", days_calibration, ts_col="first_seen_ts")
+    removed_hl = store.purge_older_than("health_log",      days_health,      ts_col="warning_ts")
 
     # Translation cache — TTL 1 day + hard cap 2000 most-recent rows.
     # TTL keeps stale RSS titles from bloating Claude lookup; cap keeps
@@ -715,8 +721,10 @@ async def run_maintain() -> int:
 
     log.info(
         "maintain done: event_state purged=%d, sent_log purged=%d, "
+        "calibration_log purged=%d, health_log purged=%d, "
         "translation_cache TTL purged=%d + capped=%d, xau backfilled=%d/%d, api_calls=%d",
-        removed_es, removed_sl, removed_tc, removed_tc_cap, bf_filled, bf_attempted, store.api_calls,
+        removed_es, removed_sl, removed_cl, removed_hl,
+        removed_tc, removed_tc_cap, bf_filled, bf_attempted, store.api_calls,
     )
     return 0
 
