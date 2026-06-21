@@ -149,6 +149,59 @@ def get_intraday_price_at(ticker: str, ref_dt: datetime, lookback_min: int = 60)
     return _with_yf_retry(_get_intraday_once, ticker, ref_dt)
 
 
+def xau_returns_from_release(
+    release_dt_utc: datetime, offsets_min: tuple[int, ...] = (5, 15, 30),
+) -> dict[int, float | None]:
+    """Return {offset_min: XAU %-change from release → release+offset}, fetching
+    the 5-min intraday series ONCE (vs. one fetch per offset in
+    `xau_return_pct`). Per-offset None when that bar is unavailable (off-hours /
+    holiday / still in the future); all-None when the whole series is missing
+    (e.g. event older than the ~5-day intraday window). Used by the
+    calibration backfill so one row costs one yfinance call, not six."""
+    out: dict[int, float | None] = {m: None for m in offsets_min}
+
+    def _go() -> dict[int, float | None]:
+        yf = _yf()
+        t = yf.Ticker("GC=F")
+        period = "1d" if (datetime.now(timezone.utc) - release_dt_utc) < timedelta(hours=20) else "5d"
+        h = t.history(period=period, interval="5m")
+        if h.empty:
+            return dict(out)
+        idx_utc: list[datetime] = []
+        for ts in h.index:
+            py = ts.to_pydatetime()
+            py = py.replace(tzinfo=timezone.utc) if py.tzinfo is None else py.astimezone(timezone.utc)
+            idx_utc.append(py)
+        closes = [float(c) for c in h["Close"].tolist()]
+
+        def _close_at(target: datetime) -> float | None:
+            best = -1
+            for i, ts in enumerate(idx_utc):
+                if ts <= target:
+                    best = i
+                else:
+                    break
+            return closes[best] if best >= 0 else None
+
+        ref = release_dt_utc.astimezone(timezone.utc) if release_dt_utc.tzinfo else release_dt_utc.replace(tzinfo=timezone.utc)
+        base = _close_at(ref)
+        if not base:
+            return dict(out)
+        now = datetime.now(timezone.utc)
+        res = dict(out)
+        for m in offsets_min:
+            later = ref + timedelta(minutes=m)
+            if later > now:
+                continue
+            p = _close_at(later)
+            if p:
+                res[m] = (p - base) / base * 100
+        return res
+
+    got = _with_yf_retry(_go)
+    return got if got is not None else dict(out)
+
+
 def xau_return_pct(release_dt_utc: datetime, minutes_after: int = 5) -> float | None:
     """Returns XAU % change from `release_dt_utc` to release+`minutes_after`.
 
