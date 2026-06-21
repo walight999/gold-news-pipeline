@@ -91,6 +91,28 @@ def test_classify_and_rewrite_uses_cache_when_present(store):
         m_claude.assert_not_called()
 
 
+def test_high_quality_bypasses_cache_and_forwards_flag(store):
+    """BREAKING (high_quality) ignores a stale cached classification and gets a
+    fresh (stronger-model) result, and the flag reaches the model selector."""
+    key = _cache_key_alert("US CPI hot", "CPI prints 3.5%")
+    old = MarketAlert(action="keep", tone="hawkish", category="Inflation",
+                      headline_th="OLD cached", body_th=["old"])
+    store.upsert("translation_cache", {
+        "cache_key": key, "source_preview": "US CPI hot",
+        "thai_text": old.to_json(), "hits": "1",
+        "created_at": "2026-05-22T00:00:00+00:00",
+    })
+    fresh = MarketAlert(action="keep", tone="hawkish", category="Inflation",
+                        headline_th="FRESH sonnet", body_th=["new"])
+    with patch("src.news_alert._classify_claude_with_usage",
+                return_value=(fresh, 100, 50)) as m:
+        out = classify_and_rewrite("US CPI hot", "CPI prints 3.5%",
+                                   store=store, high_quality=True)
+        assert out.headline_th == "FRESH sonnet"   # not the cached "OLD cached"
+        m.assert_called_once()
+        assert m.call_args.kwargs.get("high_quality") is True
+
+
 def test_classify_and_rewrite_writes_to_cache(store):
     """First call hits Claude (mocked), writes to cache. Second call
     is a cache hit — Claude not re-called."""
