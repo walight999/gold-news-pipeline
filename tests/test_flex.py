@@ -122,6 +122,29 @@ def test_compact_th_abbreviations():
     assert _compact_th("") == ""
 
 
+def test_compact_th_no_substring_mangle():
+    from src.line_flex import _compact_th
+    # The dangerous case: ธนาคารกลางสหรัฐอเมริกา must become Fed cleanly, NOT
+    # "Fedอเมริกา" (which a naive order would produce).
+    assert _compact_th("ธนาคารกลางสหรัฐอเมริกาคงดอกเบี้ย") == "Fedคงดอกเบี้ย"
+    assert _compact_th("ธนาคารกลางสหรัฐฯขึ้นดอกเบี้ย") == "Fedขึ้นดอกเบี้ย"
+    assert _compact_th("ธนาคารกลางสหรัฐส่งสัญญาณ") == "Fedส่งสัญญาณ"
+    # plain country name is NOT mistaken for the central bank
+    assert _compact_th("เศรษฐกิจสหรัฐอเมริกาชะลอ") == "เศรษฐกิจสหรัฐฯชะลอ"
+
+
+def test_compact_th_orgs_and_data_terms():
+    from src.line_flex import _compact_th
+    assert _compact_th("ธนาคารกลางญี่ปุ่น") == "BoJ"
+    assert _compact_th("ธนาคารกลางยุโรป") == "ECB"
+    assert _compact_th("สหประชาชาติเรียกร้อง") == "UNเรียกร้อง"
+    assert _compact_th("ดัชนีราคาผู้บริโภคพื้นฐาน") == "CPIพื้นฐาน"
+    assert _compact_th("การจ้างงานนอกภาคเกษตร") == "NFP"
+    assert _compact_th("ผลิตภัณฑ์มวลรวมภายในประเทศ") == "GDP"
+    # "รอง" prefix preserved automatically
+    assert _compact_th("รองประธานาธิบดี") == "รองปธน."
+
+
 def _count_event_cards(bubble):
     """Each digest event is a top-level vertical box in the bubble body."""
     return sum(1 for sec in bubble["body"]["contents"]
