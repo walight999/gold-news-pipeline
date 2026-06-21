@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-06-21T20:10:30Z",
-      "title": "us · Geopolitics",
-      "source": "Aljazeera",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-06-21T20:10:30Z",
+      "ts": "2026-06-21T21:40:38Z",
       "title": "global · Other",
-      "source": "Bbc World, Aljazeera, Yahoo Finance",
+      "source": "Bbc World, Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-06-21T20:10:30Z",
+      "ts": "2026-06-21T21:40:38Z",
       "title": "us · Inflation",
       "source": "Cnbc",
       "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-06-21T20:10:30Z",
+      "ts": "2026-06-21T21:40:38Z",
       "title": "us · Inflation",
       "source": "Forexlive",
       "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-06-21T20:10:30Z",
-      "title": "us · Inflation",
-      "source": "Fxstreet",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-06-21T20:10:30Z",
+      "ts": "2026-06-21T21:40:38Z",
       "title": "russia · Geopolitics · risk off",
       "source": "Bbc World",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-06-21T20:10:30Z",
-      "title": "mideast · Geopolitics",
-      "source": "Aljazeera, Investing General",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-06-21T20:10:30Z",
-      "title": "us · Geopolitics · risk off",
-      "source": "Aljazeera",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-06-21T20:10:30Z",
+      "ts": "2026-06-21T21:40:38Z",
       "title": "fed · Rate Policy",
       "source": "Cnbc, Investing Commodities",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-06-21T20:10:30Z",
+      "ts": "2026-06-21T21:40:38Z",
       "title": "israel · Geopolitics · risk off",
+      "source": "Bbc World",
+      "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-06-21T21:40:38Z",
+      "title": "ukraine · Geopolitics",
+      "source": "Bbc World",
+      "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-06-21T21:40:38Z",
+      "title": "israel · Geopolitics · risk off",
+      "source": "Bbc World",
+      "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-06-21T21:40:38Z",
+      "title": "russia · Geopolitics · risk off",
+      "source": "Bbc World",
+      "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-06-21T21:40:38Z",
+      "title": "israel · Geopolitics",
       "source": "Bbc World",
       "score": 0.4,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-06-21T20:12:49.901999Z"
+  "written_at": "2026-06-21T21:54:53.140357Z"
 }
