@@ -28,6 +28,16 @@ digest:
   # fetch, so freshness_factor drops to 0.1 and even base-5 inflation
   # articles only score 0.5. 0.5 gives us a usable digest pool.
   min_score: 0.5
+  # Degraded-mode safety net (2026-06-22). The quality gate normally drops any
+  # event that only got a literal Google-translate fallback (both Claude AND
+  # Gemini unavailable). When TRUE, if a WHOLE round produces zero real
+  # classifications (full classifier outage — e.g. Anthropic monthly spend cap
+  # hit AND Gemini free-tier quota exhausted), the round publishes the top
+  # fallback cards instead of going silent, clearly flagged "โหมดสำรอง" so the
+  # reader knows the Thai is machine-translated. A round with ANY real
+  # classification never uses this path, so a one-off transient never leaks a
+  # degraded card. Set FALSE to restore strict quality-first (silent on outage).
+  allow_fallback_when_ai_down: true
 
 session:
   # Active-session gate (ICT). London open → NY close.

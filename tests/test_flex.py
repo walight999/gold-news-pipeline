@@ -233,6 +233,38 @@ def test_news_update_empty_is_none():
     assert news_update_carousel([{"score": 3.0}], "12:30") is None
 
 
+def _header_texts(bubble):
+    """Collect text strings under a bubble's header box."""
+    out = []
+
+    def _walk(node):
+        if isinstance(node, dict):
+            if node.get("type") == "text":
+                out.append(node.get("text", ""))
+            for c in node.get("contents", []) or []:
+                _walk(c)
+    _walk(bubble.get("header", {}))
+    return out
+
+
+def test_news_update_degraded_marks_single_bubble():
+    # Normal round: no "สำรอง" marker in the header.
+    normal = news_update_carousel([_card()], "20:30")
+    assert not any("สำรอง" in t for t in _header_texts(normal))
+    # Degraded (classifier-outage fallback) round: header flags backup quality.
+    degraded = news_update_carousel([_card()], "20:30", degraded=True)
+    assert any("สำรอง" in t for t in _header_texts(degraded))
+
+
+def test_news_update_degraded_marks_every_carousel_bubble():
+    cards = [_card(headline=f"ข่าว {i}", score=3.0) for i in range(3)]
+    b = news_update_carousel(cards, "12:30", degraded=True)
+    assert b["type"] == "carousel"
+    # Every bubble in the round carries the backup marker, not just the first.
+    for bub in b["contents"]:
+        assert any("สำรอง" in t for t in _header_texts(bub))
+
+
 def test_health_bubble_shape():
     b = health_bubble([("forexlive", "tier2_no_item"), ("bls", "tier0_event_day_no_success")])
     assert b["type"] == "bubble"
