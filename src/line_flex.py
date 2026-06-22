@@ -447,146 +447,117 @@ def alert_bubble(ev: Event, score: float, kw_cfg: dict[str, Any],
                           alert=alert, title_th=title_th, summary_th=summary_th)
 
 
-# ---------- digest ----------
+# ---------- news update (digest) ----------
+#
+# 2026-06-22 redesign: each window round sends AT MOST `NEWS_MAX_CARDS` events,
+# and every event gets its OWN full-detail giga bubble (headline + body bullets
+# + gold-impact + source ref) instead of cramming many thin cards into one
+# bubble. White's note: "ส่งน้อยรอบเน้นจำนวนข่าวต่อรอบเยอะ ทำให้ไม่มีรายละเอียด"
+# — fewer events, each one fully readable without opening the link.
 
-def _digest_event_card(ev: Event, score: float,
-                       alert: MarketAlert | None = None,
-                       title_th: str | None = None,
-                       summary_th: str | None = None) -> dict[str, Any]:
-    """One readable event block for the digest — designed so the reader
-    understands the story at a glance WITHOUT opening the link.
+# Max events per round = max bubbles in the carousel (LINE allows up to 12).
+NEWS_MAX_CARDS = 4
 
-    Layout:
-      [TOPIC chip] [HIGH/MED/LOW]                         12m ago
-      {Thai headline — bold md, full, wraps}
-      {summary line 1 — sm, wraps}
-      {summary line 2 — sm, wraps}
-      💡 {gold-impact line — xs gray}
-      Source ↗
-    """
-    en_title = _trim(ev.representative_title, 160)
-    en_summary = _trim(ev.representative_summary, 200)
-    if alert and alert.should_send and alert.headline_th:
-        display_title = alert.headline_th
-        # Prefer the gold-impact line (one clean, self-contained sentence). Fall
-        # back to the first body bullet only if impact is missing.
-        detail = (alert.impact_th or "").strip() or next((b for b in (alert.body_th or []) if b), "")
-        category = alert.category or ev.topic_bucket.replace("_", " ").title()
-    else:
-        display_title = title_th.strip() if title_th else en_title
-        detail = summary_th.strip() if summary_th else en_summary
-        category = ev.topic_bucket.replace("_", " ").title()
 
-    src_name = _source_label(ev.source_list, max_n=2)
-    age = _ago_label(_earliest_ts(ev))
-    url = _pick_article_url(ev.items)
-    _, topic_fg = _topic_chip_color(ev.topic_bucket)
+def _news_card_body(
+    alert: MarketAlert,
+    score: float,
+    source_list: list[str],
+    url: str,
+    first_seen: datetime | None,
+    topic_bucket: str,
+) -> list[dict[str, Any]]:
+    """Body contents for one full-detail news bubble. Same visual rhythm as
+    breaking/alert (_event_bubble): chip row → headline → body bullets →
+    gold-impact → separator → source link. Built from a stored MarketAlert +
+    meta, so it does NOT need a live Event object."""
+    display_title = alert.headline_th or ""
+    body_lines = list(alert.body_th or [])
+    impact_line = alert.impact_th
+    category_text = alert.category or topic_bucket.replace("_", " ").title()
+    tone_label = alert.tone or "neutral"
 
-    # Compact card: category + age, a complete bold headline, one complete
-    # gold-impact line. No raw multi-bullet body — that bulked the card up and
-    # cut mid-sentence. Headline + impact read as a finished thought at a glance.
-    top_row = {
-        "type": "box", "layout": "horizontal", "alignItems": "center",
-        "contents": [
-            {"type": "text", "text": category, "size": "xxs", "weight": "bold",
-             "color": topic_fg, "flex": 1, "wrap": False},
-            {"type": "text", "text": age or "", "size": "xxs",
-             "color": "#9CA3AF", "align": "end", "flex": 0},
-        ],
-    }
-    contents: list[dict[str, Any]] = [
-        top_row,
-        {"type": "text", "text": _compact_th(display_title), "size": "sm", "weight": "bold",
-         "wrap": True, "color": "#111827", "margin": "xs"},
-    ]
-    if detail:
-        contents.append({
-            "type": "text", "text": _trim(_compact_th(detail), 180),
-            "size": "xs", "color": "#4B5563", "wrap": True, "margin": "xs",
+    src_name = _source_label(source_list)
+    age = _ago_label(first_seen)
+    _, topic_fg = _topic_chip_color(topic_bucket)
+    dir_bg, dir_fg = _direction_chip_color(tone_label)
+
+    # Chip row — hide noise defaults ("Other" category, "neutral" tone).
+    chip_row: list[dict[str, Any]] = []
+    if category_text and category_text.strip().lower() != "other":
+        chip_row.append({"type": "text", "text": category_text,
+                         "size": "xs", "weight": "bold", "color": topic_fg, "flex": 0})
+    if tone_label and tone_label.strip().lower() not in ("neutral", "none", "flat", ""):
+        chip_row.append(_chip(tone_label, dir_bg, dir_fg))
+
+    body_contents: list[dict[str, Any]] = []
+    if chip_row:
+        body_contents.append({"type": "box", "layout": "horizontal", "spacing": "sm",
+                              "alignItems": "center", "contents": chip_row})
+    body_contents.append(
+        {"type": "text", "text": _compact_th(display_title), "size": "md",
+         "wrap": True, "color": "#111827", "weight": "bold",
+         "margin": "md" if chip_row else "none"})
+    # Full body — up to 3 complete sentences so the reader understands the
+    # story without opening the link (this is the "เนื้อหาข่าว" White asked for).
+    for bullet in body_lines[:3]:
+        if not bullet:
+            continue
+        body_contents.append({
+            "type": "text", "text": f"• {_compact_th(bullet)}",
+            "size": "sm", "wrap": True, "color": "#1F2937", "margin": "sm",
         })
-    contents.append(_source_link(src_name, age, url))
+    if impact_line:
+        body_contents.append({"type": "separator", "margin": "md"})
+        body_contents.append({
+            "type": "text", "text": f"💡 {_compact_th(impact_line)}",
+            "size": "xs", "wrap": True, "color": "#6B7280", "margin": "sm",
+            "weight": "bold",
+        })
+    body_contents.append({"type": "separator", "margin": "lg"})
+    body_contents.append(_source_link(src_name, age, url or None))
+    return body_contents
 
-    return {"type": "box", "layout": "vertical", "spacing": "none",
-            "margin": "sm", "contents": contents}
 
-
-def _build_digest_bubble(
-    chunk: list[Event],
-    scores: dict[str, float],
-    slot: str,
-    kw_cfg: dict[str, Any],
-    translations: dict[str, dict[str, str | None]] | None,
-    alerts: dict[str, MarketAlert] | None,
-    header_label: str,
-    header_sub: str,
-) -> dict[str, Any]:
-    """One bubble = up to DIGEST_PER_PAGE readable event cards (score order)."""
-    ranked = sorted(chunk, key=lambda e: -scores.get(e.event_id, 0))
-    sections: list[dict[str, Any]] = []
-    for i, ev in enumerate(ranked):
-        if i > 0:
-            sections.append({"type": "separator", "margin": "md", "color": "#E5E7EB"})
-        tr = (translations or {}).get(ev.event_id, {})
-        alert = (alerts or {}).get(ev.event_id)
-        sections.append(_digest_event_card(
-            ev, scores.get(ev.event_id, 0),
-            alert=alert,
-            title_th=tr.get("title_th") if tr else None,
-            summary_th=tr.get("summary_th") if tr else None,
-        ))
+def news_update_card_bubble(card: dict[str, Any], header_label: str,
+                            header_sub: str) -> dict[str, Any]:
+    """One full-detail news bubble (giga, digest blue). `card` keys:
+    alert (MarketAlert), score, source_list, url, first_seen, topic_bucket."""
+    alert: MarketAlert = card["alert"]
+    impact_label, _, _ = score_to_impact(float(card.get("score") or 0))
+    body_contents = _news_card_body(
+        alert,
+        float(card.get("score") or 0),
+        list(card.get("source_list") or []),
+        str(card.get("url") or ""),
+        card.get("first_seen"),
+        str(card.get("topic_bucket") or "other"),
+    )
     return {
         "type": "bubble", "size": "giga",
-        "header": _header(header_label, header_sub, COLOR["digest"]),
+        "header": _header(header_label, header_sub or impact_label, COLOR["digest"]),
         "body": {"type": "box", "layout": "vertical", "spacing": "sm",
-                 "contents": sections, "paddingAll": "16px"},
+                 "contents": body_contents, "paddingAll": "16px"},
     }
 
 
-# Events per digest bubble — fewer, fuller cards so each is readable without
-# opening the link. The carousel adds more pages as needed (the user prefers
-# 3-per-page over cramming).
-DIGEST_PER_PAGE = 3
-DIGEST_MAX_PAGES = 3
-# Legacy alias kept for any external import.
-DIGEST_SPLIT_THRESHOLD = DIGEST_PER_PAGE
-
-
-def digest_carousel(
-    events: list[Event],
-    scores: dict[str, float],
-    slot: str,
-    kw_cfg: dict[str, Any],
-    translations: dict[str, dict[str, str | None]] | None = None,
-    alerts: dict[str, MarketAlert] | None = None,
-) -> dict[str, Any] | None:
-    """Build the Latest News Update.
-
-    ≤ 5 events: single giga bubble.
-    > 5 events: 2-bubble carousel split by score order. Header sub-label
-                shows ONLY the slot time (e.g. "05:30 ICT") — the "N/M
-                events" count was noise that didn't help the reader.
-    """
-    if not events:
+def news_update_carousel(cards: list[dict[str, Any]], slot: str) -> dict[str, Any] | None:
+    """Build the News Update for one window round — one full-detail bubble per
+    event, capped at NEWS_MAX_CARDS. Single event → one bubble; 2-4 events →
+    a carousel. Header sub-label is the slot time; multi-card headers also
+    carry "i/N" so the reader knows how many cards are in the round."""
+    cards = [c for c in cards if c and c.get("alert")][:NEWS_MAX_CARDS]
+    if not cards:
         return None
-    ranked = sorted(events, key=lambda e: -scores.get(e.event_id, 0))
-    # Cap total so the carousel stays scannable; paginate at DIGEST_PER_PAGE.
-    ranked = ranked[: DIGEST_PER_PAGE * DIGEST_MAX_PAGES]
-    pages = [ranked[i:i + DIGEST_PER_PAGE] for i in range(0, len(ranked), DIGEST_PER_PAGE)]
-
-    if len(pages) == 1:
-        return _build_digest_bubble(
-            pages[0], scores, slot, kw_cfg, translations, alerts,
-            header_label="📰 Latest News Update",
-            header_sub=f"{slot} ICT",
-        )
-
-    bubbles = []
-    for i, page in enumerate(pages, start=1):
-        bubbles.append(_build_digest_bubble(
-            page, scores, slot, kw_cfg, translations, alerts,
-            header_label=f"📰 News Update {i}/{len(pages)}",
-            header_sub=f"{slot} ICT",
-        ))
+    if len(cards) == 1:
+        return news_update_card_bubble(
+            cards[0], header_label="📰 News Update", header_sub=f"{slot} ICT")
+    bubbles = [
+        news_update_card_bubble(
+            c, header_label=f"📰 News Update {i}/{len(cards)}",
+            header_sub=f"{slot} ICT")
+        for i, c in enumerate(cards, start=1)
+    ]
     return {"type": "carousel", "contents": bubbles}
 
 
@@ -982,6 +953,7 @@ def post_release_bubble(
     verdict: str | None = None,
     xau_return_pct: float | None = None,
     effect: dict[str, str] | None = None,
+    detail_th: list[str] | None = None,
 ) -> dict[str, Any]:
     """Released-news bubble — title-led, no time field, single-word verdict.
 
@@ -989,6 +961,11 @@ def post_release_bubble(
       - Without FRED: directional ↑/↓ guide (when actual_text is None).
       - With FRED:    Actual / Forecast / Previous row + surprise emoji +
                       one-word Gold Impact (BULLISH / BEARISH / NEUTRAL).
+
+    `detail_th` (optional) is a short Thai explanation of what the print
+    means for gold (from news_alert.explain_calendar_release). Rendered as
+    bullet lines under the title so the reader gets the CONTENT, not just a
+    bull/bear pill.
     """
     header_color, _ = _impact_color(event.impact)
     body_contents: list[dict[str, Any]] = [
@@ -1004,6 +981,15 @@ def post_release_bubble(
               "size": "xs", "weight": "bold", "color": "#374151", "flex": 0},
         ]},
     ]
+    # Thai explanation block — the "เนื้อหารายละเอียด" the reader actually reads.
+    for bullet in (detail_th or [])[:3]:
+        b = (bullet or "").strip()
+        if not b:
+            continue
+        body_contents.append({
+            "type": "text", "text": f"• {_compact_th(b)}",
+            "size": "sm", "wrap": True, "color": "#1F2937", "margin": "sm",
+        })
 
     if actual_text:
         # 3-col data strip — all centered for equal visual spacing.

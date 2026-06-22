@@ -116,7 +116,14 @@ SCHEMAS: dict[str, list[str]] = {
     "event_state": [
         "event_id", "cluster_key", "topic_bucket", "entity", "direction_label",
         "first_seen_ts", "last_seen_ts", "source_list", "source_count",
-        "score", "status", "updated_at",
+        "score", "status",
+        # title/summary/url added 2026-06-22 so the 6-window digest can scan
+        # the full 4h window from event_state and render each event as its own
+        # full-detail card WITHOUT re-fetching the source. Additive migration:
+        # _ensure_tab rewrites the header before load_all reads, so existing
+        # rows just get blank cells for the new columns.
+        "title", "summary", "url",
+        "updated_at",
     ],
     "sent_log": [
         "event_id", "route_type", "sent_ts", "line_status", "updated_at",

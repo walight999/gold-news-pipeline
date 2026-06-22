@@ -63,7 +63,19 @@ test draft) · `calendar_daily` (**retired — GAS owns it**) · `calendar_check
 - `apify_source.py` — scrapes X accounts (config `x_accounts`), tweets become
   RSS-shaped entries (tier=2, role=trader_macro). Gated by `APIFY_TOKEN`.
 - `news_alert.py` — Claude Haiku classify + Thai rewrite for LINE. **Do not
-  repurpose for social** — keep LINE and social independent.
+  repurpose for social** — keep LINE and social independent. Also owns
+  `explain_calendar_release()` — short Thai "what this print means for gold"
+  for Released-News cards (Claude Haiku → Gemini → None, cached in
+  translation_cache `cl…` keys).
+- **News Update (digest) — 6 windows, full detail (2026-06-22).** 6 rounds/day
+  (04:30/08:30/12:30/16:30/20:30/00:30 ICT, `schedule.yaml::digest.slots_ict`).
+  Each round scans the WHOLE 4h window from `event_state` via
+  `digest.collect_window_events` (NOT just this run's fetch), sends at most
+  `max_cards` (4) events, ONE full-detail Flex bubble each (headline + body
+  bullets + source ref) via `line_flex.news_update_carousel`. `event_state`
+  gained `title`/`summary`/`url` columns so a stored event renders without a
+  re-fetch; re-classifying it is a translation_cache hit. `sent_log` digest
+  rows dedup an event across rounds + against breaking/alert.
 - `tweet_writer.py` — separate Claude call composing the @tradetongkam-voice
   tweet (no emoji, analytical, `#ทองวันนี้ #ข่าวทอง #เทรดทอง #ทองคำ`).
 - `social_feed.py` — append-only `social_feed` sheet writer + the approval-gated

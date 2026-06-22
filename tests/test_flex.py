@@ -13,9 +13,10 @@ from src.line_flex import (
     alert_bubble,
     alt_text_for_event,
     breaking_bubble,
-    digest_carousel,
     health_bubble,
+    news_update_carousel,
 )
+from src.news_alert import MarketAlert
 from src.normalizer import Item
 
 
@@ -161,60 +162,75 @@ def test_compact_th_orgs_and_data_terms():
     assert _compact_th("รองประธานาธิบดี") == "รองปธน."
 
 
-def _count_event_cards(bubble):
-    """Each digest event is a top-level vertical box in the bubble body."""
-    return sum(1 for sec in bubble["body"]["contents"]
-               if sec.get("type") == "box" and sec.get("layout") == "vertical")
+def _card(topic="inflation", tone="hawkish", score=3.0, headline="CPI ร้อนแรง",
+          body=None, impact="กดดันทอง", category="Inflation",
+          sources=None, url="https://x/a"):
+    """Build a news-update card dict (the new 1-event-per-bubble input)."""
+    alert = MarketAlert(
+        action="keep", relevance_to_gold="high", tone=tone, category=category,
+        headline_th=headline,
+        body_th=body if body is not None else ["รายละเอียดบรรทัดหนึ่ง", "รายละเอียดบรรทัดสอง"],
+        impact_th=impact,
+    )
+    return {
+        "alert": alert, "score": score, "topic_bucket": topic,
+        "source_list": sources or ["forexlive", "bls"], "url": url,
+        "first_seen": datetime(2026, 6, 22, 5, 0, tzinfo=timezone.utc),
+    }
 
 
-def test_digest_single_bubble_up_to_three(kw_config):
-    evs = [
-        _ev("inflation",   "hawkish", ["forexlive"]),
-        _ev("inflation",   "neutral", ["marketwatch"]),
-        _ev("geopolitics", "risk_off", ["bbc_world"]),
-    ]
-    for i, ev in enumerate(evs):
-        ev.event_id = f"e{i}"
-    scores = {ev.event_id: 3.0 + i * 0.1 for i, ev in enumerate(evs)}
-    b = digest_carousel(evs, scores, "13:30", kw_config)
+def _has_uri_link(bubble):
+    found = {"v": False}
+
+    def _walk(node):
+        if found["v"] or not isinstance(node, dict):
+            return
+        if node.get("type") == "text" and node.get("action", {}).get("type") == "uri":
+            found["v"] = True
+            return
+        for c in node.get("contents", []) or []:
+            _walk(c)
+    for comp in bubble["body"]["contents"]:
+        _walk(comp)
+    return found["v"]
+
+
+def test_news_update_single_bubble():
+    b = news_update_carousel([_card()], "12:30")
     assert b is not None
-    # 3 events → a single readable bubble (3 cards, no carousel)
+    # One event → a single full-detail bubble, digest blue.
     assert b["type"] == "bubble"
     assert b["size"] == "giga"
     assert b["header"]["backgroundColor"] == "#2563EB"
-    assert _count_event_cards(b) == 3
+    # Body carries the headline + the full body bullets + a clickable source.
+    texts = [c.get("text", "") for c in b["body"]["contents"] if c.get("type") == "text"]
+    assert any("CPI ร้อนแรง" in t for t in texts)
+    assert any("รายละเอียดบรรทัดหนึ่ง" in t for t in texts)
+    assert _has_uri_link(b)
 
 
-def test_digest_paginates_at_three(kw_config):
-    """>3 events split into a carousel of 3-card pages."""
-    topics = ["inflation", "jobs", "rate_policy", "geopolitics", "usd_yields", "gold_flow", "other"]
-    evs = []
-    for i, t in enumerate(topics):
-        ev = _ev(t, "neutral", ["forexlive"])
-        ev.event_id = f"e{i}"
-        evs.append(ev)
-    scores = {ev.event_id: 3.0 + i * 0.01 for i, ev in enumerate(evs)}
-    b = digest_carousel(evs, scores, "21:30", kw_config)
-    assert b is not None
-    # 7 events → 3 pages of 3/3/1
+def test_news_update_one_bubble_per_event():
+    cards = [_card(topic=t, headline=f"ข่าว {t}", score=3.0 + i * 0.1)
+             for i, t in enumerate(["inflation", "jobs", "rate_policy"])]
+    b = news_update_carousel(cards, "16:30")
     assert b["type"] == "carousel"
+    # 3 events → 3 bubbles, ONE event each (not packed).
     assert len(b["contents"]) == 3
-    assert _count_event_cards(b["contents"][0]) == 3
-    assert _count_event_cards(b["contents"][1]) == 3
-    assert _count_event_cards(b["contents"][2]) == 1
+    for bub in b["contents"]:
+        assert bub["type"] == "bubble"
 
 
-def test_digest_caps_total_pages(kw_config):
-    """More than PER_PAGE*MAX_PAGES events are capped to the max pages."""
-    evs = []
-    for i in range(40):
-        ev = _ev("inflation", "neutral", ["forexlive"])
-        ev.event_id = f"e{i}"
-        evs.append(ev)
-    scores = {ev.event_id: 3.0 for ev in evs}
-    b = digest_carousel(evs, scores, "13:30", kw_config)
+def test_news_update_caps_at_four():
+    cards = [_card(headline=f"ข่าว {i}", score=3.0) for i in range(10)]
+    b = news_update_carousel(cards, "12:30")
     assert b["type"] == "carousel"
-    assert len(b["contents"]) == 3   # DIGEST_MAX_PAGES
+    assert len(b["contents"]) == 4   # NEWS_MAX_CARDS
+
+
+def test_news_update_empty_is_none():
+    assert news_update_carousel([], "12:30") is None
+    # cards missing an alert are dropped
+    assert news_update_carousel([{"score": 3.0}], "12:30") is None
 
 
 def test_health_bubble_shape():

@@ -22,6 +22,71 @@ def already_sent(store: Store, slot: str) -> bool:
     return row is not None
 
 
+# Statuses that mean the event was already pushed on its own (breaking/alert)
+# — never re-surface those in a digest round.
+_PUSHED_STATUSES = {"breaking", "alert"}
+
+
+def _already_individually_sent(store: Store, event_id: str) -> bool:
+    """True if this event_id already went out as breaking / alert / a prior
+    digest round. Stops the same story repeating across the 6 daily windows
+    and stops a breaking item being echoed in the next digest."""
+    for route in ("breaking", "alert", "digest"):
+        if store.get("sent_log", (event_id, route)) is not None:
+            return True
+    return False
+
+
+def collect_window_events(
+    store: Store,
+    now: "datetime",
+    window_hours: float,
+    min_score: float,
+    max_candidates: int = 30,
+) -> list[dict[str, Any]]:
+    """Gather the digest candidate pool for one window round, straight from
+    event_state — so a round covers EVERY gold-relevant event first seen in
+    the last `window_hours`, not just whatever the current cron run fetched.
+
+    A row qualifies when ALL hold:
+      - status is not breaking / alert (those were pushed individually)
+      - score >= min_score
+      - it carries a title (needed to render + re-classify)
+      - first_seen_ts is within the window
+      - it hasn't already gone out (breaking / alert / earlier digest round)
+
+    Returns the rows ranked by score desc (newest first on ties), capped at
+    `max_candidates`. The caller classifies down this list until it has enough
+    keepers — the classifier + relevance gate is the real quality filter.
+    """
+    from datetime import timedelta
+
+    from .utils_time import parse_iso
+
+    cutoff = now - timedelta(hours=window_hours)
+    out: list[tuple[float, float, dict[str, Any]]] = []
+    for row in store.all_rows("event_state"):
+        if str(row.get("status") or "").strip() in _PUSHED_STATUSES:
+            continue
+        title = str(row.get("title") or "").strip()
+        if not title:
+            continue
+        try:
+            score = float(row.get("score") or 0)
+        except (TypeError, ValueError):
+            continue
+        if score < min_score:
+            continue
+        first_seen = parse_iso(row.get("first_seen_ts"))
+        if first_seen is None or first_seen < cutoff:
+            continue
+        if _already_individually_sent(store, str(row.get("event_id") or "")):
+            continue
+        out.append((score, first_seen.timestamp(), row))
+    out.sort(key=lambda t: (-t[0], -t[1]))
+    return [r for _, _, r in out[:max_candidates]]
+
+
 def mark_sent(store: Store, slot: str, line_status: int) -> None:
     from .utils_time import iso_utc, now_utc
     key = digest_sent_key(slot)
