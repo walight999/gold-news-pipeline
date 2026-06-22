@@ -1,14 +1,28 @@
 digest:
-  # All times Asia/Bangkok (ICT). A digest fires if a run lands from
-  # window_minutes BEFORE a slot up to catch_up_minutes AFTER it (once per
-  # slot per day via already_sent). The catch-up exists because GitHub throttles
-  # the */5 news cron down to roughly one run every 2-4h, so the old tight ±5m
-  # window was almost always missed → NewsUpdate digests silently stopped firing.
-  slots_ict: ["05:30", "13:30", "21:30"]
+  # All times Asia/Bangkok (ICT). 6 windows spaced 4h apart so each "News
+  # Update" round covers the news of the 4h window that just ended. A digest
+  # fires if a run lands from window_minutes BEFORE a slot up to
+  # catch_up_minutes AFTER it (once per slot per day via already_sent). The
+  # catch-up exists because GitHub throttles the */5 news cron down to roughly
+  # one run every 2-4h, so the old tight ±5m window was almost always missed.
+  #
+  # 2026-06-22: 3 slots → 6 (04:30/08:30/12:30/16:30/20:30/00:30). Each round
+  # now scans the WHOLE 4h window from event_state (not just the current
+  # fetch) and sends at most `max_cards` events, ONE full-detail Flex bubble
+  # each (headline + body + source ref) instead of cramming many thin cards.
+  slots_ict: ["04:30", "08:30", "12:30", "16:30", "20:30", "00:30"]
   window_minutes: 5
-  catch_up_minutes: 240     # fire a missed slot's digest on any run within 4h after it
-  max_events: 15     # candidates to classify; the classifier + relevance gate
-                     # trim this, then the carousel paginates at 3 readable cards/page
+  # 210 (3.5h) < the 4h slot spacing, so a throttled run still catches a
+  # missed slot but a late fire can't bleed into the next window's slot.
+  catch_up_minutes: 210
+  # How far back the window scan reaches from event_state for each round.
+  # Matches the 4h slot spacing so consecutive rounds tile the day with no
+  # gap and no overlap (sent_log dedup stops an event repeating across rounds).
+  window_hours: 4
+  # Max events sent per round = max full-detail Flex bubbles in the carousel.
+  max_cards: 4
+  max_events: 12    # classify pool ceiling: rank window candidates by score,
+                    # classify down the list until max_cards keepers are found.
   # Lower than spec §4.5's 2.5 — see main.run_once digest section for why.
   # Most RSS items have published_ts that's hours old by the time we
   # fetch, so freshness_factor drops to 0.1 and even base-5 inflation

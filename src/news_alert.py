@@ -868,3 +868,194 @@ def _fallback_alert(title: str, summary: str, store: "Store | None" = None) -> M
         reason="claude-unavailable: literal-translation fallback",
         is_fallback=True,
     )
+
+
+# --------------------------------------------------------------------- calendar
+#
+# Released economic events (FOMC, CPI, NFP, ...) used to ship as Actual/Forecast/
+# Previous + a direction pill only. White asked for the actual CONTENT: a short
+# Thai read of what the print means for gold, not just bull/bear/flat.
+
+_CAL_EXPLAIN_PROMPT = """You are a Thai trading-desk editor for an XAU/USD (gold) alert system.
+A scheduled economic indicator just released. Write a SHORT Thai explanation a gold trader reads to understand what the number means for gold. This is NOT a translation and NOT generic filler — use ONLY the figures provided, never invent numbers.
+
+OUTPUT — strict JSON, ONE object, no prose, no markdown fence:
+{"detail_th": ["ประโยคที่ 1", "ประโยคที่ 2"]}
+
+RULES:
+- 2-3 COMPLETE Thai sentences, each <= 150 characters, each a whole thought.
+- Sentence 1: the result — actual vs forecast vs previous, and whether it beat / missed / in-line.
+- Sentence 2: what it implies for policy (Fed/central bank) or USD / yields.
+- Sentence 3 (optional): the read-through to ทอง/XAU — direction and the why.
+- Keep these EXACTLY in English: Fed, FOMC, ECB, BoJ, BoE, CPI, Core CPI, PCE, NFP, GDP, PMI, ISM, USD, DXY, yields, hawkish, dovish, safe-haven.
+- Gregorian years only (2026). No Buddhist Era. No emoji. No Chinese/Japanese/Korean characters.
+- If the figures are missing or unclear, return {"detail_th": []}.
+
+INPUT:
+EVENT: {title}
+COUNTRY: {country}
+IMPACT: {impact}
+ACTUAL: {actual}
+FORECAST: {forecast}
+PREVIOUS: {previous}
+SURPRISE: {surprise}
+GOLD_VERDICT: {verdict}
+XAU_REACTION_5M_PCT: {xau}
+
+JSON output (strict, single object, no surrounding text):"""
+
+
+def _cal_cache_key(event_id: str, actual: str) -> str:
+    """16-char cache key for a released-event explanation, in the shared
+    translation_cache tab. 'cl' prefix keeps it distinct from the 'a3'
+    classifier rows and the legacy plain-text rows."""
+    h = hashlib.sha256(f"{event_id}\n{actual or ''}".encode("utf-8")).hexdigest()[:14]
+    return f"cl{h}"
+
+
+def _render_cal_prompt(title, country, impact, actual, forecast, previous,
+                       surprise, verdict, xau) -> str:
+    repl = {
+        "{title}": str(title or "")[:200],
+        "{country}": str(country or ""),
+        "{impact}": str(impact or ""),
+        "{actual}": str(actual or "—"),
+        "{forecast}": str(forecast or "—"),
+        "{previous}": str(previous or "—"),
+        "{surprise}": str(surprise or "unknown"),
+        "{verdict}": str(verdict or "unclear"),
+        "{xau}": "unknown" if xau is None else f"{xau:+.2f}",
+    }
+    out = _CAL_EXPLAIN_PROMPT
+    for k, v in repl.items():
+        out = out.replace(k, v)
+    return out
+
+
+def _cal_detail_from_text(text: str) -> list[str] | None:
+    """Parse the explainer JSON → list of Thai sentences. Drops any bullet
+    that leaks CJK script (same guard as the news rewrite). None on parse
+    failure so the caller can fall back to the directional-only card."""
+    from .translator import _has_cjk
+    d = _parse_json_lenient(text)
+    if not isinstance(d, dict):
+        return None
+    bullets = d.get("detail_th")
+    if not isinstance(bullets, list):
+        return None
+    out: list[str] = []
+    for b in bullets[:3]:
+        s = str(b or "").strip()
+        if s and not _has_cjk(s):
+            out.append(s[:200])
+    return out or None
+
+
+def explain_calendar_release(
+    event_id: str,
+    title: str,
+    country: str = "",
+    impact: str = "",
+    actual: str | None = None,
+    forecast: str | None = None,
+    previous: str | None = None,
+    surprise: str | None = None,
+    verdict: str | None = None,
+    xau_reaction_pct: float | None = None,
+    store: "Store | None" = None,
+) -> list[str] | None:
+    """Short Thai explanation of a just-released economic event, for the
+    Released-News card. Claude Haiku → Gemini → None (card degrades to the
+    directional-only layout). Cached in translation_cache keyed on
+    (event_id, actual); the post-release push is idempotent per event, so in
+    practice this is at most one Claude call per High/Medium release.
+
+    Best-effort: any failure returns None and is logged, never raised — the
+    calendar run must not crash on the explainer."""
+    if not title:
+        return None
+    key = _cal_cache_key(event_id, actual or "")
+    # Cache lookup (same tab as the news rewrite).
+    if store is not None:
+        row = store.get("translation_cache", (key,))
+        if row and row.get("thai_text"):
+            cached = _cal_detail_from_text(row["thai_text"])
+            if cached is not None:
+                return cached
+    prompt = _render_cal_prompt(title, country, impact, actual, forecast,
+                                previous, surprise, verdict, xau_reaction_pct)
+    text = _cal_explain_llm(prompt)
+    if not text:
+        return None
+    detail = _cal_detail_from_text(text)
+    if detail is None:
+        return None
+    # Cache the rendered JSON so re-runs / retries don't re-call the model.
+    if store is not None:
+        try:
+            from .utils_time import iso_utc, now_utc
+            store.upsert("translation_cache", {
+                "cache_key": key,
+                "source_preview": str(title)[:80],
+                "thai_text": json.dumps({"detail_th": detail}, ensure_ascii=False),
+                "hits": "1",
+                "created_at": iso_utc(now_utc()),
+            })
+        except Exception:
+            log.exception("calendar explainer cache write failed event=%s", event_id)
+    return detail
+
+
+def _cal_explain_llm(prompt: str) -> str | None:
+    """Claude Haiku → Gemini for the calendar explainer. Returns the raw
+    model text (JSON), or None when both providers are unavailable."""
+    import time as _t
+
+    from .translator import _get_anthropic_client
+    client = _get_anthropic_client()
+    if client is not None:
+        model = os.environ.get("CLAUDE_CALENDAR_MODEL", "claude-haiku-4-5-20251001").strip()
+        for attempt in range(3):
+            try:
+                _gap = _t.time() - _LAST_CLAUDE_CALL[0]
+                if _gap < _MIN_CLAUDE_GAP_S:
+                    _t.sleep(_MIN_CLAUDE_GAP_S - _gap)
+                _LAST_CLAUDE_CALL[0] = _t.time()
+                resp = client.messages.create(
+                    model=model, max_tokens=600,
+                    messages=[{"role": "user", "content": prompt}],
+                )
+                return resp.content[0].text
+            except Exception as e:
+                s = str(e)
+                transient = any(c in s for c in (" 429", " 529", " 503", " 502", " 504",
+                                                 "overloaded", "rate_limit"))
+                if attempt < 2 and transient:
+                    _t.sleep(2.0 * (attempt + 1))
+                    continue
+                log.warning("calendar explainer (claude) failed: %s", e)
+                break
+    # Gemini secondary — reuse the same REST path as the classifier.
+    api_key = os.environ.get("GEMINI_API_KEY", "").strip()
+    if api_key:
+        import httpx
+        model = os.environ.get("GEMINI_MODEL", "gemini-2.0-flash").strip()
+        url = (f"https://generativelanguage.googleapis.com/v1beta/models/"
+               f"{model}:generateContent")
+        body = {
+            "contents": [{"parts": [{"text": prompt}]}],
+            "generationConfig": {"temperature": 0.2, "maxOutputTokens": 600,
+                                 "responseMimeType": "application/json"},
+        }
+        try:
+            with httpx.Client(timeout=30.0) as c:
+                resp = c.post(url, json=body, headers={"x-goog-api-key": api_key})
+            resp.raise_for_status()
+            data = resp.json()
+            cands = data.get("candidates") or []
+            if cands:
+                parts = (cands[0].get("content") or {}).get("parts") or []
+                return "".join(p.get("text", "") for p in parts)
+        except Exception as e:
+            log.warning("calendar explainer (gemini) failed: %s", e)
+    return None

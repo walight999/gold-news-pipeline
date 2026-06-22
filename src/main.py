@@ -32,10 +32,10 @@ from .line_flex import (
     alt_text_for_event,
     breaking_bubble,
     calendar_day_bubble,
-    digest_carousel,
     eod_recap_bubble,
     health_bubble,
     health_recovered_bubble,
+    news_update_carousel,
     post_release_bubble,
     pre_release_bubble,
     score_to_impact,
@@ -330,7 +330,12 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
         alt = f"✅ Health Recovered — {len(recovered)} item(s)"
         _push_or_skip(line, health_target, alt, bubble, sched_cfg, label="health_recovered", store=store)
 
-    # 7. Digest if in slot
+    # 7. News Update round if in slot.
+    #
+    # 6 windows/day (04:30/08:30/12:30/16:30/20:30/00:30 ICT). Each round scans
+    # the WHOLE 4h window from event_state — not just this run's fetch — so the
+    # round covers every gold-relevant event first seen in the window. At most
+    # `max_cards` events are sent, each as its own full-detail Flex bubble.
     if mode in ("cron", "digest"):
         slots_ict = sched_cfg["digest"]["slots_ict"]
         window = int(sched_cfg["digest"]["window_minutes"])
@@ -338,91 +343,98 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
         slot = within_digest_slot(slots_ict, window, catch_up_min=catch_up)
         if slot and not digest.already_sent(store, slot):
             digest_floor = float(sched_cfg["digest"].get("min_score", 0.5))
-            max_events = int(sched_cfg["digest"].get("max_events", 10))
-            non_breaking = [d.event for d in decisions
-                            if d.route not in (Route.BREAKING, Route.ALERT)]
-            digest_events = [
-                e for e in non_breaking
-                if scores.get(e.event_id, 0) >= digest_floor
-            ]
-            # No "surface everything" fallback — better to send fewer (or skip
-            # the slot) than to show personal-finance / crypto / garbled junk.
-            # The classifier below is the real quality gate.
-            ranked = sorted(digest_events, key=lambda e: -scores.get(e.event_id, 0))[:max_events]
-            # Classify + rewrite each event. Only items the classifier KEEPS
-            # *and* that are gold-relevant (relevance != none) make the digest —
-            # this drops personal-finance / crypto / single-stock / preview /
-            # garbled-data noise that score-only filtering let through.
-            ranked_alerts: dict[str, news_alert.MarketAlert] = {}
-            kept: list[dedup.Event] = []
-            for ev in ranked:
-                earliest = ev.first_seen_ts if ev.items else None
+            max_events = int(sched_cfg["digest"].get("max_events", 12))
+            max_cards = int(sched_cfg["digest"].get("max_cards", 4))
+            window_hours = float(sched_cfg["digest"].get("window_hours", 4))
+            # Candidate pool from the full 4h window (event_state), score-ranked,
+            # excluding anything already pushed (breaking/alert/prior round).
+            candidates = digest.collect_window_events(
+                store, now_utc(), window_hours, digest_floor, max_candidates=max_events)
+            # Classify down the ranked list until we have max_cards keepers.
+            # Re-classifying a stored event is a translation_cache hit (keyed on
+            # title+summary), so this is mostly free for events already seen.
+            cards: list[dict[str, Any]] = []
+            kept_rows: list[dict[str, Any]] = []
+            from .utils_time import parse_iso as _parse_iso
+            for row in candidates:
+                if len(cards) >= max_cards:
+                    break
+                title = str(row.get("title") or "")
+                summary = str(row.get("summary") or "")
+                src_list = [s for s in str(row.get("source_list") or "").split(",") if s]
+                first_seen = _parse_iso(row.get("first_seen_ts"))
                 age_hours = None
-                if earliest:
-                    age_hours = (now_utc() - earliest).total_seconds() / 3600.0
+                if first_seen:
+                    age_hours = (now_utc() - first_seen).total_seconds() / 3600.0
                 a = news_alert.classify_and_rewrite(
-                    ev.representative_title,
-                    ev.classify_summary,
-                    source_id=",".join(ev.source_list[:2]),
+                    title, summary,
+                    source_id=",".join(src_list[:2]),
                     age_hours=age_hours,
                     store=store,
                 )
-                # Digest is quality-gated: a REAL Claude classification (not the
-                # Google-translate fallback, which keeps everything as "Other"
-                # with garbled cut Thai) AND gold-relevant (high/medium, not
-                # low/none — low is mostly tangential macro noise).
+                # Quality gate: a REAL classification (not the Google-translate
+                # fallback) that is gold-relevant (high/medium).
                 if (a.should_send and not a.is_fallback
                         and (a.relevance_to_gold or "none") in ("high", "medium")):
-                    ranked_alerts[ev.event_id] = a
-                    kept.append(ev)
+                    try:
+                        score_val = float(row.get("score") or 0)
+                    except (TypeError, ValueError):
+                        score_val = 0.0
+                    cards.append({
+                        "alert": a, "score": score_val,
+                        "source_list": src_list, "url": str(row.get("url") or ""),
+                        "first_seen": first_seen,
+                        "topic_bucket": str(row.get("topic_bucket") or "other"),
+                    })
+                    kept_rows.append(row)
                 else:
-                    log.info("digest dropped event_id=%s reason=%s relevance=%s fallback=%s",
-                             ev.event_id, a.reason, a.relevance_to_gold, a.is_fallback)
-            log.info("digest classifier: %d/%d events kept", len(kept), len(ranked))
-            if not kept:
+                    log.info("news round dropped event_id=%s reason=%s relevance=%s fallback=%s",
+                             row.get("event_id"), a.reason, a.relevance_to_gold, a.is_fallback)
+            log.info("news round %s: %d/%d candidates kept", slot, len(cards), len(candidates))
+            if not cards:
                 store.flush()
                 return 0
-            carousel = digest_carousel(kept, scores, slot, kw_cfg,
-                                       alerts=ranked_alerts)
+            carousel = news_update_carousel(cards, slot)
             if carousel and news_target:
                 line = line or LineClient.from_env()
-                # Use len(kept) so the LINE notification preview matches
-                # what's actually inside the bubble — previously this showed
-                # the pre-classifier pool size, so users saw "10 events"
-                # in the notification but only 5 in the bubble.
-                alt = f"📰 Digest {slot} ICT — {len(kept)} event(s)"
-                resp = _push_or_skip(line, news_target, alt, carousel, sched_cfg, label="digest", store=store)
+                alt = f"📰 News Update {slot} ICT — {len(cards)} event(s)"
+                # bypass_quiet: the 04:30 round sits inside the 04:00-05:00 ICT
+                # quiet window. A scheduled once-per-window summary should land
+                # on time regardless (same exemption as the 04:40 calendar
+                # briefing) — otherwise quiet-hours silently eats the 04:30
+                # round AND mark_sent records it as delivered.
+                resp = _push_or_skip(line, news_target, alt, carousel, sched_cfg,
+                                     label="digest", bypass_quiet=True, store=store)
                 digest.mark_sent(store, slot, resp["status"])
-                # Per-event sent_log rows so EOD top_topics can count
-                # only the events that actually reached the user (after
-                # classifier filtering). Without these the EOD recap
-                # over-reports the count.
+                # Per-event sent_log rows: mark each event as digest so the next
+                # window round won't repeat it, and EOD top_topics counts only
+                # events that actually reached the user.
                 if resp["status"] == 200:
-                    for ev in kept:
+                    for card, row in zip(cards, kept_rows):
+                        ev_id = str(row.get("event_id") or "")
                         store.upsert("sent_log", {
-                            "event_id": ev.event_id,
+                            "event_id": ev_id,
                             "route_type": "digest",
                             "sent_ts": iso_utc(now_utc()),
                             "line_status": resp["status"],
                         })
                         try:
-                            a = ranked_alerts.get(ev.event_id)
-                            if a:
-                                social_records.append(social_feed.record_news_event(
-                                    route="digest",
-                                    category=a.category,
-                                    tone=a.tone,
-                                    impact_level=score_to_impact(scores.get(ev.event_id, 0))[0],
-                                    headline_th=a.headline_th,
-                                    body_th=a.body_th,
-                                    impact_th=a.impact_th,
-                                    source=_source_label(ev.source_list),
-                                    url=_pick_article_url(ev.items),
-                                    en_title=ev.representative_title,
-                                    en_summary=ev.representative_summary,
-                                ))
+                            a = card["alert"]
+                            social_records.append(social_feed.record_news_event(
+                                route="digest",
+                                category=a.category,
+                                tone=a.tone,
+                                impact_level=score_to_impact(card["score"])[0],
+                                headline_th=a.headline_th,
+                                body_th=a.body_th,
+                                impact_th=a.impact_th,
+                                source=_source_label(card["source_list"]),
+                                url=card["url"],
+                                en_title=str(row.get("title") or ""),
+                                en_summary=str(row.get("summary") or ""),
+                            ))
                         except Exception:
-                            log.exception("social_feed record (digest) failed event=%s", ev.event_id)
+                            log.exception("social_feed record (digest) failed event=%s", row.get("event_id"))
 
     # 8. Heartbeat — stamp pipeline liveness before flush so the watchdog
     # can distinguish "cron stopped" from "cron ran but no news today".
@@ -1152,11 +1164,25 @@ async def run_calendar_check() -> int:
             # available; off-hours / 429s gracefully return None).
             xau_reaction = price_feed.xau_return_pct(ev.dt_utc, minutes_after=5)
             effect_info = cal.forecast_vs_previous_effect(ev)
+            # Thai explanation of what the print means for gold (Claude Haiku,
+            # cached). Best-effort — None degrades to the directional-only card.
+            detail_th = None
+            try:
+                detail_th = news_alert.explain_calendar_release(
+                    event_id=ev.event_id, title=ev.title, country=ev.country,
+                    impact=ev.impact, actual=actual_text,
+                    forecast=ev.forecast, previous=ev.previous,
+                    surprise=surprise, verdict=verdict,
+                    xau_reaction_pct=xau_reaction, store=store,
+                )
+            except Exception:
+                log.exception("calendar explainer failed event=%s", ev.event_id)
             bubble = post_release_bubble(ev, impact_info,
                                          actual_text=actual_text,
                                          surprise=surprise, verdict=verdict,
                                          xau_return_pct=xau_reaction,
-                                         effect=effect_info)
+                                         effect=effect_info,
+                                         detail_th=detail_th)
             alt_extra = f" · actual {actual_text}" if actual_text else ""
             alt = f"📊 Released · {ev.country} {ev.title}{alt_extra}"
             resp = _push_or_skip(line, target, alt, bubble, sched_cfg, label="calendar", store=store)
