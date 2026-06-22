@@ -541,20 +541,26 @@ def news_update_card_bubble(card: dict[str, Any], header_label: str,
     }
 
 
-def news_update_carousel(cards: list[dict[str, Any]], slot: str) -> dict[str, Any] | None:
+def news_update_carousel(cards: list[dict[str, Any]], slot: str,
+                         degraded: bool = False) -> dict[str, Any] | None:
     """Build the News Update for one window round — one full-detail bubble per
     event, capped at NEWS_MAX_CARDS. Single event → one bubble; 2-4 events →
     a carousel. Header sub-label is the slot time; multi-card headers also
-    carry "i/N" so the reader knows how many cards are in the round."""
+    carry "i/N" so the reader knows how many cards are in the round.
+
+    `degraded=True` marks a classifier-outage fallback round (both Claude and
+    Gemini down): the header carries "· สำรอง" so the reader knows the Thai is
+    machine-translated, not a real rewrite."""
     cards = [c for c in cards if c and c.get("alert")][:NEWS_MAX_CARDS]
     if not cards:
         return None
+    base_label = "📰 News Update" + (" · สำรอง" if degraded else "")
     if len(cards) == 1:
         return news_update_card_bubble(
-            cards[0], header_label="📰 News Update", header_sub=f"{slot} ICT")
+            cards[0], header_label=base_label, header_sub=f"{slot} ICT")
     bubbles = [
         news_update_card_bubble(
-            c, header_label=f"📰 News Update {i}/{len(cards)}",
+            c, header_label=f"{base_label} {i}/{len(cards)}",
             header_sub=f"{slot} ICT")
         for i, c in enumerate(cards, start=1)
     ]

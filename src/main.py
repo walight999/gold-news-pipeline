@@ -353,8 +353,15 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
             # Classify down the ranked list until we have max_cards keepers.
             # Re-classifying a stored event is a translation_cache hit (keyed on
             # title+summary), so this is mostly free for events already seen.
+            allow_fallback = bool(
+                sched_cfg["digest"].get("allow_fallback_when_ai_down", True))
             cards: list[dict[str, Any]] = []
             kept_rows: list[dict[str, Any]] = []
+            # Degraded pool: fallback (literal-translate) cards held back unless
+            # the WHOLE round is fallback — i.e. both Claude AND Gemini are down.
+            # A round with any real classification never touches this, so a
+            # one-off transient rate-limit can't leak a machine-translated card.
+            degraded_pool: list[tuple[dict[str, Any], dict[str, Any]]] = []
             from .utils_time import parse_iso as _parse_iso
             for row in candidates:
                 if len(cards) >= max_cards:
@@ -372,32 +379,53 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
                     age_hours=age_hours,
                     store=store,
                 )
+                relevant = (a.relevance_to_gold or "none") in ("high", "medium")
+                try:
+                    score_val = float(row.get("score") or 0)
+                except (TypeError, ValueError):
+                    score_val = 0.0
+                card = {
+                    "alert": a, "score": score_val,
+                    "source_list": src_list, "url": str(row.get("url") or ""),
+                    "first_seen": first_seen,
+                    "topic_bucket": str(row.get("topic_bucket") or "other"),
+                }
                 # Quality gate: a REAL classification (not the Google-translate
                 # fallback) that is gold-relevant (high/medium).
-                if (a.should_send and not a.is_fallback
-                        and (a.relevance_to_gold or "none") in ("high", "medium")):
-                    try:
-                        score_val = float(row.get("score") or 0)
-                    except (TypeError, ValueError):
-                        score_val = 0.0
-                    cards.append({
-                        "alert": a, "score": score_val,
-                        "source_list": src_list, "url": str(row.get("url") or ""),
-                        "first_seen": first_seen,
-                        "topic_bucket": str(row.get("topic_bucket") or "other"),
-                    })
+                if a.should_send and not a.is_fallback and relevant:
+                    cards.append(card)
                     kept_rows.append(row)
+                elif a.should_send and a.is_fallback and relevant and allow_fallback:
+                    # Hold for degraded mode — published only if no real card
+                    # survives the whole round (see below).
+                    degraded_pool.append((card, row))
                 else:
                     log.info("news round dropped event_id=%s reason=%s relevance=%s fallback=%s",
                              row.get("event_id"), a.reason, a.relevance_to_gold, a.is_fallback)
-            log.info("news round %s: %d/%d candidates kept", slot, len(cards), len(candidates))
+            degraded_mode = False
+            if not cards and degraded_pool:
+                # Full classifier outage: both Claude and Gemini were unavailable
+                # for every candidate, so each fell back to literal translation.
+                # Publish the top cards (already score-ranked) rather than leave
+                # the channel silent for the whole outage — flagged "โหมดสำรอง"
+                # so the reader knows the Thai is machine-translated.
+                degraded_mode = True
+                for card, row in degraded_pool[:max_cards]:
+                    card["degraded"] = True
+                    cards.append(card)
+                    kept_rows.append(row)
+                log.warning("news round %s: classifier outage — sending %d fallback "
+                            "card(s) in degraded mode", slot, len(cards))
+            log.info("news round %s: %d/%d candidates kept%s", slot, len(cards),
+                     len(candidates), " (degraded)" if degraded_mode else "")
             if not cards:
                 store.flush()
                 return 0
-            carousel = news_update_carousel(cards, slot)
+            carousel = news_update_carousel(cards, slot, degraded=degraded_mode)
             if carousel and news_target:
                 line = line or LineClient.from_env()
-                alt = f"📰 News Update {slot} ICT — {len(cards)} event(s)"
+                alt = (f"📰 News Update {slot} ICT — {len(cards)} event(s)"
+                       + (" [โหมดสำรอง]" if degraded_mode else ""))
                 # bypass_quiet: the 04:30 round sits inside the 04:00-05:00 ICT
                 # quiet window. A scheduled once-per-window summary should land
                 # on time regardless (same exemption as the 04:40 calendar
