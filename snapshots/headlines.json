@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-06-22T21:25:34Z",
+      "ts": "2026-06-22T23:05:47Z",
       "title": "global · Other",
       "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-06-22T21:25:34Z",
+      "ts": "2026-06-22T23:05:47Z",
       "title": "russia · Geopolitics · risk off",
       "source": "Bbc World",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-06-22T21:25:34Z",
-      "title": "fed · Rate Policy",
-      "source": "Yahoo Finance",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-06-22T21:25:34Z",
-      "title": "israel · Geopolitics · risk off",
-      "source": "Bbc World",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-06-22T21:25:34Z",
-      "title": "global · Other",
-      "source": "Bbc World",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-06-22T21:25:34Z",
-      "title": "global · Other",
-      "source": "Yahoo Finance",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-06-22T21:25:34Z",
-      "title": "global · Other",
-      "source": "Cnbc",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-06-22T21:25:34Z",
-      "title": "global · Other",
-      "source": "Cnbc",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-06-22T21:25:34Z",
-      "title": "global · Other",
-      "source": "Yahoo Finance",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-06-22T21:25:34Z",
+      "ts": "2026-06-22T23:05:47Z",
       "title": "global · Other",
       "source": "Bbc World, Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-06-22T23:05:47Z",
+      "title": "global · Other",
+      "source": "Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-06-22T23:05:47Z",
+      "title": "global · Other",
+      "source": "Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-06-22T23:05:47Z",
+      "title": "global · Other",
+      "source": "Cnbc, Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-06-22T23:05:47Z",
+      "title": "global · Other",
+      "source": "Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-06-22T23:05:47Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-06-22T23:05:47Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-06-22T23:05:47Z",
+      "title": "global · Other",
+      "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-06-22T21:32:05.641922Z"
+  "written_at": "2026-06-22T23:20:24.307371Z"
 }
