@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-06-23T18:10:44Z",
+      "ts": "2026-06-23T20:31:17Z",
       "title": "global · Other",
-      "source": "Bbc World",
+      "source": "Forexlive",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-06-23T18:10:44Z",
-      "title": "russia · Geopolitics",
-      "source": "Bbc World",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-06-23T18:10:44Z",
+      "ts": "2026-06-23T20:31:17Z",
       "title": "global · Other",
-      "source": "Bbc World",
+      "source": "Forexlive",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-06-23T18:10:44Z",
-      "title": "global · Other",
-      "source": "Bbc World",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-06-23T18:10:44Z",
+      "ts": "2026-06-23T20:31:17Z",
       "title": "us · Usd Yields",
-      "source": "Bbc World",
+      "source": "Forexlive",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-06-23T18:10:44Z",
-      "title": "global · Other",
-      "source": "Bbc World, Cnbc",
+      "ts": "2026-06-23T20:31:17Z",
+      "title": "us · Inflation",
+      "source": "Forexlive",
+      "score": 0.5,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-06-23T20:31:17Z",
+      "title": "fed · Rate Policy",
+      "source": "Forexlive",
+      "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-06-23T20:31:17Z",
+      "title": "boe · Rate Policy · hawkish",
+      "source": "Forexlive",
+      "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-06-23T20:31:17Z",
+      "title": "us · Growth",
+      "source": "Forexlive, Fxstreet",
+      "score": 0.2,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-06-23T20:31:17Z",
+      "title": "us · Usd Yields",
+      "source": "Forexlive",
+      "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-06-23T20:31:17Z",
+      "title": "global · Other · dovish",
+      "source": "Fxstreet",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-06-23T18:10:44Z",
-      "title": "global · Other · risk off",
-      "source": "Bbc World",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-06-23T18:10:44Z",
-      "title": "global · Other",
-      "source": "Bbc World",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-06-23T18:10:44Z",
-      "title": "global · Other",
-      "source": "Bbc World",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-06-23T18:10:44Z",
-      "title": "global · Other",
-      "source": "Yahoo Finance",
-      "score": 0.1,
+      "ts": "2026-06-23T20:31:17Z",
+      "title": "mideast · Geopolitics · risk off",
+      "source": "Fxstreet",
+      "score": 0.4,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-06-23T18:20:39.038660Z"
+  "written_at": "2026-06-23T20:34:33.038375Z"
 }
