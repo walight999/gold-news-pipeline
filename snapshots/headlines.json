@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-06-23T15:55:36Z",
+      "ts": "2026-06-23T18:10:44Z",
       "title": "global · Other",
       "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-06-23T15:55:36Z",
-      "title": "mideast · Geopolitics · risk off",
-      "source": "Bbc World",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-06-23T15:55:36Z",
-      "title": "global · Other",
-      "source": "Bbc World",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-06-23T15:55:36Z",
+      "ts": "2026-06-23T18:10:44Z",
       "title": "russia · Geopolitics",
       "source": "Bbc World",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-06-23T15:55:36Z",
+      "ts": "2026-06-23T18:10:44Z",
       "title": "global · Other",
       "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-06-23T15:55:36Z",
+      "ts": "2026-06-23T18:10:44Z",
       "title": "global · Other",
       "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-06-23T15:55:36Z",
+      "ts": "2026-06-23T18:10:44Z",
       "title": "us · Usd Yields",
       "source": "Bbc World",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-06-23T15:55:36Z",
+      "ts": "2026-06-23T18:10:44Z",
+      "title": "global · Other",
+      "source": "Bbc World, Cnbc",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-06-23T18:10:44Z",
+      "title": "global · Other · risk off",
+      "source": "Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-06-23T18:10:44Z",
       "title": "global · Other",
       "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-06-23T15:55:36Z",
+      "ts": "2026-06-23T18:10:44Z",
       "title": "global · Other",
-      "source": "Yahoo Finance",
+      "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-06-23T15:55:36Z",
+      "ts": "2026-06-23T18:10:44Z",
       "title": "global · Other",
-      "source": "Bbc World, Cnbc",
+      "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-06-23T16:09:56.232682Z"
+  "written_at": "2026-06-23T18:20:39.038660Z"
 }
