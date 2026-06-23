@@ -76,6 +76,29 @@ For each job:
 > `event_mode.yml` is intentionally **not** on a fixed cron — it is fired
 > on-demand (repository_dispatch) just before CPI/NFP/FOMC. Leave it out.
 
+### 3. (Recommended) the daily / weekly digests too — **exact-time**, not interval
+
+These run once per day/week, so they are NOT on the 5-min hammer — they are
+throttled the same way the news cron is (observed 2026-06-23: `eod_recap`
+scheduled 16:00 UTC actually fired ~19:33 UTC, ~3.5 h late). Add one cron-job.org
+job each, fired at the **exact UTC time**, so the recap lands on schedule instead
+of hours late. Same URL pattern / headers / `{"ref":"main"}` body as above — only
+the filename and the schedule change.
+
+| Job | URL (`…/workflows/<FILE>/dispatches`) | Fire at (UTC) |
+|-----|----------------------------------------|---------------|
+| EOD recap | `eod_recap.yml` | `16:00`, **Mon–Fri** |
+| Weekly preview | `weekly_preview.yml` | `23:00`, **Fri** |
+
+**Safe to run alongside the native `schedule:` block** — both modes are
+idempotent: `eod_recap` guards on `sent_log` key `eod:<date>` (once/day) and
+`weekly_preview` on the week-of key (once/week), so a duplicate trigger (external
++ native) is a no-op skip, never a double-send (`src/main.py` run_eod_recap /
+run_weekly_preview). Keep the native crons as a fallback.
+
+> Do **not** put these on an interval (every-N-min) cron-job.org job — that would
+> re-fire the recap all day. They must be exact-time jobs.
+
 ## Verify
 
 ```bash
