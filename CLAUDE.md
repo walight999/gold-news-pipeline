@@ -107,8 +107,12 @@ overrides the model id.
 
 ## Cost model (~ a few $/month)
 
-- GitHub Actions: free (public repo, but cron is throttled — don't rely on tight
-  intervals).
+- GitHub Actions: free (public repo, but `schedule:` cron is throttled to ~1 run
+  every 2-4h — don't rely on tight intervals). Real 5-min cadence comes from an
+  **external scheduler hitting `workflow_dispatch`** (cron-job.org), NOT the
+  `schedule:` block. If `gh run list` shows only `schedule` events and morning
+  (22:00-06:00 UTC) coverage drops, the external dispatcher is dead — see
+  **`docs/DISPATCHER-CRON.md`** (setup + the 2026-06-23 GAS-dispatcher outage).
 - Claude Haiku (rewrite + tweet voice): ~$1-3/mo.
 - Apify X scraper (kaitoeasyapi): ~$0.18/1k tweets, min-interval guard → ~$2-10/mo
   of the $30 budget.
