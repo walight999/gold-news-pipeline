@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-06-24T15:41:07Z",
-      "title": "global · Other",
-      "source": "Forexlive",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-06-24T15:41:07Z",
-      "title": "wgc · Gold Flow",
-      "source": "Forexlive",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-06-24T15:41:07Z",
-      "title": "us · Inflation · hawkish",
-      "source": "Forexlive",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-06-24T15:41:07Z",
-      "title": "fed · Rate Policy · risk off",
-      "source": "Forexlive",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-06-24T15:41:07Z",
-      "title": "boj · Rate Policy · hawkish",
-      "source": "Forexlive",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-06-24T15:41:07Z",
+      "ts": "2026-06-24T17:52:22Z",
       "title": "us · Geopolitics",
-      "source": "Forexlive",
+      "source": "Bbc World",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-06-24T15:41:07Z",
+      "ts": "2026-06-24T17:52:22Z",
       "title": "global · Other",
-      "source": "Forexlive",
+      "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-06-24T15:41:07Z",
-      "title": "us · Geopolitics · hawkish",
-      "source": "Forexlive",
+      "ts": "2026-06-24T17:52:22Z",
+      "title": "us · Geopolitics · risk off",
+      "source": "Bbc World",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-06-24T15:41:07Z",
-      "title": "fed · Rate Policy · hawkish",
-      "source": "Forexlive",
-      "score": 0.4,
+      "ts": "2026-06-24T17:52:22Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-06-24T15:41:07Z",
-      "title": "us · Jobs",
-      "source": "Forexlive",
-      "score": 0.5,
+      "ts": "2026-06-24T17:52:22Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-06-24T17:52:22Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-06-24T17:52:22Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-06-24T17:52:22Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-06-24T17:52:22Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-06-24T17:52:22Z",
+      "title": "global · Other · risk off",
+      "source": "Bbc World",
+      "score": 0.1,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-06-24T15:42:27.904605Z"
+  "written_at": "2026-06-24T17:54:55.677148Z"
 }
