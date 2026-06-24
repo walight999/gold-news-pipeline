@@ -1,0 +1,99 @@
+name: keepalive-dispatcher
+
+# Backup dispatcher for the Thai-morning dead-zone.
+#
+# The real cadence comes from an external scheduler (cron-job.org) hitting
+# workflow_dispatch — see docs/DISPATCHER-CRON.md. When that dispatcher is dead
+# (the GAS-era 22:00-06:00 UTC dead-zone, or cron-job.org down), GitHub's native
+# `schedule:` cron is throttled to ~1 run/2-4h and the 6 digest rounds arrive
+# hours late with few candidates.
+#
+# This workflow fills that gap WITHOUT a PAT / external service: a native-cron
+# job that, only while the real dispatcher is silent, runs `--mode cron` every
+# 5 min until the dead-zone ends. It is a no-op the moment the real dispatcher
+# is alive again (see the dispatcher_alive check below), so it never competes
+# with cron-job.org once that is set up.
+#
+# Safety:
+#   - SAME concurrency group as news-cron (cancel-in-progress: false) → it can
+#     never run the pipeline concurrently with a real news-cron run, so there is
+#     no Google-Sheets clobber. Overlaps queue; they never cancel a real run.
+#   - dispatcher_alive(): if news_cron had a workflow_dispatch in the last 20
+#     min, the real dispatcher is up → exit immediately and yield the slot.
+#   - HARD-STOP at 06:00 UTC + active-hours guard → never bleeds into trading
+#     hours to block real-time dispatched runs.
+
+on:
+  schedule:
+    - cron: "0 22 * * *"    # 05:00 ICT — start of the dead-zone
+    - cron: "30 0 * * *"    # 07:30 ICT — mid dead-zone refill
+    - cron: "30 3 * * *"    # 10:30 ICT — late dead-zone refill
+  workflow_dispatch: {}
+
+concurrency:
+  group: gold-news          # MUST match news-cron — serialises against it
+  cancel-in-progress: false # queue behind real runs, never cancel them
+
+permissions:
+  actions: read             # gh run list (read own workflow runs)
+  contents: read
+
+jobs:
+  keepalive:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350     # under the 6h hosted-runner hard limit
+    env:
+      LINE_CHANNEL_TOKEN: ${{ secrets.LINE_CHANNEL_TOKEN }}
+      LINE_NEWS_TARGET: ${{ secrets.LINE_NEWS_TARGET }}
+      LINE_HEALTH_TARGET: ${{ secrets.LINE_HEALTH_TARGET }}
+      GSHEET_ID: ${{ secrets.GSHEET_ID }}
+      GSHEET_CREDS: ${{ secrets.GSHEET_CREDS }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
+      GH_TOKEN: ${{ github.token }}
+      PYTHONUNBUFFERED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: dead-zone keepalive loop
+        run: |
+          set +e
+          FRESH_MIN=20          # a real dispatch newer than this = dispatcher alive
+          # active-hours guard: only run inside the dead-zone (21:00-06:00 UTC).
+          h=$(date -u +%H)
+          if [ "$h" -ge 6 ] && [ "$h" -lt 21 ]; then
+            echo "[keepalive] $(date -u +%H:%M) UTC is active hours — nothing to do"
+            exit 0
+          fi
+          # hard stop = the next 06:00 UTC.
+          STOP=$(date -u -d 'today 06:00' +%s)
+          [ "$(date -u +%s)" -ge "$STOP" ] && STOP=$(date -u -d 'tomorrow 06:00' +%s)
+
+          dispatcher_alive() {
+            local ts age
+            ts=$(gh run list --workflow news_cron.yml --limit 8 \
+                   --json createdAt,event \
+                   -q '[.[] | select(.event=="workflow_dispatch")] | .[0].createdAt // ""' \
+                   2>/dev/null)
+            [ -z "$ts" ] && return 1
+            age=$(( $(date -u +%s) - $(date -u -d "$ts" +%s 2>/dev/null || echo 0) ))
+            [ "$age" -ge 0 ] && [ "$age" -lt $(( FRESH_MIN * 60 )) ]
+          }
+
+          while [ "$(date -u +%s)" -lt "$STOP" ]; do
+            if dispatcher_alive; then
+              echo "[keepalive] real dispatcher is alive (recent workflow_dispatch) — yielding"
+              exit 0
+            fi
+            echo "[keepalive] $(date -u +%H:%M:%S) UTC dead-zone — running cron pipeline"
+            python -m src.main --mode cron || echo "[keepalive] pipeline run failed, continuing"
+            # don't sleep past the hard stop
+            [ "$(( $(date -u +%s) + 300 ))" -ge "$STOP" ] && break
+            sleep 300
+          done
+          echo "[keepalive] reached dead-zone end (06:00 UTC) — exiting"
