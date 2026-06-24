@@ -29,14 +29,19 @@ normalize → dedup.cluster → scorer.score → router.decide
               draft → operator types `yes` in `approved` → social_post posts to X
 ```
 
-Economic **calendar + upcoming** are NOT here anymore — they moved to the GAS
-project **newsupdate-linebot** (`C:\Users\usEr\newsupdate-linebot\Code.gs`,
-gist 972fa38d) because GitHub cron is too unreliable for T-15 timing. The pipeline's
-`calendar_daily` workflow is **disabled** (GAS owns the daily calendar).
-`calendar_check` is **active in POST-only mode** (`calendar.pre_release_enabled:
-false`) — it sends Released News (FRED actuals + XAU reaction), which GAS can't
-do; never re-enable its pre-release side or it duplicates the GAS T-15 cards. FF data is pushed INTO that GAS via
-`ff_gas_thisweek`/`ff_gas_weekly` (the `GAS_WEBAPP_*` secrets).
+Economic **calendar + upcoming** are owned by the pipeline again as of
+2026-06-24 (MIGRATED back off the GAS `newsupdate-linebot`, which is now retired
+— all its triggers removed). The move to GAS was only to beat GitHub's cron
+throttle on the T-15 window; cron-job.org now drives `calendar_check` every
+10 min reliably 24/7, so the pipeline hits T-15 on time without GAS.
+- `calendar_check` is **active for BOTH pre- and post-release**
+  (`calendar.pre_release_enabled: true`). Pre = T-15 upcoming card (window
+  [15,25) min, broad `pre_release_currencies` + High/Medium, deduped by sent_log
+  `precal:{id}`); post = Released News (FRED actuals + XAU reaction).
+- `calendar_daily` sends ONE card/day at 04:40 ICT (21:40 UTC, the "main" slot;
+  the early 00:05 slot is unscheduled). Driven on time by a cron-job.org job.
+- `ff_gas_thisweek`/`ff_gas_weekly` are **disabled** (they only fed the retired
+  GAS; the pipeline fetches FF directly via `cal.fetch_calendar`).
 
 ## Working conventions (IMPORTANT)
 
@@ -55,7 +60,7 @@ do; never re-enable its pre-release side or it duplicates the GAS T-15 cards. FF
 `digest` · `eod_recap` (23:00 ICT) · `weekly_preview` (Sat) · `verify_sources`
 (weekly health probe) · `maintain` (purge) · `watchdog` (self-monitor) ·
 `social_post` (post approved drafts to X, cron */20) · `social_seed` (append one
-test draft) · `calendar_daily` (**retired — GAS owns it**) · `calendar_check` (**post-only: Released News**).
+test draft) · `calendar_daily` (one card/day, 04:40 ICT) · `calendar_check` (**pre- T-15 + post Released News**).
 
 ## Key modules
 
