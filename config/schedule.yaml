@@ -99,16 +99,19 @@ calendar:
   daily_currencies: [CAD, CHF, CNY, EUR, GBP, JPY, USD]
   daily_impacts:    [High, Medium]
 
-  # Pre-release alert — broad currency set, both impacts. FF free data
+  # Pre-release alert (T-15) — broad currency set, both impacts. FF free data
   # gives ~4-12 such events per day, so expect 4-12 pre-release pushes.
   # Tighten back to High-only if it gets spammy after a week of data.
   #
-  # pre_release_enabled: false since 2026-06-11 — the GAS newsupdate-linebot
-  # owns pre-release T-15 (its one-shot triggers fire on time; GHA cron drops
-  # most */10 slots). The pipeline's calendar_check now runs for POST-release
-  # (Released News) only, which GAS can't do (needs FRED actuals + XAU
-  # reaction). The currencies/impacts/window below still apply to post.
-  pre_release_enabled: false
+  # pre_release_enabled: true since 2026-06-24 — MIGRATED back off the GAS
+  # newsupdate-linebot. cron-job.org now drives calendar_check every 10 min
+  # reliably 24/7, so the [15,25)-min pre-release window is hit on time without
+  # GAS (the GHA-cron throttle that forced the move to GAS in the first place is
+  # gone). The GAS upcoming triggers are retired in the same cutover, so no
+  # double cards. sent_log (`precal:{event_id}`) dedups per event, so two
+  # near-simultaneous calendar_check runs never double-send. Window fires the
+  # card at ~T-15..T-25 (GAS fired exactly at T-15 — a few min earlier here).
+  pre_release_enabled: true
   pre_release_window_low_min:  15   # alert if event is >= this many minutes out
   pre_release_window_high_min: 25   # ... and < this many minutes out
   pre_release_currencies: [CAD, CHF, CNY, EUR, GBP, JPY, USD]

@@ -1,9 +1,11 @@
 name: calendar-daily
 on:
   schedule:
-    - cron: "5 17 * * *"    # 17:05 UTC = 00:05 ICT — start-of-day briefing
-                            # (catches 00:00-04:39 events the 04:40 push would
-                            # only warn about via T-15 calendar_check)
+    # ONE daily card (the "main" pre-session briefing) to match the retired GAS
+    # bot's single 00:00-ICT card. The "early" 00:05-ICT slot is intentionally
+    # NOT scheduled (the code still supports it — add a 17:05 UTC trigger to
+    # re-enable). Throttled native cron is the fallback; cron-job.org fires it
+    # on time at 21:40 UTC. sent_log dedups the two so it's 1 card/day.
     - cron: "40 21 * * *"   # 21:40 UTC = 04:40 ICT — pre-session briefing
                             # (sits inside 04:00-05:00 ICT quiet window but
                             # bypass_quiet=True allows the morning send)
