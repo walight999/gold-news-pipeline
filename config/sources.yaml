@@ -49,5 +49,5 @@ sources:
   # via Google News RSS, filtered to reuters.com + macro keywords. feedparser/httpx
   # verified 2026-06-23: 100 entries, real gold/Fed/ECB headlines. Caveat: item links
   # are news.google.com redirects (not direct reuters.com); titles carry " - Reuters".
-  - {id: reuters_macro,         tier: 1, source_class: aggregator, organization: reuters,       role: macro,        url: "https://news.google.com/rss/search?q=site:reuters.com+(gold+OR+Fed+OR+inflation+OR+dollar+OR+Treasury+OR+%22interest+rate%22+OR+ECB+OR+economy)+when:1d&hl=en-US&gl=US&ceid=US:en", poll_min: 10, enabled: true, note: "Reuters via Google News RSS; redirect links"}
+  - {id: reuters_macro,         tier: 1, source_class: aggregator, organization: reuters,       role: macro,        url: "https://news.google.com/rss/search?q=site:reuters.com+(gold+OR+Fed+OR+inflation+OR+dollar+OR+Treasury+OR+%22interest+rate%22+OR+ECB+OR+economy)+when:1d&hl=en-US&gl=US&ceid=US:en", poll_min: 10, enabled: false, note: "DISABLED 2026-06-24 — Google News path is day-old (too slow to confirm breaking) + redirect links, and never surfaced clean; Reuters syndication already arrives via yahoo_finance. Flip enabled:true to revive."}
 
