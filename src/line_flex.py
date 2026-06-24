@@ -53,6 +53,7 @@ SOURCE_NAMES: dict[str, str] = {
     "_workflow_failures":   "GitHub Actions",
     "_line_push":           "LINE API",
     "yahoo_finance":        "Yahoo Finance",
+    "reuters_macro":        "Reuters",
 }
 
 # Health warning -> human-readable English text.
