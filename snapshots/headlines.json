@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-06-23T23:15:57Z",
+      "ts": "2026-06-24T00:13:49Z",
       "title": "global · Other",
       "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-06-23T23:15:57Z",
-      "title": "russia · Geopolitics",
-      "source": "Bbc World",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-06-23T23:15:57Z",
+      "ts": "2026-06-24T00:13:49Z",
       "title": "global · Other",
       "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-06-23T23:15:57Z",
-      "title": "global · Other",
-      "source": "Bbc World",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-06-23T23:15:57Z",
+      "ts": "2026-06-24T00:13:49Z",
       "title": "global · Other",
       "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-06-23T23:15:57Z",
-      "title": "global · Other",
-      "source": "Yahoo Finance",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-06-23T23:15:57Z",
-      "title": "fed · Rate Policy",
-      "source": "Yahoo Finance",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-06-23T23:15:57Z",
+      "ts": "2026-06-24T00:13:49Z",
       "title": "mideast · Geopolitics · risk off",
       "source": "Yahoo Finance",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-06-23T23:15:57Z",
+      "ts": "2026-06-24T00:13:49Z",
+      "title": "wgc · Gold Flow",
+      "source": "Yahoo Finance",
+      "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-06-24T00:13:49Z",
       "title": "global · Other",
-      "source": "Bbc World, Yahoo Finance",
+      "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-06-23T23:15:57Z",
+      "ts": "2026-06-24T00:13:49Z",
       "title": "global · Other · risk off",
       "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
+    },
+    {
+      "ts": "2026-06-24T00:13:49Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-06-24T00:13:49Z",
+      "title": "global · Other",
+      "source": "Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-06-24T00:13:49Z",
+      "title": "us · Usd Yields",
+      "source": "Yahoo Finance",
+      "score": 0.3,
+      "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-06-23T23:35:46.570937Z"
+  "written_at": "2026-06-24T03:36:18.701578Z"
 }
