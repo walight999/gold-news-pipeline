@@ -22,7 +22,7 @@ from typing import Any
 import yaml
 
 from . import calendar as cal
-from . import dedup, digest, fred, health, news_alert, price_feed, scorer, social_feed, translator
+from . import dedup, digest, fred, health, news_alert, price_feed, scorer, social_feed, telegram_news, translator
 from .fetcher import fetch_all, plan_fetch
 from .line_client import LineClient
 from .line_flex import (
@@ -200,6 +200,9 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
 
     # 5. Send + persist
     line = None
+    # Off-GAS CHUM News Bot (Telegram) — env-gated; None until NEWS_BOT_WEBHOOK_URL
+    # + NEWS_BOT_SECRET are set. Mirrors the LINE push; never blocks it.
+    tg_news = telegram_news.TelegramNewsClient.from_env()
     breaking_alert_decisions = [d for d in decisions if d.route in (Route.BREAKING, Route.ALERT)]
     if breaking_alert_decisions:
         line = LineClient.from_env()
@@ -274,6 +277,22 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
                     ))
                 except Exception:
                     log.exception("social_feed record (breaking/alert) failed event=%s", ev.event_id)
+                if tg_news:
+                    try:
+                        tg_news.post(telegram_news.build_payload(
+                            event_id=ev.event_id,
+                            route=d.route.value,
+                            category=alert_obj.category,
+                            tone=alert_obj.tone,
+                            impact_level=score_to_impact(d.score)[0],
+                            headline_th=alert_obj.headline_th,
+                            body_th=alert_obj.body_th,
+                            impact_th=alert_obj.impact_th,
+                            source=_source_label(ev.source_list),
+                            url=_pick_article_url(ev.items),
+                        ))
+                    except Exception:
+                        log.exception("telegram news push (breaking/alert) failed event=%s", ev.event_id)
             else:
                 log.warning("LINE push failed event=%s status=%s — not marking sent", ev.event_id, resp["status"])
 
@@ -463,6 +482,23 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
                             ))
                         except Exception:
                             log.exception("social_feed record (digest) failed event=%s", row.get("event_id"))
+                        if tg_news:
+                            try:
+                                _a = card["alert"]
+                                tg_news.post(telegram_news.build_payload(
+                                    event_id=ev_id,
+                                    route="digest",
+                                    category=_a.category,
+                                    tone=_a.tone,
+                                    impact_level=score_to_impact(card["score"])[0],
+                                    headline_th=_a.headline_th,
+                                    body_th=_a.body_th,
+                                    impact_th=_a.impact_th,
+                                    source=_source_label(card["source_list"]),
+                                    url=card["url"],
+                                ))
+                            except Exception:
+                                log.exception("telegram news push (digest) failed event=%s", ev_id)
 
     # 8. Heartbeat — stamp pipeline liveness before flush so the watchdog
     # can distinguish "cron stopped" from "cron ran but no news today".
