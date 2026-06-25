@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-06-25T20:55:55Z",
+      "ts": "2026-06-25T22:21:55Z",
       "title": "global · Other",
-      "source": "Yahoo Finance",
+      "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-06-25T20:55:55Z",
-      "title": "mideast · Geopolitics · risk off",
-      "source": "Yahoo Finance",
+      "ts": "2026-06-25T22:21:55Z",
+      "title": "israel · Geopolitics · risk off",
+      "source": "Bbc World",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-06-25T20:55:55Z",
-      "title": "wgc · Gold Flow",
-      "source": "Yahoo Finance",
-      "score": 0.3,
+      "ts": "2026-06-25T22:21:55Z",
+      "title": "ukraine · Geopolitics · risk off",
+      "source": "Bbc World",
+      "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-06-25T20:55:55Z",
+      "ts": "2026-06-25T22:21:55Z",
+      "title": "us · Geopolitics · risk off",
+      "source": "Bbc World",
+      "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-06-25T22:21:55Z",
       "title": "global · Other",
-      "source": "Cnbc",
+      "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-06-25T20:55:55Z",
+      "ts": "2026-06-25T22:21:55Z",
       "title": "global · Other",
-      "source": "Cnbc",
+      "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-06-25T20:55:55Z",
+      "ts": "2026-06-25T22:21:55Z",
       "title": "global · Other",
-      "source": "Investing Cb",
+      "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-06-25T20:55:55Z",
+      "ts": "2026-06-25T22:21:55Z",
       "title": "global · Other",
-      "source": "Investing Cb",
+      "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-06-25T20:55:55Z",
-      "title": "wgc · Gold Flow",
-      "source": "Cnbc",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-06-25T20:55:55Z",
+      "ts": "2026-06-25T22:21:55Z",
       "title": "global · Other",
-      "source": "Cnbc, Investing Commodities, Yahoo Finance",
+      "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-06-25T20:55:55Z",
-      "title": "wgc · Gold Flow",
-      "source": "Investing Commodities",
-      "score": 0.3,
+      "ts": "2026-06-25T22:21:55Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-06-25T20:57:48.139627Z"
+  "written_at": "2026-06-25T22:25:19.603805Z"
 }
