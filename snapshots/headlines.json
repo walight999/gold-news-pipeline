@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-06-25T13:35:54Z",
+      "ts": "2026-06-25T16:21:02Z",
       "title": "global · Other",
       "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-06-25T13:35:54Z",
+      "ts": "2026-06-25T16:21:02Z",
       "title": "global · Other",
       "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-06-25T13:35:54Z",
+      "ts": "2026-06-25T16:21:02Z",
       "title": "global · Other",
       "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-06-25T13:35:54Z",
+      "ts": "2026-06-25T16:21:02Z",
       "title": "israel · Geopolitics · risk off",
       "source": "Bbc World",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-06-25T13:35:54Z",
+      "ts": "2026-06-25T16:21:02Z",
       "title": "ukraine · Geopolitics · risk off",
       "source": "Bbc World",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-06-25T13:35:54Z",
+      "ts": "2026-06-25T16:21:02Z",
       "title": "us · Geopolitics · risk off",
       "source": "Bbc World",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-06-25T13:35:54Z",
+      "ts": "2026-06-25T16:21:02Z",
       "title": "global · Other",
-      "source": "Cnbc, Yahoo Finance",
+      "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-06-25T13:35:54Z",
-      "title": "fed · Rate Policy",
-      "source": "Cnbc",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-06-25T13:35:54Z",
-      "title": "mideast · Geopolitics · risk off",
-      "source": "Cnbc",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-06-25T13:35:54Z",
+      "ts": "2026-06-25T16:21:02Z",
       "title": "global · Other",
-      "source": "Bbc World, Cnbc",
+      "source": "Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-06-25T16:21:02Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-06-25T16:21:02Z",
+      "title": "global · Other",
+      "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-06-25T13:37:12.978948Z"
+  "written_at": "2026-06-25T16:24:47.877275Z"
 }
