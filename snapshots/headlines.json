@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-06-25T18:31:16Z",
-      "title": "us · Geopolitics",
-      "source": "Forexlive",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-06-25T18:31:16Z",
-      "title": "boj · Rate Policy",
-      "source": "Forexlive",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-06-25T18:31:16Z",
+      "ts": "2026-06-25T20:55:55Z",
       "title": "global · Other",
-      "source": "Forexlive",
+      "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-06-25T18:31:16Z",
-      "title": "fed · Rate Policy · hawkish",
-      "source": "Forexlive",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-06-25T18:31:16Z",
+      "ts": "2026-06-25T20:55:55Z",
       "title": "mideast · Geopolitics · risk off",
-      "source": "Forexlive",
+      "source": "Yahoo Finance",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-06-25T18:31:16Z",
-      "title": "ecb · Rate Policy · hawkish",
-      "source": "Forexlive",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-06-25T18:31:16Z",
-      "title": "us · Usd Yields",
-      "source": "Forexlive",
+      "ts": "2026-06-25T20:55:55Z",
+      "title": "wgc · Gold Flow",
+      "source": "Yahoo Finance",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-06-25T18:31:16Z",
-      "title": "us · Inflation",
-      "source": "Forexlive",
-      "score": 0.5,
+      "ts": "2026-06-25T20:55:55Z",
+      "title": "global · Other",
+      "source": "Cnbc",
+      "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-06-25T18:31:16Z",
-      "title": "us · Jobs",
-      "source": "Forexlive",
-      "score": 0.5,
+      "ts": "2026-06-25T20:55:55Z",
+      "title": "global · Other",
+      "source": "Cnbc",
+      "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-06-25T18:31:16Z",
-      "title": "us · Growth",
-      "source": "Forexlive",
-      "score": 0.2,
+      "ts": "2026-06-25T20:55:55Z",
+      "title": "global · Other",
+      "source": "Investing Cb",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-06-25T20:55:55Z",
+      "title": "global · Other",
+      "source": "Investing Cb",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-06-25T20:55:55Z",
+      "title": "wgc · Gold Flow",
+      "source": "Cnbc",
+      "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-06-25T20:55:55Z",
+      "title": "global · Other",
+      "source": "Cnbc, Investing Commodities, Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-06-25T20:55:55Z",
+      "title": "wgc · Gold Flow",
+      "source": "Investing Commodities",
+      "score": 0.3,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-06-25T18:33:32.503246Z"
+  "written_at": "2026-06-25T20:57:48.139627Z"
 }
