@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-06-25T04:42:03Z",
-      "title": "fed · Rate Policy",
-      "source": "Yahoo Finance",
+      "ts": "2026-06-25T08:21:13Z",
+      "title": "global · Other",
+      "source": "Ecb",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-06-25T08:21:13Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-06-25T08:21:13Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-06-25T08:21:13Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-06-25T08:21:13Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-06-25T08:21:13Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-06-25T08:21:13Z",
+      "title": "global · Other · risk off",
+      "source": "Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-06-25T08:21:13Z",
+      "title": "global · Other",
+      "source": "Ecb, Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-06-25T08:21:13Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-06-25T08:21:13Z",
+      "title": "ecb · Rate Policy",
+      "source": "Ecb",
       "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-06-25T04:42:03Z",
-      "title": "global · Other",
-      "source": "Yahoo Finance",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-06-25T04:42:03Z",
-      "title": "global · Other",
-      "source": "Yahoo Finance",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-06-25T04:42:03Z",
-      "title": "global · Other",
-      "source": "Cnbc",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-06-25T04:42:03Z",
-      "title": "global · Other",
-      "source": "Cnbc",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-06-25T04:42:03Z",
-      "title": "global · Other",
-      "source": "Investing Cb",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-06-25T04:42:03Z",
-      "title": "global · Other",
-      "source": "Investing Cb",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-06-25T04:42:03Z",
-      "title": "global · Other",
-      "source": "Investing Cb",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-06-25T04:42:03Z",
-      "title": "global · Other",
-      "source": "Cnbc, Investing Cb",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-06-25T04:42:03Z",
-      "title": "us · Usd Yields",
-      "source": "Cnbc",
-      "score": 0.3,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-06-25T04:45:49.166079Z"
+  "written_at": "2026-06-25T08:23:23.110572Z"
 }
