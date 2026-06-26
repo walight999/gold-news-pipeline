@@ -2,7 +2,7 @@
 through from Reuters-style sources; the cleaner must catch that."""
 from __future__ import annotations
 
-from src.translator import _clean_translation, _has_cjk, _patch_names
+from src.translator import _clean_translation, _has_cjk, _patch_names, _patch_places
 
 
 def test_clean_keeps_pure_thai():
@@ -80,3 +80,39 @@ def test_patch_names_idempotent():
 def test_clean_applies_name_patch():
     """The full cleaner runs name patching too."""
     assert "ทรัมป์" in _clean_translation("Trump กล่าวว่า CPI สูง")
+
+
+def test_patch_places_basic():
+    """Google fallback leaves geographic proper nouns in English; the place
+    glossary forces the canonical Thai form (the user-reported Hormuz/Ukraine
+    leak)."""
+    assert "ฮอร์มุส" in _patch_places("ตลาดจับตา Hormuz")
+    assert "ยูเครน" in _patch_places("สถานการณ์ Ukraine ยังตึงเครียด")
+    assert "ทะเลแดง" in _patch_places("เรือถูกโจมตีใน Red Sea")
+    assert "ฉนวนกาซา" in _patch_places("ความขัดแย้งใน Gaza")
+
+
+def test_patch_places_strait_of_hormuz_wins_over_bare():
+    """Multi-word 'Strait of Hormuz' maps to the full Thai strait name, not
+    'ช่องแคบ' + leftover 'Hormuz' (order in _PLACE_PATCH matters)."""
+    out = _patch_places("ปิด Strait of Hormuz")
+    assert "ช่องแคบฮอร์มุส" in out
+    assert "Hormuz" not in out
+
+
+def test_patch_places_idempotent_on_thai():
+    """No-op when the model already wrote the Thai form — English \\b regex
+    can't match Thai script."""
+    pure = "ตลาดจับตาช่องแคบฮอร์มุสและยูเครน"
+    assert _patch_places(pure) == pure
+
+
+def test_patch_places_leaves_finance_acronyms():
+    """The place patch must never touch kept-English finance terms."""
+    text = "Fed คงดอกเบี้ย DXY แข็ง CPI สูง"
+    assert _patch_places(text) == text
+
+
+def test_clean_applies_place_patch():
+    """The full cleaner runs place patching too (fallback path)."""
+    assert "ฮอร์มุส" in _clean_translation("น้ำมันพุ่งหลังเหตุการณ์ Hormuz")

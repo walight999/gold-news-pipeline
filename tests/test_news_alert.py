@@ -10,6 +10,7 @@ from unittest.mock import patch
 
 from src.news_alert import (
     MarketAlert,
+    _alert_from_text,
     _cache_key_alert,
     classify_and_rewrite,
 )
@@ -49,6 +50,33 @@ def test_market_alert_from_json_rejects_garbage():
     assert MarketAlert.from_json("not json") is None
     assert MarketAlert.from_json("{}") is None   # missing 'action'
     assert MarketAlert.from_json("null") is None
+
+
+def test_alert_from_text_patches_leaked_english_places():
+    """A model (esp. Gemini) can leave 'Hormuz'/'Ukraine' in English despite
+    the prompt glossary. _alert_from_text forces the Thai form on every
+    user-facing field of a kept alert."""
+    raw = json.dumps({
+        "action": "keep",
+        "news_type": "geopolitics",
+        "relevance_to_gold": "high",
+        "tone": "risk_off",
+        "category": "Geopolitics",
+        "headline_th": "ตลาดจับตา Strait of Hormuz หลังความตึงเครียด",
+        "body_th": ["Polymarket คาดโอกาส 98% ว่า Hormuz กลับมาเปิด",
+                    "สถานการณ์ Ukraine ยังกดดัน risk sentiment"],
+        "impact_th": "หากปิด Hormuz อาจหนุนทองในฐานะ safe-haven",
+        "reason": "",
+    }, ensure_ascii=False)
+    alert = _alert_from_text(raw)
+    assert alert is not None and alert.action == "keep"
+    assert "ช่องแคบฮอร์มุส" in alert.headline_th and "Hormuz" not in alert.headline_th
+    assert "ฮอร์มุส" in alert.body_th[0]
+    assert "ยูเครน" in alert.body_th[1]
+    assert "ฮอร์มุส" in alert.impact_th
+    # kept-English finance/brand terms must survive untouched
+    assert "Polymarket" in alert.body_th[0]
+    assert "safe-haven" in alert.impact_th
 
 
 def test_cache_key_distinct_per_title():

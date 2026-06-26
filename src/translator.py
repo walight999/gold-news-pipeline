@@ -105,13 +105,21 @@ NAMES — use these Thai forms exactly:
 - Mary Daly → ดาลี
 - Lisa Cook → คุก
 
-PLACES — use Thai forms:
+PLACES — use Thai forms (NEVER leave a country / region / strait name in English):
 - China → จีน         Hong Kong → ฮ่องกง         Taiwan → ไต้หวัน
 - Russia → รัสเซีย    Ukraine → ยูเครน           Iran → อิหร่าน
 - Israel → อิสราเอล   Saudi Arabia → ซาอุดิอาระเบีย
 - Japan → ญี่ปุ่น     South Korea → เกาหลีใต้    North Korea → เกาหลีเหนือ
 - United States / US → สหรัฐ   Europe / EU / Eurozone → ยุโรป / สหภาพยุโรป / ยูโรโซน
 - United Kingdom / UK / Britain → อังกฤษ / สหราชอาณาจักร
+- Geopolitical chokepoints / hotspots (translate, do NOT keep in English):
+  Strait of Hormuz → ช่องแคบฮอร์มุส   Red Sea → ทะเลแดง   Suez Canal → คลองสุเอซ
+  Taiwan Strait → ช่องแคบไต้หวัน      South China Sea → ทะเลจีนใต้
+  Gaza → ฉนวนกาซา   Yemen → เยเมน   Lebanon → เลบานอน   Syria → ซีเรีย   Iraq → อิรัก
+  Venezuela → เวเนซุเอลา   Qatar → กาตาร์   UAE → สหรัฐอาหรับเอมิเรตส์
+
+KEEP BRAND NAMES IN ENGLISH (do NOT translate the brand word — translate only the surrounding sentence):
+- Prediction / betting markets: Polymarket, Kalshi, PredictIt. (e.g. "Polymarket คาด..." NOT "ตลาดเทพเจ้า"/"ตลาดทำนาย")
 
 FINANCE TERMS — use these Thai forms:
 - inflation → เงินเฟ้อ
@@ -242,6 +250,39 @@ def _patch_names(text: str) -> str:
     return text
 
 
+# Place / geography glossary for the Google fallback path. Google Translate
+# routinely leaves geopolitical proper nouns in English ("Hormuz", "Ukraine")
+# or picks an odd literal ("สัญจร" for transit), producing cards that read as
+# machine output. We can't fix Google's grammar, but we CAN force the canonical
+# Thai place name so a degraded outage card doesn't carry raw English. Order
+# matters: multi-word forms (Strait of Hormuz) must come BEFORE the bare form
+# (Hormuz) so the longer match wins. English-word \b regexes never match Thai
+# script, so this is a safe no-op on Claude output that already used Thai.
+_PLACE_PATCH = [
+    (re.compile(r"\bStrait\s+of\s+Hormuz\b", re.I), "ช่องแคบฮอร์มุส"),
+    (re.compile(r"\bHormuz\s+Strait\b", re.I), "ช่องแคบฮอร์มุส"),
+    (re.compile(r"\bHormuz\b", re.I), "ฮอร์มุส"),
+    (re.compile(r"\bRed\s+Sea\b", re.I), "ทะเลแดง"),
+    (re.compile(r"\bSuez\s+Canal\b", re.I), "คลองสุเอซ"),
+    (re.compile(r"\bTaiwan\s+Strait\b", re.I), "ช่องแคบไต้หวัน"),
+    (re.compile(r"\bSouth\s+China\s+Sea\b", re.I), "ทะเลจีนใต้"),
+    (re.compile(r"\bUkraine\b", re.I), "ยูเครน"),
+    (re.compile(r"\bGaza\b", re.I), "ฉนวนกาซา"),
+    (re.compile(r"\bYemen\b", re.I), "เยเมน"),
+    (re.compile(r"\bLebanon\b", re.I), "เลบานอน"),
+    (re.compile(r"\bSyria\b", re.I), "ซีเรีย"),
+]
+
+
+def _patch_places(text: str) -> str:
+    """Apply the place glossary post-translation. Same rationale as
+    `_patch_names` — the Google fallback leaves geographic proper nouns in
+    English; force the canonical Thai form. Idempotent on Thai output."""
+    for pat, repl in _PLACE_PATCH:
+        text = pat.sub(repl, text)
+    return text
+
+
 def _has_cjk(text: str | None) -> bool:
     """True if `text` contains any Chinese / Japanese / Korean script
     characters. We want Thai-only output — Chinese leaks via Google
@@ -270,7 +311,7 @@ def _clean_translation(out: str | None) -> str | None:
     if _has_cjk(out):
         log.info("translation rejected — CJK leak detected")
         return None
-    return _patch_names(out)
+    return _patch_places(_patch_names(out))
 
 
 def _translate_claude(text: str) -> str | None:
