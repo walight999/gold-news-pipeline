@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-06-26T03:41:01Z",
+      "ts": "2026-06-26T07:51:02Z",
       "title": "global · Other",
-      "source": "Forexlive",
+      "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-06-26T03:41:01Z",
+      "ts": "2026-06-26T07:51:02Z",
       "title": "global · Other",
-      "source": "Forexlive",
+      "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-06-26T03:41:01Z",
-      "title": "fed · Rate Policy · risk off",
-      "source": "Forexlive",
-      "score": 0.4,
+      "ts": "2026-06-26T07:51:02Z",
+      "title": "us · Usd Yields",
+      "source": "Yahoo Finance",
+      "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-06-26T03:41:01Z",
-      "title": "global · Other",
-      "source": "Forexlive",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-06-26T03:41:01Z",
-      "title": "us · Inflation",
-      "source": "Forexlive",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-06-26T03:41:01Z",
-      "title": "fed · Rate Policy · dovish",
-      "source": "Forexlive",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-06-26T03:41:01Z",
-      "title": "global · Other",
-      "source": "Forexlive",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-06-26T03:41:01Z",
-      "title": "us · Geopolitics · risk off",
-      "source": "Forexlive",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-06-26T03:41:01Z",
-      "title": "us · Inflation · hawkish",
-      "source": "Forexlive",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-06-26T03:41:01Z",
+      "ts": "2026-06-26T07:51:02Z",
       "title": "fed · Rate Policy",
-      "source": "Forexlive",
+      "source": "Yahoo Finance",
       "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-06-26T07:51:02Z",
+      "title": "global · Other",
+      "source": "Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-06-26T07:51:02Z",
+      "title": "global · Other · risk off",
+      "source": "Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-06-26T07:51:02Z",
+      "title": "us · Inflation",
+      "source": "Yahoo Finance",
+      "score": 0.5,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-06-26T07:51:02Z",
+      "title": "global · Other",
+      "source": "Cnbc",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-06-26T07:51:02Z",
+      "title": "wgc · Gold Flow",
+      "source": "Cnbc",
+      "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-06-26T07:51:02Z",
+      "title": "global · Other · dovish",
+      "source": "Cnbc",
+      "score": 0.1,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-06-26T03:42:07.563227Z"
+  "written_at": "2026-06-26T07:53:28.868755Z"
 }
