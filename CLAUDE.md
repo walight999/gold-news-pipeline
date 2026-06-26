@@ -60,7 +60,22 @@ throttle on the T-15 window; cron-job.org now drives `calendar_check` every
 `digest` · `eod_recap` (23:00 ICT) · `weekly_preview` (Sat) · `verify_sources`
 (weekly health probe) · `maintain` (purge) · `watchdog` (self-monitor) ·
 `social_post` (post approved drafts to X, cron */20) · `social_seed` (append one
-test draft) · `calendar_daily` (one card/day, 04:40 ICT) · `calendar_check` (**pre- T-15 + post Released News**).
+test draft) · `calendar_daily` (one card/day, 04:40 ICT) · `calendar_check` (**pre- T-15 + post Released News**) ·
+`scorecard` (EOD directional-accuracy of calendar verdicts → **1:1 only**, 23:45 ICT).
+
+## Scorecard — did the verdict match the tape? (Phase 1, 2026-06-26)
+
+Each Released-News card publishes a verdict (🟢 Bullish / 🔴 Bearish / ⚪ Neutral
+for gold). `run_calendar_check` now persists that call to `calibration_log`
+(`predicted_dir`, `predicted_verdict_th`, `title`, `country`; key `cal:{id}`,
+`first_seen_ts` = release time). The daily backfill fills `xau_return_15m` +
+`xau_base_price` (XAU at release, for exact %→$). `--mode scorecard` (`scorecard.py`
+pure logic) grades each call vs the actual 15m move (flat band 0.10%), writes the
+daily aggregate to the `scorecard_daily` tab, and pushes a summary Flex to the
+**1:1 chat only** (never the group — it's private model introspection). Accuracy =
+correct/(correct+wrong); neutral calls + sub-band moves are ⚪ excluded. RSS/news
+rows have no `predicted_dir` so they're naturally out of scope. Off-hours releases
+with no 15m bar show as ⏳ pending, not wrong.
 
 ## Key modules
 

@@ -131,7 +131,21 @@ SCHEMAS: dict[str, list[str]] = {
     "calibration_log": [
         "event_id", "first_seen_ts", "topic_bucket", "entity", "direction_label",
         "source_list", "source_count", "score", "routed_as",
-        "xau_return_5m", "xau_return_15m", "xau_return_30m", "updated_at",
+        "xau_return_5m", "xau_return_15m", "xau_return_30m",
+        # Scorecard (Phase 1, 2026-06-26) — written at calendar-release send so
+        # the EOD scorecard can grade the verdict against the actual 15m move.
+        # Additive migration: _ensure_tab rewrites the header, existing rows get
+        # blank cells. title/country power the miss list; xau_base_price (filled
+        # by backfill) makes the %→$ conversion exact instead of price-guessed.
+        "title", "country", "predicted_dir", "predicted_verdict_th", "xau_base_price",
+        "updated_at",
+    ],
+    # One row per ICT day — the directional-accuracy scoreboard for calendar
+    # verdicts. Source of truth for the rolling-accuracy trend; the EOD 1:1 card
+    # is just a render of the latest row + recent history.
+    "scorecard_daily": [
+        "date_ict", "n_correct", "n_wrong", "n_flat", "n_pending", "n_graded",
+        "accuracy_pct", "sum_up_usd", "sum_down_usd", "updated_at",
     ],
     "health_log": [
         "source_id", "warning_type", "warning_ts", "resolved_ts", "updated_at",
@@ -152,6 +166,7 @@ PRIMARY_KEYS: dict[str, tuple[str, ...]] = {
     "calibration_log": ("event_id",),
     "health_log": ("source_id", "warning_type", "warning_ts"),
     "translation_cache": ("cache_key",),
+    "scorecard_daily": ("date_ict",),
 }
 
 

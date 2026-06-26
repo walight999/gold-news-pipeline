@@ -22,7 +22,7 @@ from typing import Any
 import yaml
 
 from . import calendar as cal
-from . import dedup, digest, fred, health, news_alert, price_feed, scorer, social_feed, telegram_news, translator
+from . import dedup, digest, fred, health, news_alert, price_feed, scorecard, scorer, social_feed, telegram_news, translator
 from .fetcher import fetch_all, plan_fetch
 from .line_client import LineClient
 from .line_flex import (
@@ -39,6 +39,7 @@ from .line_flex import (
     post_release_bubble,
     pre_release_bubble,
     score_to_impact,
+    scorecard_bubble,
     weekly_preview_bubble,
 )
 from .normalizer import normalize
@@ -838,12 +839,16 @@ def _backfill_xau_on_store(store: "Store", now: datetime, max_rows: int = 80) ->
         if ts is None:
             continue
         attempted += 1
-        rets = price_feed.xau_returns_from_release(ts, (5, 15, 30))
+        base, rets = price_feed.xau_base_and_returns_from_release(ts, (5, 15, 30))
         if all(v is None for v in rets.values()):
             continue   # off-hours / holiday / flake — leave empty, retry while <=5d
         r["xau_return_5m"] = round(rets[5], 4) if rets[5] is not None else ""
         r["xau_return_15m"] = round(rets[15], 4) if rets[15] is not None else ""
         r["xau_return_30m"] = round(rets[30], 4) if rets[30] is not None else ""
+        # Base price (XAU at release) → lets the scorecard convert %→$ exactly.
+        # Only stamp it when not already set, so a re-backfill doesn't churn it.
+        if base is not None and not str(r.get("xau_base_price") or "").strip():
+            r["xau_base_price"] = round(base, 2)
         store.upsert("calibration_log", r)
         filled += 1
     return attempted, filled
@@ -909,6 +914,105 @@ async def run_precision_report(min_samples: int = 5, move_threshold_pct: float =
         flag = "" if d["n"] >= min_samples else "  (low-n)"
         log.info("%-14s %-9s %5d %5.0f%% %+9.3f %+10.3f%s",
                  d["topic"], d["route"], d["n"], d["hit_pct"], d["avg_abs"], d["avg_signed"], flag)
+    return 0
+
+
+def _private_target() -> str:
+    """The 1:1 LINE target — the first U-prefixed id in LINE_NEWS_TARGET.
+    The scorecard is a private model-introspection card; it must NOT go to the
+    C... group. Returns "" when no user id is configured."""
+    raw = os.environ.get("LINE_NEWS_TARGET", "")
+    for part in raw.split(","):
+        p = part.strip()
+        if p.startswith("U"):
+            return p
+    return ""
+
+
+async def run_scorecard() -> int:
+    """EOD directional-accuracy scorecard (Phase 1 — calendar verdicts).
+
+    Grades each calendar release's published verdict against the actual 15m XAU
+    move, writes the daily aggregate to scorecard_daily, and pushes a summary to
+    the 1:1 chat ONLY (never the group). Idempotent per ICT day via sent_log."""
+    if is_weekend_ict():
+        log.info("weekend (ICT) — skipping scorecard")
+        return 0
+    store = Store.from_env()
+    store.connect()
+    store.load_all()
+
+    from datetime import datetime, time as _t, timedelta, timezone as _tz
+    from .utils_time import ICT, parse_iso
+
+    ict = now_ict()
+    # Same drop-tolerant heuristic as eod_recap: fired in the afternoon/evening
+    # → score TODAY; fired after midnight (cron dropped) → score yesterday.
+    for_date = ict.date() if ict.hour >= 12 else (ict - timedelta(days=1)).date()
+    start_ict = datetime.combine(for_date, _t.min, tzinfo=ICT)
+    win_start = start_ict.astimezone(_tz.utc)
+    win_end = (start_ict + timedelta(days=1)).astimezone(_tz.utc)
+
+    date_key = for_date.strftime("%Y-%m-%d")
+    sent_key = f"scorecard:{date_key}"
+    if store.get("sent_log", (sent_key, "scorecard")):
+        log.info("scorecard already sent for %s — skipping", date_key)
+        store.flush()
+        return 0
+
+    # Make sure today's calendar rows have their 15m returns + base price before
+    # we grade. Backfill is idempotent and capped; this fills any due rows.
+    try:
+        _backfill_xau_on_store(store, now_utc())
+    except Exception:
+        log.exception("scorecard pre-grade backfill failed — grading with what's filled")
+
+    # Today's gradeable rows: a directional verdict + release inside the window.
+    todays: list[dict] = []
+    for r in store.all_rows("calibration_log"):
+        if not (r.get("predicted_dir") or "").strip():
+            continue
+        ts = parse_iso(r.get("first_seen_ts"))
+        if ts is None or ts < win_start or ts >= win_end:
+            continue
+        todays.append(r)
+
+    card = scorecard.build_scorecard(todays)
+
+    # Persist the daily aggregate (source of truth for the rolling trend).
+    store.upsert("scorecard_daily", {
+        "date_ict": date_key,
+        "n_correct": card["n_correct"], "n_wrong": card["n_wrong"],
+        "n_flat": card["n_flat"], "n_pending": card["n_pending"],
+        "n_graded": card["n_graded"],
+        "accuracy_pct": round(card["accuracy_pct"], 1),
+        "sum_up_usd": card["sum_up_usd"], "sum_down_usd": card["sum_down_usd"],
+    })
+    rolling = scorecard.rolling_accuracy(store.all_rows("scorecard_daily"), days=7)
+
+    target = _private_target()
+    if not target:
+        log.warning("no 1:1 (U...) target in LINE_NEWS_TARGET — scorecard logged to Sheet only")
+        store.flush()
+        log.info("scorecard %s (sheet-only): %s", date_key,
+                 {k: card[k] for k in ("n_correct", "n_wrong", "n_flat", "n_pending")})
+        return 0
+
+    short_date = f"{for_date.day}/{for_date.month}/{for_date.year % 100}"
+    bubble = scorecard_bubble(card, short_date, rolling_pct=rolling)
+    alt = f"🎯 ความแม่นยำ {short_date}: ถูก {card['n_correct']}/{card['n_graded']}"
+    line = LineClient.from_env()
+    resp = line.push_flex(target, alt, bubble)
+    if resp.get("status") == 200:
+        store.upsert("sent_log", {
+            "event_id": sent_key, "route_type": "scorecard",
+            "sent_ts": iso_utc(now_utc()), "line_status": 200,
+        })
+    else:
+        log.warning("scorecard push failed status=%s body=%s",
+                    resp.get("status"), str(resp.get("body"))[:200])
+    store.flush()
+    log.info("scorecard %s done: %s | rolling7d=%s", date_key, card.get("n_graded"), rolling)
     return 0
 
 
@@ -1256,6 +1360,25 @@ async def run_calendar_check() -> int:
                     "sent_ts": iso_utc(now_utc()), "line_status": 200,
                 })
                 post_pushed += 1
+                # Scorecard (Phase 1): persist the directional verdict so the EOD
+                # scorecard can grade it against the actual 15m XAU move. Keyed
+                # on cal:{event_id}; first_seen_ts = RELEASE time so the backfill
+                # measures returns from the print. Only when we actually made a
+                # directional call (verdict present).
+                pred_dir = scorecard.verdict_to_dir(verdict)
+                if pred_dir:
+                    store.upsert("calibration_log", {
+                        "event_id": f"cal:{ev.event_id}",
+                        "first_seen_ts": iso_utc(ev.dt_utc),
+                        "topic_bucket": "calendar",
+                        "routed_as": "calendar_post",
+                        "title": (ev.title or "")[:300],
+                        "country": ev.country or "",
+                        "predicted_dir": pred_dir,
+                        "predicted_verdict_th": verdict or "",
+                        "xau_return_5m": "", "xau_return_15m": "", "xau_return_30m": "",
+                        "xau_base_price": "",
+                    })
 
     log.info("calendar_check pushes: pre=%d post=%d", pre_pushed, post_pushed)
     store.flush()
@@ -1411,7 +1534,7 @@ def main(argv: list[str] | None = None) -> int:
         "cron", "event", "digest", "calendar_daily", "calendar_check",
         "weekly_preview", "eod_recap", "verify_sources", "maintain",
         "watchdog", "social_post", "social_seed",
-        "backfill_xau", "precision_report",
+        "backfill_xau", "precision_report", "scorecard",
     ), default="cron")
     p.add_argument("--event-duration-min", type=int, default=30)
     p.add_argument("--event-sleep-sec", type=int, default=60)
@@ -1440,6 +1563,8 @@ def main(argv: list[str] | None = None) -> int:
         return asyncio.run(run_backfill_xau())
     if args.mode == "precision_report":
         return asyncio.run(run_precision_report())
+    if args.mode == "scorecard":
+        return asyncio.run(run_scorecard())
     return asyncio.run(run_once(mode=args.mode))
 
 

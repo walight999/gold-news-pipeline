@@ -664,6 +664,103 @@ def eod_recap_bubble(stats: dict[str, Any], date_label: str) -> dict[str, Any]:
     }
 
 
+def _fmt_usd(v: float | None) -> str:
+    """'+$11.8' / '−$7.9' / '—'. Uses the real minus glyph for Thai readers."""
+    if v is None:
+        return "—"
+    sign = "+" if v >= 0 else "−"
+    return f"{sign}${abs(v):.1f}"
+
+
+def scorecard_bubble(data: dict[str, Any], date_label: str,
+                     rolling_pct: float | None = None) -> dict[str, Any]:
+    """EOD directional-accuracy scoreboard for the 1:1 chat. `data` is the dict
+    from `scorecard.build_scorecard` (n_correct/n_wrong/n_flat/n_pending/
+    n_graded/accuracy_pct/sum_up_usd/sum_down_usd/misses). Private operator card
+    — shows the model's hit-rate + the day's misses, not for the public group."""
+    n_graded = int(data.get("n_graded", 0))
+    n_correct = int(data.get("n_correct", 0))
+    n_wrong = int(data.get("n_wrong", 0))
+    n_flat = int(data.get("n_flat", 0))
+    n_pending = int(data.get("n_pending", 0))
+    acc = float(data.get("accuracy_pct", 0.0))
+
+    rows: list[dict[str, Any]] = []
+    if n_graded == 0 and n_pending == 0:
+        rows.append({"type": "text", "wrap": True, "size": "sm", "color": "#374151",
+                     "text": "ยังไม่มีข่าวเศรษฐกิจที่ให้คะแนนทิศทางได้วันนี้"})
+    else:
+        headline = (f"แม่นทิศทาง {n_correct}/{n_graded} ({acc:.0f}%)"
+                    if n_graded else "ยังไม่มีผลให้คะแนน")
+        rows.append({"type": "text", "text": headline, "weight": "bold",
+                     "size": "lg", "color": "#1F2937", "wrap": True})
+        chips = [
+            {"type": "text", "text": f"✅ ถูก {n_correct}", "size": "sm",
+             "color": "#059669", "flex": 1},
+            {"type": "text", "text": f"❌ ผิด {n_wrong}", "size": "sm",
+             "color": "#DC2626", "flex": 1, "align": "center"},
+            {"type": "text", "text": f"⚪ ไม่ชัด {n_flat}", "size": "sm",
+             "color": "#6B7280", "flex": 1, "align": "end"},
+        ]
+        rows.append({"type": "box", "layout": "horizontal", "margin": "md",
+                     "contents": chips})
+        if n_pending:
+            rows.append({"type": "text", "size": "xs", "color": "#9CA3AF",
+                         "margin": "xs",
+                         "text": f"⏳ รอราคา 15 นาที {n_pending} (ตลาดปิด/ยังไม่ครบ)"})
+
+        rows.append({"type": "separator", "margin": "lg"})
+        rows.append({"type": "text", "text": "แรงเหวี่ยง 15 นาที", "size": "xs",
+                     "color": "#9CA3AF", "weight": "bold", "margin": "md"})
+        up = _to_float_or_none(data.get("sum_up_usd"))
+        down = _to_float_or_none(data.get("sum_down_usd"))
+        rows.append({"type": "box", "layout": "horizontal", "contents": [
+            {"type": "text", "text": f"ขึ้นรวม {_fmt_usd(up)}", "size": "sm",
+             "color": "#059669", "flex": 1},
+            {"type": "text", "text": f"ลงรวม {_fmt_usd(down)}", "size": "sm",
+             "color": "#DC2626", "flex": 1, "align": "end"},
+        ]})
+
+        misses = data.get("misses") or []
+        if misses:
+            rows.append({"type": "separator", "margin": "lg"})
+            rows.append({"type": "text", "text": "❌ ผิดคาดวันนี้", "size": "xs",
+                         "color": "#DC2626", "weight": "bold", "margin": "md"})
+            for m in misses[:4]:
+                said = "ขึ้น" if m.get("predicted_dir") == "bull" else "ลง"
+                ccy = (m.get("country") or "").strip()
+                title = str(m.get("title") or "")[:48]
+                r15 = m.get("r15_pct")
+                r15_txt = f"{r15:+.2f}%" if isinstance(r15, (int, float)) else "—"
+                usd_txt = _fmt_usd(m.get("usd_move"))
+                head = f"{ccy} {title}".strip()
+                rows.append({"type": "text", "text": f"• {head}", "size": "sm",
+                             "color": "#374151", "wrap": True, "margin": "sm"})
+                rows.append({"type": "text",
+                             "text": f"   เราว่า{said} · จริงทอง {r15_txt} ({usd_txt})",
+                             "size": "xs", "color": "#6B7280", "wrap": True})
+
+    if rolling_pct is not None:
+        rows.append({"type": "separator", "margin": "lg"})
+        rows.append({"type": "text", "margin": "md", "size": "xs", "color": "#9CA3AF",
+                     "text": f"แม่นเฉลี่ย 7 วัน: {rolling_pct:.0f}%  ·  log เต็มใน Sheet"})
+
+    title = f"🎯 สรุปความแม่นยำ · {date_label}" if date_label else "🎯 สรุปความแม่นยำ"
+    return {
+        "type": "bubble", "size": "giga",
+        "header": _header(title, "", "#1F2937"),
+        "body": {"type": "box", "layout": "vertical", "spacing": "sm",
+                 "paddingAll": "16px", "contents": rows},
+    }
+
+
+def _to_float_or_none(v: Any) -> float | None:
+    try:
+        return float(v)
+    except (TypeError, ValueError):
+        return None
+
+
 def health_recovered_bubble(recoveries: list[tuple[str, str]]) -> dict[str, Any]:
     """Compact green bubble: one line per recovered feed."""
     lines: list[dict[str, Any]] = []
