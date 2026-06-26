@@ -255,6 +255,14 @@ NAMES — Thai-script transliteration:
 คิม จอง อึน / ยุน ซอกยอล / โมดี / พาวเวลล์ / ลาการ์ด / อูเอดะ / เบลีย์ /
 แมคเลม / จอร์แดน / เยลเลน
 
+PLACES — ALWAYS write the Thai form; NEVER leave a country / region / strait name in English:
+- China→จีน, Hong Kong→ฮ่องกง, Taiwan→ไต้หวัน, Russia→รัสเซีย, Ukraine→ยูเครน, Iran→อิหร่าน, Israel→อิสราเอล, Saudi Arabia→ซาอุดิอาระเบีย, Japan→ญี่ปุ่น, South Korea→เกาหลีใต้, North Korea→เกาหลีเหนือ, US→สหรัฐฯ, Europe/EU→ยุโรป/สหภาพยุโรป, UK/Britain→อังกฤษ
+- Chokepoints / hotspots: Strait of Hormuz→ช่องแคบฮอร์มุส, Red Sea→ทะเลแดง, Suez Canal→คลองสุเอซ, Taiwan Strait→ช่องแคบไต้หวัน, South China Sea→ทะเลจีนใต้, Gaza→ฉนวนกาซา, Yemen→เยเมน, Lebanon→เลบานอน, Syria→ซีเรีย, Iraq→อิรัก, Venezuela→เวเนซุเอลา
+- WRONG: "ตลาดจับตา Hormuz", "สถานการณ์ Ukraine" → RIGHT: "ตลาดจับตาช่องแคบฮอร์มุส", "สถานการณ์ยูเครน"
+
+KEEP BRAND NAMES IN ENGLISH — translate the sentence around them, never the brand word itself:
+- Prediction / betting markets: Polymarket, Kalshi, PredictIt. Correct: "Polymarket คาดโอกาส 98%..." — WRONG: "ตลาดเทพเจ้า" / "ตลาดทำนาย" / "ตลาดพนัน".
+
 ============================================================
 HARD RULES — non-negotiable
 ============================================================
@@ -662,6 +670,19 @@ def _alert_from_text(text: str) -> MarketAlert | None:
     if alert.action == "keep" and not alert.headline_th:
         log.warning("LLM returned keep without headline_th — downgrading to reject")
         return MarketAlert(action="reject", reason="malformed-keep-no-headline")
+    # Place-name safety net — force canonical Thai place names on any English
+    # geographic proper noun the model left untranslated (Gemini especially
+    # leaks "Hormuz"/"Ukraine" despite the prompt glossary). English-word \b
+    # regexes can't touch Thai script, so this is a no-op when the model already
+    # used the Thai form, and never disturbs kept-English acronyms (Fed, CPI).
+    if alert.action == "keep":
+        from .translator import _patch_places
+        if alert.headline_th:
+            alert.headline_th = _patch_places(alert.headline_th)
+        if alert.impact_th:
+            alert.impact_th = _patch_places(alert.impact_th)
+        if alert.body_th:
+            alert.body_th = [_patch_places(b) for b in alert.body_th]
     # CJK leak guard — models occasionally reach for Japanese / Chinese
     # kanji when paraphrasing related-region news (e.g. ceasefire = 休戦).
     # Reject so the caller doesn't publish mixed-script Thai.
