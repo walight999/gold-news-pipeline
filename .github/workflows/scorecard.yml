@@ -1,0 +1,38 @@
+name: scorecard
+on:
+  schedule:
+    # 16:45 UTC = 23:45 ICT. 45 min after eod-recap so today's late releases
+    # have settled and their 15m XAU returns are backfillable. Weekdays only
+    # (gold closed on weekends — code also weekend-guards). Native cron is
+    # throttled; for on-time delivery add a 16:45 UTC job to cron-job.org
+    # (see docs/DISPATCHER-CRON.md). FRED key needed for the pre-grade backfill
+    # path is NOT required here — backfill only reads prices (yfinance).
+    - cron: "45 16 * * 1-5"
+  workflow_dispatch: {}
+
+concurrency:
+  # WRITES calibration_log + scorecard_daily; store.flush() rewrites whole tabs,
+  # so it must serialise against news-cron / calendar / backfill.
+  group: gold-news
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    env:
+      LINE_CHANNEL_TOKEN: ${{ secrets.LINE_CHANNEL_TOKEN }}
+      LINE_NEWS_TARGET:   ${{ secrets.LINE_NEWS_TARGET }}
+      LINE_HEALTH_TARGET: ${{ secrets.LINE_HEALTH_TARGET }}
+      GSHEET_ID:          ${{ secrets.GSHEET_ID }}
+      GSHEET_CREDS:       ${{ secrets.GSHEET_CREDS }}
+      PYTHONUNBUFFERED:   "1"
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: python -m src.main --mode scorecard
