@@ -130,6 +130,9 @@ def build_calendar_payload(event_id: str, date_label: str, events: list) -> dict
         "events": [
             {
                 "time": getattr(e, "hhmm_ict", "") or "",
+                # UTC ISO timestamp → the worker localizes per-subscriber region
+                # (global product; the "time"/hhmm_ict ICT string is the fallback).
+                "ts": (e.dt_utc.isoformat() if getattr(e, "dt_utc", None) is not None else None),
                 "country": getattr(e, "country", "") or "",
                 "title": getattr(e, "title", "") or "",
                 "impact": getattr(e, "impact", "") or "",
