@@ -26,6 +26,9 @@ jobs:
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       # Optional — Apify X/Twitter fast-news scraper. No-op when unset.
       APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
+      # Off-GAS CHUM News Bot (Telegram). Env-gated: no-op when unset.
+      NEWS_BOT_WEBHOOK_URL: ${{ secrets.NEWS_BOT_WEBHOOK_URL }}
+      NEWS_BOT_SECRET: ${{ secrets.NEWS_BOT_SECRET }}
       PYTHONUNBUFFERED: "1"
     steps:
       - uses: actions/checkout@v4
