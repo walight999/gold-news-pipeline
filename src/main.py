@@ -286,9 +286,11 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
                             category=alert_obj.category,
                             tone=alert_obj.tone,
                             impact_level=score_to_impact(d.score)[0],
-                            headline_th=alert_obj.headline_th,
-                            body_th=alert_obj.body_th,
-                            impact_th=alert_obj.impact_th,
+                            # CHUM News Bot is an ENGLISH/global product — send the
+                            # English original, not the Thai (LINE/Tradetongkam) rewrite.
+                            headline_th=ev.representative_title,
+                            body_th=[],
+                            impact_th=None,
                             source=_source_label(ev.source_list),
                             url=_pick_article_url(ev.items),
                         ))
@@ -492,9 +494,10 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
                                     category=_a.category,
                                     tone=_a.tone,
                                     impact_level=score_to_impact(card["score"])[0],
-                                    headline_th=_a.headline_th,
-                                    body_th=_a.body_th,
-                                    impact_th=_a.impact_th,
+                                    # English/global — prefer the English title (Thai rewrite is LINE-only).
+                                    headline_th=str(row.get("title") or _a.headline_th),
+                                    body_th=[],
+                                    impact_th=None,
                                     source=_source_label(card["source_list"]),
                                     url=card["url"],
                                 ))
