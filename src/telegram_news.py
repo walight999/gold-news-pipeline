@@ -93,6 +93,34 @@ class TelegramNewsClient:
     def post_calendar(self, payload: dict[str, Any]) -> dict[str, Any]:
         return self._send("webhook/calendar", payload)
 
+    def post_event(self, payload: dict[str, Any]) -> dict[str, Any]:
+        return self._send("webhook/event", payload)
+
+
+def build_event_payload(
+    *,
+    event_id: str,
+    phase: str,  # "pre" | "post"
+    ev,
+    mins_to: int | None = None,
+    actual: str | None = None,
+    detail_th: str | None = None,
+) -> dict[str, Any]:
+    """Map a CalEvent (pre/post release) → the worker's /webhook/event contract.
+    Asset-neutral: no XAU reaction/verdict — the worker derives beat/miss itself."""
+    return {
+        "event_id": event_id,
+        "phase": phase,
+        "country": getattr(ev, "country", "") or "",
+        "title": getattr(ev, "title", "") or "",
+        "impact": getattr(ev, "impact", "") or "",
+        "mins_to": mins_to,
+        "forecast": (getattr(ev, "forecast", "") or None),
+        "previous": (getattr(ev, "previous", "") or None),
+        "actual": (actual or None),
+        "detail_th": (detail_th or None),
+    }
+
 
 def build_calendar_payload(event_id: str, date_label: str, events: list) -> dict[str, Any]:
     """Map filtered CalEvent objects → the worker's /webhook/calendar contract."""

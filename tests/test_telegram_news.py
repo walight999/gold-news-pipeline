@@ -103,6 +103,22 @@ class _FakeEv:
         return self._hhmm
 
 
+def test_post_event_hits_the_event_endpoint(monkeypatch):
+    monkeypatch.setattr(telegram_news.httpx, "Client", _FakeClient)
+    client = telegram_news.TelegramNewsClient(base_url="https://news.justchum.com", secret="abc")
+    res = client.post_event({"phase": "pre"})
+    assert res["status"] == 200
+    assert _FakeClient.last_url == "https://news.justchum.com/webhook/event/abc"
+
+
+def test_build_event_payload_pre_and_post():
+    ev = _FakeEv(country="US", title="Core PCE", impact="high", forecast="0.3%", previous="0.2%")
+    pre = telegram_news.build_event_payload(event_id="precal:1", phase="pre", ev=ev, mins_to=15)
+    assert pre["phase"] == "pre" and pre["mins_to"] == 15 and pre["actual"] is None
+    post = telegram_news.build_event_payload(event_id="postcal:1", phase="post", ev=ev, actual="0.4%", detail_th="ร้อน")
+    assert post["phase"] == "post" and post["actual"] == "0.4%" and post["detail_th"] == "ร้อน"
+
+
 def test_build_calendar_payload_maps_events():
     e = _FakeEv(country="US", title="Core PCE", impact="high", forecast="0.3%", previous="0.2%", _hhmm="19:30")
     blank = _FakeEv(country="JP", title="CPI", impact="medium", forecast="", previous="", _hhmm="06:30")

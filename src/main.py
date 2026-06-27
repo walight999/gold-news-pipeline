@@ -1276,6 +1276,8 @@ async def run_calendar_check() -> int:
     post_pushed = 0
     if upcoming or just_released:
         line = LineClient.from_env()
+        # Off-GAS CHUM News Bot (Telegram) — the trust loop (pre T-15 + post).
+        tg_news = telegram_news.TelegramNewsClient.from_env()
 
         # Pre-release alerts
         for ev in upcoming:
@@ -1294,6 +1296,12 @@ async def run_calendar_check() -> int:
                     "sent_ts": iso_utc(now_utc()), "line_status": 200,
                 })
                 pre_pushed += 1
+                if tg_news:
+                    try:
+                        tg_news.post_event(telegram_news.build_event_payload(
+                            event_id=sent_key, phase="pre", ev=ev, mins_to=mins_to))
+                    except Exception:
+                        log.exception("telegram pre-release push failed %s", sent_key)
 
         # Post-release alerts. Priority order for actual values:
         #   1. FRED — fast, reliable for US series (CPI/NFP/PCE/etc.)
@@ -1368,6 +1376,13 @@ async def run_calendar_check() -> int:
                     "sent_ts": iso_utc(now_utc()), "line_status": 200,
                 })
                 post_pushed += 1
+                if tg_news:
+                    try:
+                        tg_news.post_event(telegram_news.build_event_payload(
+                            event_id=sent_key, phase="post", ev=ev,
+                            actual=actual_text, detail_th=detail_th))
+                    except Exception:
+                        log.exception("telegram post-release push failed %s", sent_key)
                 # Scorecard (Phase 1): persist the directional verdict so the EOD
                 # scorecard can grade it against the actual 15m XAU move. Keyed
                 # on cal:{event_id}; first_seen_ts = RELEASE time so the backfill
