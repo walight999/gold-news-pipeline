@@ -1208,6 +1208,14 @@ async def run_calendar_daily() -> int:
             "event_id": sent_key, "route_type": "calendar_daily",
             "sent_ts": iso_utc(now_utc()), "line_status": 200,
         })
+    # Off-GAS CHUM News Bot (Telegram) — the daily brief is the bot's backbone.
+    # Env-gated + best-effort; worker dedups on event_id=sent_key. Never blocks LINE.
+    tg_news = telegram_news.TelegramNewsClient.from_env()
+    if tg_news:
+        try:
+            tg_news.post_calendar(telegram_news.build_calendar_payload(sent_key, date_label, filtered))
+        except Exception:
+            log.exception("telegram calendar push failed for %s", sent_key)
     store.flush()
     return 0
 

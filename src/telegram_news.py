@@ -69,20 +69,45 @@ class TelegramNewsClient:
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10),
            reraise=True)
-    def _post(self, payload: dict[str, Any]) -> dict[str, Any]:
-        endpoint = f"{self.base_url}/webhook/news/{self.secret}"
+    def _post(self, path: str, payload: dict[str, Any]) -> dict[str, Any]:
+        endpoint = f"{self.base_url}/{path}/{self.secret}"
         with httpx.Client(timeout=15.0) as c:
             r = c.post(endpoint, json=payload)
         if r.status_code >= 500 or r.status_code == 429:
             raise httpx.HTTPStatusError(f"news-bot {r.status_code}", request=r.request, response=r)
         return {"status": r.status_code, "body": r.text}
 
-    def post(self, payload: dict[str, Any]) -> dict[str, Any]:
+    def _send(self, path: str, payload: dict[str, Any]) -> dict[str, Any]:
         try:
-            return self._post(payload)
+            return self._post(path, payload)
         except RetryError as e:
-            log.warning("telegram news push failed after retries: %s", e)
+            log.warning("telegram push failed after retries (%s): %s", path, e)
             return {"status": 0, "body": "retry_exhausted"}
         except httpx.HTTPError as e:
-            log.warning("telegram news push http error: %s", e)
+            log.warning("telegram push http error (%s): %s", path, e)
             return {"status": 0, "body": str(e)}
+
+    def post(self, payload: dict[str, Any]) -> dict[str, Any]:
+        return self._send("webhook/news", payload)
+
+    def post_calendar(self, payload: dict[str, Any]) -> dict[str, Any]:
+        return self._send("webhook/calendar", payload)
+
+
+def build_calendar_payload(event_id: str, date_label: str, events: list) -> dict[str, Any]:
+    """Map filtered CalEvent objects → the worker's /webhook/calendar contract."""
+    return {
+        "event_id": event_id,
+        "date_label": date_label,
+        "events": [
+            {
+                "time": getattr(e, "hhmm_ict", "") or "",
+                "country": getattr(e, "country", "") or "",
+                "title": getattr(e, "title", "") or "",
+                "impact": getattr(e, "impact", "") or "",
+                "forecast": (getattr(e, "forecast", "") or None),
+                "previous": (getattr(e, "previous", "") or None),
+            }
+            for e in events
+        ],
+    }

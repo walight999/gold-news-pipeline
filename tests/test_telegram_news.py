@@ -84,3 +84,34 @@ def test_post_hits_the_webhook_endpoint(monkeypatch):
     assert res["status"] == 200
     assert _FakeClient.last_url == "https://news.justchum.com/webhook/news/abc"
     assert _FakeClient.last_json == {"headline_th": "x"}
+
+
+def test_post_calendar_hits_the_calendar_endpoint(monkeypatch):
+    monkeypatch.setattr(telegram_news.httpx, "Client", _FakeClient)
+    client = telegram_news.TelegramNewsClient(base_url="https://news.justchum.com", secret="abc")
+    res = client.post_calendar({"events": []})
+    assert res["status"] == 200
+    assert _FakeClient.last_url == "https://news.justchum.com/webhook/calendar/abc"
+
+
+class _FakeEv:
+    def __init__(self, **kw):
+        self.__dict__.update(kw)
+
+    @property
+    def hhmm_ict(self):
+        return self._hhmm
+
+
+def test_build_calendar_payload_maps_events():
+    e = _FakeEv(country="US", title="Core PCE", impact="high", forecast="0.3%", previous="0.2%", _hhmm="19:30")
+    blank = _FakeEv(country="JP", title="CPI", impact="medium", forecast="", previous="", _hhmm="06:30")
+    p = telegram_news.build_calendar_payload("cal_daily:2026-06-25:main", "พฤ 25 มิ.ย.", [e, blank])
+    assert p["event_id"] == "cal_daily:2026-06-25:main"
+    assert p["events"][0] == {
+        "time": "19:30", "country": "US", "title": "Core PCE",
+        "impact": "high", "forecast": "0.3%", "previous": "0.2%",
+    }
+    # empty forecast/previous become None (worker hides the F/P line)
+    assert p["events"][1]["forecast"] is None
+    assert p["events"][1]["previous"] is None
