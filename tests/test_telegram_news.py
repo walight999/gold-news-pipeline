@@ -122,12 +122,20 @@ def test_build_event_payload_pre_and_post():
 def test_build_calendar_payload_maps_events():
     e = _FakeEv(country="US", title="Core PCE", impact="high", forecast="0.3%", previous="0.2%", _hhmm="19:30")
     blank = _FakeEv(country="JP", title="CPI", impact="medium", forecast="", previous="", _hhmm="06:30")
-    p = telegram_news.build_calendar_payload("cal_daily:2026-06-25:main", "พฤ 25 มิ.ย.", [e, blank])
+    p = telegram_news.build_calendar_payload("cal_daily:2026-06-25:main", "Thu 25 Jun", [e, blank])
     assert p["event_id"] == "cal_daily:2026-06-25:main"
     assert p["events"][0] == {
-        "time": "19:30", "country": "US", "title": "Core PCE",
+        "time": "19:30", "ts": None, "country": "US", "title": "Core PCE",
         "impact": "high", "forecast": "0.3%", "previous": "0.2%",
     }
     # empty forecast/previous become None (worker hides the F/P line)
     assert p["events"][1]["forecast"] is None
     assert p["events"][1]["previous"] is None
+
+
+def test_build_calendar_payload_sends_utc_iso_ts():
+    from datetime import datetime, timezone
+    e = _FakeEv(country="US", title="Core PCE", impact="high", forecast="", previous="", _hhmm="19:30",
+                dt_utc=datetime(2026, 6, 25, 12, 30, tzinfo=timezone.utc))
+    p = telegram_news.build_calendar_payload("cal:1", "Thu 25 Jun", [e])
+    assert p["events"][0]["ts"] == "2026-06-25T12:30:00+00:00"
