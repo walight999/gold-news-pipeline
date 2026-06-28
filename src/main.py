@@ -278,26 +278,28 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
                     ))
                 except Exception:
                     log.exception("social_feed record (breaking/alert) failed event=%s", ev.event_id)
-                if tg_news:
-                    try:
-                        tg_news.post(telegram_news.build_payload(
-                            event_id=ev.event_id,
-                            route=d.route.value,
-                            category=alert_obj.category,
-                            tone=alert_obj.tone,
-                            impact_level=score_to_impact(d.score)[0],
-                            # CHUM News Bot is an ENGLISH/global product — send the
-                            # English original, not the Thai (LINE/Tradetongkam) rewrite.
-                            headline_th=ev.representative_title,
-                            body_th=[],
-                            impact_th=None,
-                            source=_source_label(ev.source_list),
-                            url=_pick_article_url(ev.items),
-                        ))
-                    except Exception:
-                        log.exception("telegram news push (breaking/alert) failed event=%s", ev.event_id)
             else:
                 log.warning("LINE push failed event=%s status=%s — not marking sent", ev.event_id, resp["status"])
+            # CHUM News Bot (Telegram) is an INDEPENDENT channel — push regardless of
+            # the LINE result (LINE quiet-hours / outage must not silence the global
+            # bot). Worker dedups on (event_id, route) so re-runs never double-send.
+            if tg_news:
+                try:
+                    tg_news.post(telegram_news.build_payload(
+                        event_id=ev.event_id,
+                        route=d.route.value,
+                        category=alert_obj.category,
+                        tone=alert_obj.tone,
+                        impact_level=score_to_impact(d.score)[0],
+                        # ENGLISH/global product — send the English original, not the Thai rewrite.
+                        headline_th=ev.representative_title,
+                        body_th=[],
+                        impact_th=None,
+                        source=_source_label(ev.source_list),
+                        url=_pick_article_url(ev.items),
+                    ))
+                except Exception:
+                    log.exception("telegram news push (breaking/alert) failed event=%s", ev.event_id)
 
     # 6. Health pass — first detect current warnings, then resolve any
     # open warnings whose triggering condition is no longer true, then push.
@@ -485,24 +487,28 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
                             ))
                         except Exception:
                             log.exception("social_feed record (digest) failed event=%s", row.get("event_id"))
-                        if tg_news:
-                            try:
-                                _a = card["alert"]
-                                tg_news.post(telegram_news.build_payload(
-                                    event_id=ev_id,
-                                    route="digest",
-                                    category=_a.category,
-                                    tone=_a.tone,
-                                    impact_level=score_to_impact(card["score"])[0],
-                                    # English/global — prefer the English title (Thai rewrite is LINE-only).
-                                    headline_th=str(row.get("title") or _a.headline_th),
-                                    body_th=[],
-                                    impact_th=None,
-                                    source=_source_label(card["source_list"]),
-                                    url=card["url"],
-                                ))
-                            except Exception:
-                                log.exception("telegram news push (digest) failed event=%s", ev_id)
+                # CHUM News Bot (Telegram) is INDEPENDENT of LINE — push every card
+                # regardless of the LINE result (worker dedups on event_id+route).
+                if tg_news:
+                    for card, row in zip(cards, kept_rows):
+                        ev_id = str(row.get("event_id") or "")
+                        try:
+                            _a = card["alert"]
+                            tg_news.post(telegram_news.build_payload(
+                                event_id=ev_id,
+                                route="digest",
+                                category=_a.category,
+                                tone=_a.tone,
+                                impact_level=score_to_impact(card["score"])[0],
+                                # ENGLISH/global — prefer the English title (Thai rewrite is LINE-only).
+                                headline_th=str(row.get("title") or _a.headline_th),
+                                body_th=[],
+                                impact_th=None,
+                                source=_source_label(card["source_list"]),
+                                url=card["url"],
+                            ))
+                        except Exception:
+                            log.exception("telegram news push (digest) failed event=%s", ev_id)
 
     # 8. Heartbeat — stamp pipeline liveness before flush so the watchdog
     # can distinguish "cron stopped" from "cron ran but no news today".
@@ -1299,12 +1305,14 @@ async def run_calendar_check() -> int:
                     "sent_ts": iso_utc(now_utc()), "line_status": 200,
                 })
                 pre_pushed += 1
-                if tg_news:
-                    try:
-                        tg_news.post_event(telegram_news.build_event_payload(
-                            event_id=sent_key, phase="pre", ev=ev, mins_to=mins_to))
-                    except Exception:
-                        log.exception("telegram pre-release push failed %s", sent_key)
+            # Telegram is independent of LINE — push regardless of the LINE result
+            # (worker dedups on event_id+phase).
+            if tg_news:
+                try:
+                    tg_news.post_event(telegram_news.build_event_payload(
+                        event_id=sent_key, phase="pre", ev=ev, mins_to=mins_to))
+                except Exception:
+                    log.exception("telegram pre-release push failed %s", sent_key)
 
         # Post-release alerts. Priority order for actual values:
         #   1. FRED — fast, reliable for US series (CPI/NFP/PCE/etc.)
@@ -1379,13 +1387,6 @@ async def run_calendar_check() -> int:
                     "sent_ts": iso_utc(now_utc()), "line_status": 200,
                 })
                 post_pushed += 1
-                if tg_news:
-                    try:
-                        tg_news.post_event(telegram_news.build_event_payload(
-                            event_id=sent_key, phase="post", ev=ev,
-                            actual=actual_text, detail_th=detail_th))
-                    except Exception:
-                        log.exception("telegram post-release push failed %s", sent_key)
                 # Scorecard (Phase 1): persist the directional verdict so the EOD
                 # scorecard can grade it against the actual 15m XAU move. Keyed
                 # on cal:{event_id}; first_seen_ts = RELEASE time so the backfill
@@ -1405,6 +1406,15 @@ async def run_calendar_check() -> int:
                         "xau_return_5m": "", "xau_return_15m": "", "xau_return_30m": "",
                         "xau_base_price": "",
                     })
+            # Telegram is independent of LINE — push regardless of the LINE result.
+            # detail_th (Thai LINE rewrite) is omitted; the worker renders English.
+            if tg_news:
+                try:
+                    tg_news.post_event(telegram_news.build_event_payload(
+                        event_id=sent_key, phase="post", ev=ev,
+                        actual=actual_text, detail_th=None))
+                except Exception:
+                    log.exception("telegram post-release push failed %s", sent_key)
 
     log.info("calendar_check pushes: pre=%d post=%d", pre_pushed, post_pushed)
     store.flush()
@@ -1547,13 +1557,16 @@ async def run_macro_push() -> int:
 
     news_dirs: dict[str, list[str]] = {}
     try:
+        from datetime import timedelta
+
         store = Store.from_env()
         store.connect()
-        rows = store.all_rows("event_state")
-        # Recent window: last 50 events (sheet order ~ append order). direction_label
-        # vocab (hawkish/dovish/risk_off/risk_on/neutral) == macro_push news_map keys.
-        dirs = [str(r.get("direction_label", "")).strip() for r in rows[-50:]]
-        dirs = [d for d in dirs if d]
+        store.load_all()  # connect() only opens the sheet; load_all() fills self.data
+        # Most-recent direction_labels within 48h (event_state retains 7 days, so a
+        # naive tail would mix week-old events). Vocab (hawkish/dovish/risk_off/
+        # risk_on/neutral) == macro_push news_map keys.
+        cutoff = iso_utc(now_utc() - timedelta(hours=48))
+        dirs = macro_push.recent_news_directions(store.all_rows("event_state"), cutoff)
         if dirs:
             news_dirs["XAUUSD"] = dirs
     except Exception as e:  # best-effort — macro still pushes with news=0
