@@ -1534,6 +1534,36 @@ async def run_watchdog() -> int:
     return 0
 
 
+async def run_macro_push() -> int:
+    """--mode macro: compute the latest multi-factor macro state per asset and
+    POST it to the CHUM alert-bot worker (Pillar C). Env-gated + best-effort —
+    no-op when MACRO_WEBHOOK_URL/MACRO_WEBHOOK_SECRET are unset; never raises.
+
+    The live `news` factor (≈20% weight) is the pipeline's edge: net asset-direction
+    of recent classified events, read best-effort from event_state.direction_label.
+    A failure to read tone just leaves news=0 (the offline-backtest value).
+    """
+    from . import macro_push
+
+    news_dirs: dict[str, list[str]] = {}
+    try:
+        store = Store.from_env()
+        store.connect()
+        rows = store.all_rows("event_state")
+        # Recent window: last 50 events (sheet order ~ append order). direction_label
+        # vocab (hawkish/dovish/risk_off/risk_on/neutral) == macro_push news_map keys.
+        dirs = [str(r.get("direction_label", "")).strip() for r in rows[-50:]]
+        dirs = [d for d in dirs if d]
+        if dirs:
+            news_dirs["XAUUSD"] = dirs
+    except Exception as e:  # best-effort — macro still pushes with news=0
+        log.warning("macro: news-direction read failed (continuing news=0): %s", e)
+
+    results = macro_push.compute_and_push(news_directions_by_asset=news_dirs)
+    log.info("macro push: %s", results)
+    return 0
+
+
 async def run_event_mode(duration_min: int = 30, sleep_sec: int = 60) -> int:
     deadline = _time.time() + duration_min * 60
     iteration = 0
@@ -1560,7 +1590,7 @@ def main(argv: list[str] | None = None) -> int:
         "cron", "event", "digest", "calendar_daily", "calendar_check",
         "weekly_preview", "eod_recap", "verify_sources", "maintain",
         "watchdog", "social_post", "social_seed",
-        "backfill_xau", "precision_report", "scorecard",
+        "backfill_xau", "precision_report", "scorecard", "macro",
     ), default="cron")
     p.add_argument("--event-duration-min", type=int, default=30)
     p.add_argument("--event-sleep-sec", type=int, default=60)
@@ -1591,6 +1621,8 @@ def main(argv: list[str] | None = None) -> int:
         return asyncio.run(run_precision_report())
     if args.mode == "scorecard":
         return asyncio.run(run_scorecard())
+    if args.mode == "macro":
+        return asyncio.run(run_macro_push())
     return asyncio.run(run_once(mode=args.mode))
 
 
