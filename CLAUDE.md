@@ -61,7 +61,26 @@ throttle on the T-15 window; cron-job.org now drives `calendar_check` every
 (weekly health probe) · `maintain` (purge) · `watchdog` (self-monitor) ·
 `social_post` (post approved drafts to X, cron */20) · `social_seed` (append one
 test draft) · `calendar_daily` (one card/day, 04:40 ICT) · `calendar_check` (**pre- T-15 + post Released News**) ·
-`scorecard` (EOD directional-accuracy of calendar verdicts → **1:1 only**, 23:45 ICT).
+`scorecard` (EOD directional-accuracy of calendar verdicts → **1:1 only**, 23:45 ICT) ·
+`macro` (compute + POST the multi-factor macro state to the CHUM alert-bot worker, every 6h).
+
+## Macro push — feeding the CHUM alert-bot (Pillar C, 2026-06-28)
+
+`--mode macro` (`macro_push.py`) computes the LIVE half of the alert-bot's
+multi-factor model (the offline backtest is `backtest/multifactor.py` in the
+CHUM alert-bot repo) and POSTs the latest per-asset state to the worker's
+`/webhook/macro/<secret>`. The worker stores it in KV (48h TTL) and tags every
+Pine signal with the macro context at alert time, so its Pillar B/C can learn
+whether macro-aligned signals grade better.
+- Factors fused with priors `WEIGHTS = macro .45 / tech .20 / risk .15 / news .20`
+  (MUST match multifactor.py — Pillar C learns deviations FROM these). macro =
+  real-yields/USD/breakeven/gold-silver; tech = EMA cross; risk = VIX/SPX; **news =
+  the pipeline's edge** — net `direction_label` of recent `event_state` events
+  (0 in the offline backtest, live here).
+- **Env-gated + best-effort.** Inert until BOTH `MACRO_WEBHOOK_URL`
+  (`https://api.justchum.com`) and `MACRO_WEBHOOK_SECRET` (= the worker's
+  `TRADINGVIEW_SECRET`) are set as GH secrets. A sheet-read failure just leaves
+  news=0; nothing here ever blocks the news run. Workflow: `.github/workflows/macro_push.yml`.
 
 ## Scorecard — did the verdict match the tape? (Phase 1, 2026-06-26)
 

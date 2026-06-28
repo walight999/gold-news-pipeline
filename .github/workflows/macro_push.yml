@@ -1,0 +1,40 @@
+name: macro_push
+on:
+  schedule:
+    # Every 6h. Macro state (real yields / DXY / VIX) moves slowly — daily-ish is
+    # plenty; 6h keeps the worker's KV state fresh within its 48h TTL even if a run
+    # is throttled. Native cron is throttled; for on-time runs add a 6h job to
+    # cron-job.org hitting workflow_dispatch (see docs/DISPATCHER-CRON.md).
+    - cron: "5 */6 * * *"
+  workflow_dispatch: {}
+
+concurrency:
+  # READ-ONLY on the sheet (event_state for the live news factor; no flush()), so
+  # it does NOT share the gold-news write-lock group. Own group, no cancel.
+  group: macro-push
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    env:
+      # Sheet read = live news factor (direction_label). Optional: missing creds
+      # just leaves news=0, the macro/tech/risk factors still push.
+      GSHEET_ID:    ${{ secrets.GSHEET_ID }}
+      GSHEET_CREDS: ${{ secrets.GSHEET_CREDS }}
+      # The macro layer is INERT until BOTH of these are set (env-gated no-op).
+      # MACRO_WEBHOOK_URL  = https://api.justchum.com
+      # MACRO_WEBHOOK_SECRET = the worker's TRADINGVIEW_SECRET value.
+      MACRO_WEBHOOK_URL:    ${{ secrets.MACRO_WEBHOOK_URL }}
+      MACRO_WEBHOOK_SECRET: ${{ secrets.MACRO_WEBHOOK_SECRET }}
+      PYTHONUNBUFFERED: "1"
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: python -m src.main --mode macro
