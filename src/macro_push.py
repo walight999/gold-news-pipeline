@@ -60,6 +60,22 @@ def _clip1(x: float) -> float:
 # ---------------------------------------------------------------------------
 # Live news factor — the pipeline's edge. Pure + testable (no network).
 # ---------------------------------------------------------------------------
+def recent_news_directions(rows: list[dict[str, Any]], cutoff_iso: str, limit: int = 50) -> list[str]:
+    """From event_state rows, the most-recent `direction_label`s within the window.
+
+    Pure + testable — this is the live news edge that was silently dead (the caller
+    must `store.load_all()` first, or `rows` is empty). Sorted most-recent-first by
+    `last_seen_ts`, filtered to >= cutoff (ISO UTC string compare), capped at `limit`.
+    """
+    recent = sorted(rows, key=lambda r: str(r.get("last_seen_ts", "")), reverse=True)
+    dirs = [
+        str(r.get("direction_label", "")).strip()
+        for r in recent
+        if str(r.get("last_seen_ts", "")) >= cutoff_iso
+    ][:limit]
+    return [d for d in dirs if d]
+
+
 def news_factor_from_directions(directions: list[str], asset: str) -> float:
     """Net asset-direction of recent classified news, in [-1, 1].
 
@@ -87,10 +103,14 @@ def _ema(s: "Any", n: int) -> "Any":
 
 
 def compute_state(px: "Any", news_factor: float = 0.0) -> dict[str, Any]:
-    """px: DataFrame with columns price, usd, silver, vix, spx, real_yield, breakeven
-    (daily Close, date index). Returns the latest {factors, conviction, regime}.
+    """px: DataFrame with column `price` (required) + any of usd, silver, vix, spx,
+    real_yield, breakeven (daily Close, date index). Returns the latest
+    {factors, conviction, regime}.
 
-    Mirrors backtest/multifactor.py exactly so the live signal == the backtested one:
+    Mirrors backtest/multifactor.py when all columns are present, but each factor
+    input is GUARDED: a missing column or a NaN/short-series result contributes 0
+    instead of crashing or poisoning the push with a non-finite value (a missing
+    yfinance/FRED symbol degrades the factor, never the whole state).
       macro = falling real yields (THE driver) + low-yield regime + weak USD +
               rising breakevens + falling gold/silver ratio
       tech  = own EMA(20) vs EMA(50) cross
@@ -100,31 +120,57 @@ def compute_state(px: "Any", news_factor: float = 0.0) -> dict[str, Any]:
     """
     import numpy as np
 
+    def col(name: str):
+        return px[name] if name in getattr(px, "columns", []) else None
+
+    def fin(v: Any, default: float = 0.0) -> float:
+        try:
+            f = float(v)
+            return f if np.isfinite(f) else default
+        except (TypeError, ValueError):
+            return default
+
     p = px["price"]
-    ry_mom = -np.tanh(_z(px["real_yield"].diff(5)))
-    ry_lvl = -np.tanh(_z(px["real_yield"], 120)) * 0.6
-    usd = -np.tanh(_z(px["usd"].pct_change(5)))
-    bei = np.tanh(_z(px["breakeven"].diff(5)))
-    gsr = -np.tanh(_z((p / px["silver"]).pct_change(5)))
-    macro = float((0.4 * ry_mom + 0.2 * ry_lvl + 0.2 * usd + 0.1 * bei + 0.1 * gsr).clip(-1, 1).iloc[-1])
 
-    tech = float(np.sign(_ema(p, 20).iloc[-1] - _ema(p, 50).iloc[-1]))
+    # MACRO — each sub-signal guarded; absent input → 0 contribution.
+    macro = 0.0
+    ry = col("real_yield")
+    if ry is not None:
+        macro += 0.4 * fin((-np.tanh(_z(ry.diff(5)))).iloc[-1])
+        macro += 0.2 * fin((-np.tanh(_z(ry, 120)) * 0.6).iloc[-1])
+    usd = col("usd")
+    if usd is not None:
+        macro += 0.2 * fin((-np.tanh(_z(usd.pct_change(5)))).iloc[-1])
+    bei = col("breakeven")
+    if bei is not None:
+        macro += 0.1 * fin((np.tanh(_z(bei.diff(5)))).iloc[-1])
+    sil = col("silver")
+    if sil is not None:
+        macro += 0.1 * fin((-np.tanh(_z((p / sil).pct_change(5)))).iloc[-1])
+    macro = _clip1(macro)
 
-    risk_series = (0.6 * np.tanh(_z(px["vix"].pct_change(5)))
-                   - 0.4 * np.sign(_ema(px["spx"], 20) - _ema(px["spx"], 50))).clip(-1, 1) * 0.5
-    risk = float(risk_series.iloc[-1])
+    tech = fin(np.sign(_ema(p, 20).iloc[-1] - _ema(p, 50).iloc[-1]))
+
+    risk = 0.0
+    vix = col("vix")
+    if vix is not None:
+        risk += 0.6 * fin((np.tanh(_z(vix.pct_change(5)))).iloc[-1])
+    spx = col("spx")
+    if spx is not None:
+        risk += -0.4 * fin(np.sign(_ema(spx, 20).iloc[-1] - _ema(spx, 50).iloc[-1]))
+    risk = _clip1(risk) * 0.5
 
     news = _clip1(news_factor)
 
     factors = {"macro": macro, "tech": tech, "risk": risk, "news": news}
     conviction = _clip1(sum(WEIGHTS[k] * factors[k] for k in WEIGHTS))
 
-    ry_slope = float(np.sign(px["real_yield"].diff(20).iloc[-1]))
+    ry_slope = fin(np.sign(ry.diff(20).iloc[-1])) if ry is not None else 0.0
     regime = "yields_up" if ry_slope > 0 else "yields_down" if ry_slope < 0 else "flat"
 
     return {
-        "factors": {k: round(v, 4) for k, v in factors.items()},
-        "conviction": round(conviction, 4),
+        "factors": {k: round(fin(v), 4) for k, v in factors.items()},
+        "conviction": round(fin(conviction), 4),
         "regime": regime,
     }
 
@@ -146,9 +192,23 @@ def fetch_frame(asset: str) -> "Any":
     syms = {"price": cfg["price"], **cfg["factors"]}
     raw = yf.download(list(syms.values()), period="2y", interval="1d",
                       progress=False, auto_adjust=True)["Close"]
-    px = pd.DataFrame({name: raw[sym] for name, sym in syms.items()})
+    # Defensive: yfinance can omit a symbol (delisting / transient outage). Keep only
+    # the columns it actually returned — compute_state treats an absent factor as 0,
+    # so one flaky input degrades that factor instead of KeyError-ing the whole state.
+    raw_cols = list(getattr(raw, "columns", []))
+    px = pd.DataFrame()
+    for name, sym in syms.items():
+        if sym in raw_cols:
+            px[name] = raw[sym]
+        else:
+            log.warning("macro: yfinance missing %s (%s) for %s — factor dropped", sym, name, asset)
+    if "price" not in px.columns:
+        raise ValueError(f"macro: no price data for {asset} ({cfg['price']})")
     for name, sid in cfg.get("fred", {}).items():
-        px[name] = fetch_fred_csv(sid)
+        try:
+            px[name] = fetch_fred_csv(sid)
+        except Exception as e:  # FRED CSV down → drop that factor, keep the rest
+            log.warning("macro: FRED %s (%s) fetch failed for %s — factor dropped: %s", sid, name, asset, e)
     return px.ffill().dropna()
 
 

@@ -176,3 +176,59 @@ def test_compute_and_push_noop_when_unconfigured(monkeypatch):
     monkeypatch.delenv("MACRO_WEBHOOK_URL", raising=False)
     monkeypatch.delenv("MACRO_WEBHOOK_SECRET", raising=False)
     assert macro_push.compute_and_push() == []
+
+
+# ---------------------------------------------------------------------------
+# recent_news_directions — the live news edge (regression: was silently empty)
+# ---------------------------------------------------------------------------
+def test_recent_news_directions_filters_and_orders():
+    rows = [
+        {"direction_label": "dovish", "last_seen_ts": "2026-06-28T10:00:00+00:00"},
+        {"direction_label": "hawkish", "last_seen_ts": "2026-06-28T11:00:00+00:00"},
+        {"direction_label": "risk_off", "last_seen_ts": "2026-06-20T00:00:00+00:00"},  # stale → dropped
+        {"direction_label": "", "last_seen_ts": "2026-06-28T12:00:00+00:00"},  # blank → dropped
+    ]
+    cutoff = "2026-06-27T00:00:00+00:00"
+    # most-recent first, within window, non-blank
+    assert macro_push.recent_news_directions(rows, cutoff) == ["hawkish", "dovish"]
+
+
+def test_recent_news_directions_empty_rows():
+    assert macro_push.recent_news_directions([], "2026-06-27T00:00:00+00:00") == []
+
+
+def test_recent_news_directions_caps_limit():
+    rows = [{"direction_label": "dovish", "last_seen_ts": f"2026-06-28T{h:02d}:00:00+00:00"} for h in range(20)]
+    assert len(macro_push.recent_news_directions(rows, "2026-06-27T00:00:00+00:00", limit=5)) == 5
+
+
+# ---------------------------------------------------------------------------
+# Vocab + WEIGHTS sync guards (drift catchers)
+# ---------------------------------------------------------------------------
+def test_news_map_covers_direction_keyword_vocab():
+    """The pipeline's direction_label vocab (config/keywords.yaml) must be a subset
+    of the XAUUSD news_map, else live news directions get silently dropped."""
+    import pathlib
+
+    import yaml
+
+    cfg = yaml.safe_load(
+        (pathlib.Path(__file__).parent.parent / "config" / "keywords.yaml").read_text(encoding="utf-8")
+    )
+    vocab = set(cfg.get("direction_keywords", {}).keys()) | {"neutral"}
+    news_map = set(macro_push.ASSETS["XAUUSD"]["news_map"].keys())
+    assert vocab <= news_map, f"direction labels missing from news_map: {vocab - news_map}"
+
+
+def test_weights_match_backtest_priors():
+    """Golden: must equal backtest/multifactor.py WEIGHTS (Pillar C learns deviations
+    FROM these). If you change one, change both."""
+    assert macro_push.WEIGHTS == {"macro": 0.45, "tech": 0.20, "risk": 0.15, "news": 0.20}
+
+
+def test_compute_state_tolerates_missing_columns():
+    """A missing factor column degrades that factor to 0, never crashes."""
+    f = _frame(rising_yields=False, uptrend=True).drop(columns=["vix", "silver"])
+    st = macro_push.compute_state(f, news_factor=0.0)
+    assert -1.0 <= st["conviction"] <= 1.0
+    assert all(-1.0 <= v <= 1.0 for v in st["factors"].values())
