@@ -154,10 +154,26 @@ def write_heartbeat(store: Store, items_seen: int = 0) -> None:
     })
 
 
+MACRO_HEARTBEAT_SOURCE_ID = "_macro_heartbeat"
+
+
+def write_macro_heartbeat(store: Store) -> None:
+    """Stamp macro-push liveness into source_state. Called by run_macro_push after a
+    successful POST so the watchdog can alarm if the (separate, 6-hourly) macro push
+    silently stops — otherwise every signal tags macro_aligned=null invisibly."""
+    ts = iso_utc(now_utc())
+    store.upsert("source_state", {
+        "source_id": MACRO_HEARTBEAT_SOURCE_ID,
+        "last_success_ts": ts,
+        "updated_at": ts,
+    })
+
+
 def check_pipeline_health(
     store: Store,
     max_silence_min: int = 25,
     max_no_items_min: int = 180,
+    max_macro_silence_min: int = 840,  # 14h — alert BEFORE the worker's 18h staleness gate
     max_ff_scrape_errors: int = 3,
     classifier_fallback_threshold_pct: int = 30,
     classifier_min_samples: int = 20,
@@ -196,6 +212,20 @@ def check_pipeline_health(
                 out.append(("watchdog_no_items",
                             f"No items fetched across all sources for {no_item_min:.0f} min — "
                             "scraper or network may be down"))
+
+    # Macro-push staleness. Only alarm if macro was EVER activated (heartbeat row
+    # exists) — a missing row = env-gated off, not a failure (mirrors the worker's
+    # "never launched → don't alarm"). Stale = the 6h push has missed >2 cycles.
+    macro_row = store.get("source_state", (MACRO_HEARTBEAT_SOURCE_ID,))
+    if macro_row:
+        last_macro = parse_iso(macro_row.get("last_success_ts"))
+        if last_macro:
+            macro_silence_min = (now_utc() - last_macro).total_seconds() / 60.0
+            if macro_silence_min > max_macro_silence_min:
+                out.append(("macro_push_dead",
+                            f"Macro push silent for {macro_silence_min / 60:.1f}h "
+                            f"(last {macro_row.get('last_success_ts')}). Pillar-C signal "
+                            "tagging will go null — check macro_push.yml / cron-job.org."))
 
     # FF scraper streak check. Row is written by ff_scraper.record_scrape_result.
     ff_row = store.get("source_state", ("_ff_scraper",)) or {}

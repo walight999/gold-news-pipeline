@@ -1432,6 +1432,8 @@ def _watchdog_source_id(warning_type: str) -> str:
         return "_classifier_health"
     if warning_type == "workflow_failure":
         return "_workflow_failures"
+    if warning_type == "macro_push_dead":
+        return "_macro_health"
     if warning_type in ("line_push_failing", "line_quota_high"):
         return "_line_push"
     if warning_type.startswith("source_noisy:"):
@@ -1556,6 +1558,7 @@ async def run_macro_push() -> int:
     from . import macro_push
 
     news_dirs: dict[str, list[str]] = {}
+    store = None
     try:
         from datetime import timedelta
 
@@ -1569,11 +1572,30 @@ async def run_macro_push() -> int:
         dirs = macro_push.recent_news_directions(store.all_rows("event_state"), cutoff)
         if dirs:
             news_dirs["XAUUSD"] = dirs
+            # Visibility: how much of the window is signed vs neutral. If the signed
+            # fraction is ~0, the news factor isn't moving conviction (classifier may
+            # need more direction keywords).
+            signed = sum(1 for d in dirs if d not in ("", "neutral"))
+            log.info("macro news window: %d events, %d signed (%.0f%%), %d neutral",
+                     len(dirs), signed, 100 * signed / len(dirs), len(dirs) - signed)
     except Exception as e:  # best-effort — macro still pushes with news=0
         log.warning("macro: news-direction read failed (continuing news=0): %s", e)
 
     results = macro_push.compute_and_push(news_directions_by_asset=news_dirs)
     log.info("macro push: %s", results)
+
+    # Liveness heartbeat — stamp source_state so the watchdog can alarm if the macro
+    # push silently stops (else signals tag macro_aligned=null invisibly). Re-load
+    # first to minimize clobbering concurrent gold-news source_state writes; flush
+    # only writes the (now-dirty) source_state tab. Best-effort.
+    pushed_ok = any(isinstance(r.get("push"), dict) and r["push"].get("status") == 200 for r in results)
+    if pushed_ok and store is not None:
+        try:
+            store.load_all()
+            health.write_macro_heartbeat(store)
+            store.flush()
+        except Exception as e:
+            log.warning("macro heartbeat write failed: %s", e)
     return 0
 
 

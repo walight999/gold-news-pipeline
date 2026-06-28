@@ -158,6 +158,38 @@ def test_watchdog_healthy_when_heartbeat_fresh(store):
     assert check_pipeline_health(store) == []
 
 
+def _fresh_pipeline_hb(store):
+    """A fresh pipeline heartbeat so macro tests aren't masked by watchdog_silence."""
+    fresh = datetime.now(timezone.utc) - timedelta(minutes=2)
+    store.upsert("source_state", {
+        "source_id": HEARTBEAT_SOURCE_ID,
+        "last_success_ts": iso_utc(fresh), "last_item_ts": iso_utc(fresh),
+    })
+
+
+def test_macro_no_warning_when_never_activated(store):
+    """No macro heartbeat row = env-gated off → must NOT alarm (mirrors worker)."""
+    _fresh_pipeline_hb(store)
+    from src.health import check_pipeline_health as cph
+    assert "macro_push_dead" not in [wt for wt, _ in cph(store)]
+
+
+def test_macro_no_warning_when_fresh(store):
+    from src.health import write_macro_heartbeat, check_pipeline_health as cph
+    _fresh_pipeline_hb(store)
+    write_macro_heartbeat(store)  # stamps "now"
+    assert "macro_push_dead" not in [wt for wt, _ in cph(store)]
+
+
+def test_macro_flags_dead_when_stale(store):
+    """Macro heartbeat >14h old → macro_push_dead fires (before the worker's 18h gate)."""
+    from src.health import MACRO_HEARTBEAT_SOURCE_ID, check_pipeline_health as cph
+    _fresh_pipeline_hb(store)
+    stale = datetime.now(timezone.utc) - timedelta(hours=15)
+    store.upsert("source_state", {"source_id": MACRO_HEARTBEAT_SOURCE_ID, "last_success_ts": iso_utc(stale)})
+    assert "macro_push_dead" in [wt for wt, _ in cph(store)]
+
+
 def test_watchdog_flags_no_items_during_market_hours(store):
     """Heartbeat ticking (cron is fine) but no items for 4 hours → scraper
     or network suspected."""
