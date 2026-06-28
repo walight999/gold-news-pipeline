@@ -85,10 +85,12 @@ def news_factor_from_directions(directions: list[str], asset: str) -> float:
     unrecognized labels are dropped. Returns 0.0 when nothing recognized.
     """
     nmap: dict[str, float] = ASSETS.get(asset, {}).get("news_map", {})
-    vals = [nmap[d] for d in (directions or []) if d in nmap]
-    if not vals:
-        return 0.0
-    return _clip1(sum(vals) / len(vals))
+    # Average over SIGNED labels only. Counting neutrals in the denominator dilutes the
+    # factor toward 0 — most headlines are keyword-neutral, so the 20% news weight would
+    # contribute ~nothing. Neutral = "no directional view" (≈ absent), not "bearish-ish";
+    # mirrors the worker's fuse() which excludes absent factors from its denominator.
+    signed = [nmap[d] for d in (directions or []) if d in nmap and nmap[d] != 0.0]
+    return _clip1(sum(signed) / len(signed)) if signed else 0.0
 
 
 # ---------------------------------------------------------------------------

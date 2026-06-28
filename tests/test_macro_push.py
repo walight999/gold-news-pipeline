@@ -32,9 +32,14 @@ def test_news_factor_hawkish_is_bearish_gold():
     assert macro_push.news_factor_from_directions(["hawkish", "risk_on"], "XAUUSD") == -1.0
 
 
-def test_news_factor_neutral_damps_toward_zero():
-    # one dovish (+1) + one neutral (0) → +0.5, neutrals are counted, not dropped
-    assert macro_push.news_factor_from_directions(["dovish", "neutral"], "XAUUSD") == 0.5
+def test_news_factor_excludes_neutrals_from_denominator():
+    # neutral = "no view" (≈ absent) → excluded; one dovish among neutrals → full +1,
+    # not diluted toward 0 (otherwise the 20% news weight contributes ~nothing live).
+    assert macro_push.news_factor_from_directions(["dovish", "neutral", "neutral"], "XAUUSD") == 1.0
+    # all-neutral → 0.0 (no signed view)
+    assert macro_push.news_factor_from_directions(["neutral", "neutral"], "XAUUSD") == 0.0
+    # mixed signed: dovish(+1) + hawkish(-1) → 0.0 (genuine disagreement, not dilution)
+    assert macro_push.news_factor_from_directions(["dovish", "hawkish"], "XAUUSD") == 0.0
 
 
 def test_news_factor_unknown_asset_is_zero():
