@@ -154,6 +154,24 @@ def write_heartbeat(store: Store, items_seen: int = 0) -> None:
     })
 
 
+def ping_deadman(url: str | None) -> bool:
+    """Ping an EXTERNAL dead-man monitor (healthchecks.io / BetterStack / cron-job.org
+    monitor) on every successful run. This is the independent watchdog: the in-repo
+    watchdog mode shares GitHub Actions + the cron-job.org dispatcher's lifeline, so if
+    the dispatcher dies the watchdog dies with it (the 2026-06-23 dead-zone). An external
+    monitor that expects a ping every N minutes will alert when the pings stop, no matter
+    why. Env-gated by HEALTHCHECK_PING_URL; best-effort, never raises."""
+    if not url:
+        return False
+    try:
+        import httpx
+        httpx.get(url, timeout=10.0)
+        return True
+    except Exception as e:  # noqa: BLE001
+        log.warning("deadman ping failed: %s", e)
+        return False
+
+
 MACRO_HEARTBEAT_SOURCE_ID = "_macro_heartbeat"
 
 

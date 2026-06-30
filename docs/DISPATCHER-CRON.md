@@ -120,6 +120,23 @@ events stop, only `schedule` remains, morning coverage drops. cron-job.org will
 show the job failing with **HTTP 401**. Regenerate the fine-grained PAT (step 1)
 and update the `Authorization` header on each cron-job.org job.
 
+## Independent dead-man (closes the watchdog co-dependency)
+
+The in-repo `--mode watchdog` is itself driven by GitHub schedule + the cron-job.org
+dispatcher it is meant to backstop — so if the dispatcher dies, the watchdog dies with it
+(no silence alert). The fix is an **external** monitor that lives outside GitHub entirely:
+
+1. Create a free check at **healthchecks.io** (or BetterStack) with period ~10-15 min + a
+   grace window. Copy its ping URL (e.g. `https://hc-ping.com/<uuid>`).
+2. Set the GitHub secret **`HEALTHCHECK_PING_URL`** to that URL.
+3. Every successful `run_once` (cron/event mode) now pings it (`health.ping_deadman`).
+   When the pipeline stops for any reason — dead PAT, cron-job.org outage, GitHub incident —
+   the pings stop and healthchecks.io emails/alerts you. This monitor shares NO lifeline
+   with the thing it watches.
+
+Also rotate the cron-job.org PAT before its expiry (set a calendar reminder — the PAT has
+no auto-rotation). A dead PAT looks exactly like the dispatcher outage above.
+
 ## Related
 
 - Throttle history + catch-up window: `config/schedule.yaml` `digest.catch_up_minutes`.
