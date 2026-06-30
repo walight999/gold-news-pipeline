@@ -9,6 +9,7 @@ from src.scorecard import (
     build_scorecard,
     grade,
     rolling_accuracy,
+    rolling_accuracy_detail,
     verdict_to_dir,
 )
 
@@ -149,3 +150,18 @@ def test_rolling_accuracy_weighted_by_calls():
 def test_rolling_accuracy_none_when_no_history():
     assert rolling_accuracy([]) is None
     assert rolling_accuracy([{"date_ict": "2026-06-26", "n_correct": 0, "n_graded": 0}]) is None
+
+
+def test_rolling_accuracy_detail_shape():
+    hist = [
+        {"date_ict": "2026-06-24", "n_correct": 3, "n_graded": 4},
+        {"date_ict": "2026-06-25", "n_correct": 1, "n_graded": 2},
+        {"date_ict": "2026-06-26", "n_correct": 2, "n_graded": 2},
+    ]
+    d = rolling_accuracy_detail(hist, days=30)
+    assert d == {"accuracy": 0.75, "correct": 6, "total": 8, "days": 30}
+
+
+def test_rolling_accuracy_detail_none_when_no_history():
+    assert rolling_accuracy_detail([]) is None
+    assert rolling_accuracy_detail([{"date_ict": "2026-06-26", "n_correct": 0, "n_graded": 0}]) is None

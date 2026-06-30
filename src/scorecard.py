@@ -159,3 +159,21 @@ def rolling_accuracy(scorecard_rows: list[dict[str, Any]], days: int = 7) -> flo
     if not tot_graded:
         return None
     return tot_correct / tot_graded * 100.0
+
+
+def rolling_accuracy_detail(scorecard_rows: list[dict[str, Any]], days: int = 30) -> dict[str, Any] | None:
+    """Like rolling_accuracy but returns the full breakdown for the public scorecard
+    push to the free news bot: {rate: 0..1, correct, total, days}. None on no history."""
+    usable = [r for r in scorecard_rows if _to_float(r.get("n_graded"))]
+    usable.sort(key=lambda r: r.get("date_ict") or "", reverse=True)
+    window = usable[:days]
+    tot_correct = sum(int(_to_float(r.get("n_correct")) or 0) for r in window)
+    tot_graded = sum(int(_to_float(r.get("n_graded")) or 0) for r in window)
+    if not tot_graded:
+        return None
+    return {
+        "accuracy": round(tot_correct / tot_graded, 4),
+        "correct": tot_correct,
+        "total": tot_graded,
+        "days": days,
+    }

@@ -1020,6 +1020,18 @@ async def run_scorecard() -> int:
     else:
         log.warning("scorecard push failed status=%s body=%s",
                     resp.get("status"), str(resp.get("body"))[:200])
+    # Surface the rolling accuracy publicly: push to the free news bot, which shows it
+    # on the weekly track-record card (T0-1 — the strongest free->paid credibility line).
+    # Best-effort + env-gated; never affects the scorecard run.
+    tg_news = telegram_news.TelegramNewsClient.from_env()
+    if tg_news:
+        detail = scorecard.rolling_accuracy_detail(store.all_rows("scorecard_daily"), days=30)
+        if detail:
+            try:
+                tg_news.post_accuracy(detail)
+            except Exception as e:  # noqa: BLE001
+                log.warning("scorecard news-bot push failed: %s", e)
+
     store.flush()
     log.info("scorecard %s done: %s | rolling7d=%s", date_key, card.get("n_graded"), rolling)
     return 0
