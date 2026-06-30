@@ -94,6 +94,10 @@ class TelegramNewsClient:
     def post_calendar(self, payload: dict[str, Any]) -> dict[str, Any]:
         return self._send("webhook/calendar", payload)
 
+    def post_accuracy(self, payload: dict[str, Any]) -> dict[str, Any]:
+        # {accuracy: 0..1, correct, total, days} → free bot surfaces it on the weekly track card
+        return self._send("webhook/accuracy", payload)
+
     def post_event(self, payload: dict[str, Any]) -> dict[str, Any]:
         return self._send("webhook/event", payload)
 

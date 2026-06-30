@@ -98,6 +98,16 @@ def test_post_calendar_hits_the_calendar_endpoint(monkeypatch):
     assert _FakeClient.last_headers == {"X-News-Secret": "abc"}
 
 
+def test_post_accuracy_hits_the_accuracy_endpoint(monkeypatch):
+    monkeypatch.setattr(telegram_news.httpx, "Client", _FakeClient)
+    client = telegram_news.TelegramNewsClient(base_url="https://news.justchum.com", secret="abc")
+    res = client.post_accuracy({"accuracy": 0.68, "correct": 17, "total": 25, "days": 30})
+    assert res["status"] == 200
+    assert _FakeClient.last_url == "https://news.justchum.com/webhook/accuracy"
+    assert _FakeClient.last_headers == {"X-News-Secret": "abc"}
+    assert _FakeClient.last_json["accuracy"] == 0.68
+
+
 class _FakeEv:
     def __init__(self, **kw):
         self.__dict__.update(kw)
