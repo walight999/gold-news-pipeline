@@ -162,9 +162,10 @@ class _FakeClient:
     def __exit__(self, *a):
         return False
 
-    def post(self, url, json=None):  # noqa: A002
+    def post(self, url, json=None, headers=None):  # noqa: A002
         _FakeClient.last_url = url
         _FakeClient.last_json = json
+        _FakeClient.last_headers = headers
         return _FakeResp(200)
 
 
@@ -173,7 +174,9 @@ def test_push_hits_macro_endpoint(monkeypatch):
     c = macro_push.MacroPushClient(base_url="https://api.justchum.com", secret="abc")
     res = c.push({"ticker": "XAUUSD"})
     assert res["status"] == 200
-    assert _FakeClient.last_url == "https://api.justchum.com/webhook/macro/abc"
+    # secret rides the X-Webhook-Secret header now, not the URL path (audit H3)
+    assert _FakeClient.last_url == "https://api.justchum.com/webhook/macro"
+    assert _FakeClient.last_headers == {"X-Webhook-Secret": "abc"}
     assert _FakeClient.last_json == {"ticker": "XAUUSD"}
 
 

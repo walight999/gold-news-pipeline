@@ -320,16 +320,24 @@ def _direction_chip_color(direction: str) -> tuple[str, str]:
 
 # ---------- breaking / alert ----------
 
+def _safe_http_url(url: str | None) -> bool:
+    """Only http(s) links may become a tappable LINE URI action. Scraped feed URLs are
+    attacker-influenceable; reject anything else (mailto:, tel:, weird schemes) so a
+    malicious source can't smuggle a non-web action into the card (audit M5)."""
+    return bool(url) and url.strip().lower().startswith(("http://", "https://"))
+
+
 def _source_link(src_name: str, age: str, url: str | None) -> dict[str, Any]:
     """Footer meta row: source link bottom-LEFT, time bottom-RIGHT (split layout).
 
     Source name itself acts as the article link — no separate Read button.
     """
+    linkable = _safe_http_url(url)
     src_text: dict[str, Any] = {
-        "type": "text", "text": f"{src_name}" + (" ↗" if url else ""),
+        "type": "text", "text": f"{src_name}" + (" ↗" if linkable else ""),
         "size": "xxs", "weight": "bold", "wrap": False, "flex": 1, "align": "start",
     }
-    if url:
+    if linkable:
         src_text["color"] = "#2563EB"
         src_text["decoration"] = "underline"
         src_text["action"] = {"type": "uri", "label": "open", "uri": url}

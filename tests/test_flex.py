@@ -276,3 +276,17 @@ def test_alt_text_truncates():
     ev = _ev("inflation", "hawkish", ["forexlive"], title="x" * 1000)
     t = alt_text_for_event("⚡ BREAKING", ev, 5.0)
     assert len(t) <= 380
+
+
+def test_safe_http_url_allows_only_web_schemes():
+    from src.line_flex import _safe_http_url
+    assert _safe_http_url("https://example.com/article")
+    assert _safe_http_url("http://example.com")
+    assert _safe_http_url("  HTTPS://Example.com  ")  # trimmed + case-insensitive
+    # rejected: non-web schemes + empties (audit M5 — scraped URLs are untrusted)
+    assert not _safe_http_url("javascript:alert(1)")
+    assert not _safe_http_url("mailto:x@y.com")
+    assert not _safe_http_url("tel:123")
+    assert not _safe_http_url("ftp://host/f")
+    assert not _safe_http_url(None)
+    assert not _safe_http_url("")
