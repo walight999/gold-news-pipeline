@@ -362,3 +362,37 @@ def test_tier0_event_day_no_success(store):
                                                 "http_consecutive_errors_threshold": 3},
                                 is_event_day=True)
     assert (sid, "tier0_event_day_no_success") in warns
+
+
+def test_ping_deadman_noop_without_url():
+    from src.health import ping_deadman
+    assert ping_deadman(None) is False
+    assert ping_deadman("") is False
+
+
+def test_ping_deadman_calls_url(monkeypatch):
+    import src.health as health
+    called = {}
+
+    class _FakeHttpx:
+        @staticmethod
+        def get(url, timeout=None):
+            called["url"] = url
+            called["timeout"] = timeout
+            return type("R", (), {"status_code": 200})()
+
+    monkeypatch.setitem(__import__("sys").modules, "httpx", _FakeHttpx)
+    assert health.ping_deadman("https://hc-ping.com/abc") is True
+    assert called["url"] == "https://hc-ping.com/abc"
+
+
+def test_ping_deadman_swallows_errors(monkeypatch):
+    import src.health as health
+
+    class _BoomHttpx:
+        @staticmethod
+        def get(url, timeout=None):
+            raise RuntimeError("network down")
+
+    monkeypatch.setitem(__import__("sys").modules, "httpx", _BoomHttpx)
+    assert health.ping_deadman("https://hc-ping.com/abc") is False  # never raises

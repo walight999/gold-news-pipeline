@@ -514,6 +514,9 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
     # can distinguish "cron stopped" from "cron ran but no news today".
     if mode in ("cron", "event"):
         health.write_heartbeat(store, items_seen=len(items))
+        # External dead-man ping (independent of GitHub Actions + cron-job.org, which the
+        # in-repo watchdog shares a lifeline with). Env-gated; best-effort.
+        health.ping_deadman(os.environ.get("HEALTHCHECK_PING_URL"))
 
     # 8b. Append social-feed rows (best-effort; never blocks the run)
     n_feed = social_feed.flush(store, social_records)
