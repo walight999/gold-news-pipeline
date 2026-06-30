@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-06-30T08:25:48Z",
-      "title": "global · Other",
-      "source": "Yahoo Finance",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-06-30T08:25:48Z",
-      "title": "us · Growth",
-      "source": "Yahoo Finance",
+      "ts": "2026-06-30T11:41:02Z",
+      "title": "china · Growth",
+      "source": "Forexlive",
       "score": 0.2,
       "xau_relevant": false
     },
     {
-      "ts": "2026-06-30T08:25:48Z",
-      "title": "global · Other",
-      "source": "Yahoo Finance",
+      "ts": "2026-06-30T11:41:02Z",
+      "title": "global · Other · hawkish",
+      "source": "Forexlive",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-06-30T08:25:48Z",
-      "title": "global · Other",
-      "source": "Yahoo Finance",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-06-30T08:25:48Z",
-      "title": "global · Other",
-      "source": "Yahoo Finance",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-06-30T08:25:48Z",
-      "title": "global · Other",
-      "source": "Yahoo Finance",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-06-30T08:25:48Z",
-      "title": "global · Other",
-      "source": "Yahoo Finance",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-06-30T08:25:48Z",
-      "title": "wgc · Gold Flow",
-      "source": "Yahoo Finance",
+      "ts": "2026-06-30T11:41:02Z",
+      "title": "pboc · Gold Flow",
+      "source": "Forexlive",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-06-30T08:25:48Z",
-      "title": "global · Other",
-      "source": "Yahoo Finance",
-      "score": 0.1,
+      "ts": "2026-06-30T11:41:02Z",
+      "title": "boj · Rate Policy · hawkish",
+      "source": "Forexlive",
+      "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-06-30T08:25:48Z",
-      "title": "global · Other · risk on",
-      "source": "Yahoo Finance",
-      "score": 0.1,
+      "ts": "2026-06-30T11:41:02Z",
+      "title": "china · Growth · dovish",
+      "source": "Forexlive",
+      "score": 0.2,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-06-30T11:41:02Z",
+      "title": "china · Growth · hawkish",
+      "source": "Forexlive",
+      "score": 0.2,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-06-30T11:41:02Z",
+      "title": "ecb · Rate Policy · hawkish",
+      "source": "Forexlive",
+      "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-06-30T11:41:02Z",
+      "title": "wgc · Gold Flow",
+      "source": "Forexlive",
+      "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-06-30T11:41:02Z",
+      "title": "us · Inflation",
+      "source": "Forexlive",
+      "score": 0.5,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-06-30T11:41:02Z",
+      "title": "us · Growth",
+      "source": "Forexlive",
+      "score": 0.2,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-06-30T08:30:34.995537Z"
+  "written_at": "2026-06-30T11:45:16.163056Z"
 }
