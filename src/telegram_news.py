@@ -98,6 +98,10 @@ class TelegramNewsClient:
         # {accuracy: 0..1, correct, total, days} → free bot surfaces it on the weekly track card
         return self._send("webhook/accuracy", payload)
 
+    def post_weekly(self, payload: dict[str, Any]) -> dict[str, Any]:
+        # week-ahead economic-event list → free bot fans it out (Saturday preview)
+        return self._send("webhook/weekly", payload)
+
     def post_event(self, payload: dict[str, Any]) -> dict[str, Any]:
         return self._send("webhook/event", payload)
 
@@ -125,6 +129,25 @@ def build_event_payload(
         "actual": (actual or None),
         "detail_th": (detail_th or None),
     }
+
+
+def build_weekly_payload(event_id: str, week_label: str, events: list) -> dict[str, Any]:
+    """Map filtered CalEvent objects → the worker's /webhook/weekly contract (T0-5).
+    A multi-day event list grouped by day. effect/forecast are gold-specific so they're
+    omitted here (the free bot is asset-neutral) — just the dot+time+country+title."""
+    out = []
+    for e in events:
+        dt = getattr(e, "dt_ict", None)
+        day = f"{dt.strftime('%a')} {dt.day}/{dt.month}" if dt is not None else ""
+        out.append({
+            "day": day,
+            "time": getattr(e, "hhmm_ict", "") or "",
+            "ts": (e.dt_utc.isoformat() if getattr(e, "dt_utc", None) is not None else None),
+            "country": getattr(e, "country", "") or "",
+            "title": getattr(e, "title", "") or "",
+            "impact": getattr(e, "impact", "") or "",
+        })
+    return {"event_id": event_id, "week_label": week_label, "events": out}
 
 
 def build_calendar_payload(event_id: str, date_label: str, events: list) -> dict[str, Any]:

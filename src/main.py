@@ -1141,6 +1141,16 @@ async def run_weekly_preview() -> int:
             "event_id": sent_key, "route_type": "weekly_preview",
             "sent_ts": iso_utc(now_utc()), "line_status": 200,
         })
+
+    # Also deliver the week-ahead to the free CHUM News Bot (T0-5). Best-effort +
+    # env-gated; never affects the LINE push. The bot owns its own dedup (event_id).
+    tg_news = telegram_news.TelegramNewsClient.from_env()
+    if tg_news:
+        try:
+            tg_news.post_weekly(telegram_news.build_weekly_payload(sent_key, week_label, filtered))
+        except Exception as e:  # noqa: BLE001
+            log.warning("weekly_preview news-bot push failed: %s", e)
+
     store.flush()
     return 0
 
