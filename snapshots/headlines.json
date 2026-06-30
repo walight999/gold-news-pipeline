@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-06-29T22:35:50Z",
+      "ts": "2026-06-30T00:02:27Z",
+      "title": "us · Usd Yields",
+      "source": "Forexlive",
+      "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-06-30T00:02:27Z",
       "title": "global · Other",
-      "source": "Bbc World",
+      "source": "Forexlive",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-06-29T22:35:50Z",
-      "title": "us · Geopolitics · risk off",
-      "source": "Bbc World",
+      "ts": "2026-06-30T00:02:27Z",
+      "title": "fed · Rate Policy",
+      "source": "Forexlive",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-06-29T22:35:50Z",
+      "ts": "2026-06-30T00:02:27Z",
+      "title": "global · Other",
+      "source": "Forexlive",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-06-30T00:02:27Z",
+      "title": "global · Other",
+      "source": "Forexlive",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-06-30T00:02:27Z",
+      "title": "global · Other",
+      "source": "Forexlive",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-06-30T00:02:27Z",
       "title": "mideast · Geopolitics",
-      "source": "Bbc World",
+      "source": "Forexlive",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-06-29T22:35:50Z",
+      "ts": "2026-06-30T00:02:27Z",
       "title": "global · Other",
-      "source": "Bbc World, Yahoo Finance",
+      "source": "Forexlive",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-06-29T22:35:50Z",
+      "ts": "2026-06-30T00:02:27Z",
       "title": "global · Other",
-      "source": "Yahoo Finance",
+      "source": "Forexlive",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-06-29T22:35:50Z",
-      "title": "global · Other",
-      "source": "Cnbc, Yahoo Finance",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-06-29T22:35:50Z",
-      "title": "global · Other",
-      "source": "Bbc World",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-06-29T22:35:50Z",
-      "title": "global · Other",
-      "source": "Cnbc, Yahoo Finance",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-06-29T22:35:50Z",
-      "title": "global · Other",
-      "source": "Yahoo Finance",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-06-29T22:35:50Z",
-      "title": "global · Other",
-      "source": "Bbc World",
-      "score": 0.1,
+      "ts": "2026-06-30T00:02:27Z",
+      "title": "fed · Rate Policy · hawkish",
+      "source": "Forexlive",
+      "score": 0.4,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-06-29T22:36:56.407559Z"
+  "written_at": "2026-06-30T00:04:34.460304Z"
 }
