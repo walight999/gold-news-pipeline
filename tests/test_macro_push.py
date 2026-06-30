@@ -177,6 +177,42 @@ def test_push_hits_macro_endpoint(monkeypatch):
     assert _FakeClient.last_json == {"ticker": "XAUUSD"}
 
 
+# ---------------------------------------------------------------------------
+# next_high_impact — feeds the alert-bot news-event entry gate
+# ---------------------------------------------------------------------------
+class _Ev:
+    def __init__(self, mins_from_now, impact, title="x"):
+        from datetime import datetime, timedelta, timezone
+        self.dt_utc = datetime.now(timezone.utc) + timedelta(minutes=mins_from_now)
+        self.impact = impact
+        self.title = title
+        self.country = "US"
+
+
+def test_next_high_impact_picks_soonest_high_within_window():
+    from datetime import datetime, timezone
+    now = datetime.now(timezone.utc)
+    evs = [_Ev(120, "high", "far"), _Ev(20, "high", "soon"), _Ev(10, "medium", "med"), _Ev(30, "high", "mid")]
+    pick = macro_push.next_high_impact(evs, now, within_min=45)
+    assert pick is not None and pick.title == "soon"  # 20m, soonest high within 45
+
+
+def test_next_high_impact_ignores_medium_and_far_and_past():
+    from datetime import datetime, timezone
+    now = datetime.now(timezone.utc)
+    assert macro_push.next_high_impact([_Ev(10, "medium")], now) is None  # not high
+    assert macro_push.next_high_impact([_Ev(200, "high")], now, within_min=45) is None  # too far
+    assert macro_push.next_high_impact([_Ev(-5, "high")], now) is None  # already released
+    assert macro_push.next_high_impact([], now) is None
+
+
+def test_push_next_event_window_noop_when_unconfigured(monkeypatch):
+    monkeypatch.delenv("MACRO_WEBHOOK_URL", raising=False)
+    monkeypatch.delenv("MACRO_WEBHOOK_SECRET", raising=False)
+    from datetime import datetime, timezone
+    assert macro_push.push_next_event_window([_Ev(20, "high")], datetime.now(timezone.utc)) is None
+
+
 def test_compute_and_push_noop_when_unconfigured(monkeypatch):
     monkeypatch.delenv("MACRO_WEBHOOK_URL", raising=False)
     monkeypatch.delenv("MACRO_WEBHOOK_SECRET", raising=False)
