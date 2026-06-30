@@ -243,9 +243,11 @@ class MacroPushClient:
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10),
            reraise=True)
     def _post(self, path: str, payload: dict[str, Any]) -> dict[str, Any]:
-        endpoint = f"{self.base_url}/{path}/{self.secret}"
+        # Send the secret as a HEADER, not in the URL path — paths get logged by edge
+        # proxies / the worker, leaking this shared secret (= the worker's TRADINGVIEW_SECRET).
+        endpoint = f"{self.base_url}/{path}"
         with httpx.Client(timeout=15.0) as c:
-            r = c.post(endpoint, json=payload)
+            r = c.post(endpoint, json=payload, headers={"X-Webhook-Secret": self.secret})
         if r.status_code >= 500 or r.status_code == 429:
             raise httpx.HTTPStatusError(f"{path} {r.status_code}", request=r.request, response=r)
         return {"status": r.status_code, "body": r.text}

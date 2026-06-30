@@ -71,9 +71,10 @@ class _FakeClient:
     def __exit__(self, *a):
         return False
 
-    def post(self, url, json=None):  # noqa: A002
+    def post(self, url, json=None, headers=None):  # noqa: A002
         _FakeClient.last_url = url
         _FakeClient.last_json = json
+        _FakeClient.last_headers = headers
         return _FakeResp(200)
 
 
@@ -82,7 +83,9 @@ def test_post_hits_the_webhook_endpoint(monkeypatch):
     client = telegram_news.TelegramNewsClient(base_url="https://news.justchum.com", secret="abc")
     res = client.post({"headline_th": "x"})
     assert res["status"] == 200
-    assert _FakeClient.last_url == "https://news.justchum.com/webhook/news/abc"
+    # secret is NO LONGER in the URL — it rides the X-News-Secret header (audit H3)
+    assert _FakeClient.last_url == "https://news.justchum.com/webhook/news"
+    assert _FakeClient.last_headers == {"X-News-Secret": "abc"}
     assert _FakeClient.last_json == {"headline_th": "x"}
 
 
@@ -91,7 +94,8 @@ def test_post_calendar_hits_the_calendar_endpoint(monkeypatch):
     client = telegram_news.TelegramNewsClient(base_url="https://news.justchum.com", secret="abc")
     res = client.post_calendar({"events": []})
     assert res["status"] == 200
-    assert _FakeClient.last_url == "https://news.justchum.com/webhook/calendar/abc"
+    assert _FakeClient.last_url == "https://news.justchum.com/webhook/calendar"
+    assert _FakeClient.last_headers == {"X-News-Secret": "abc"}
 
 
 class _FakeEv:
@@ -108,7 +112,8 @@ def test_post_event_hits_the_event_endpoint(monkeypatch):
     client = telegram_news.TelegramNewsClient(base_url="https://news.justchum.com", secret="abc")
     res = client.post_event({"phase": "pre"})
     assert res["status"] == 200
-    assert _FakeClient.last_url == "https://news.justchum.com/webhook/event/abc"
+    assert _FakeClient.last_url == "https://news.justchum.com/webhook/event"
+    assert _FakeClient.last_headers == {"X-News-Secret": "abc"}
 
 
 def test_build_event_payload_pre_and_post():
