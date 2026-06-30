@@ -148,6 +148,34 @@ def test_build_calendar_payload_maps_events():
     assert p["events"][1]["previous"] is None
 
 
+def test_post_weekly_hits_the_weekly_endpoint(monkeypatch):
+    monkeypatch.setattr(telegram_news.httpx, "Client", _FakeClient)
+    client = telegram_news.TelegramNewsClient(base_url="https://news.justchum.com", secret="abc")
+    res = client.post_weekly({"week_label": "x", "events": []})
+    assert res["status"] == 200
+    assert _FakeClient.last_url == "https://news.justchum.com/webhook/weekly"
+    assert _FakeClient.last_headers == {"X-News-Secret": "abc"}
+
+
+def test_build_weekly_payload_groups_with_day_label_and_utc_ts():
+    from datetime import datetime, timezone
+    e = _FakeEv(
+        country="US", title="CPI", impact="high", _hhmm="19:30",
+        dt_utc=datetime(2026, 7, 6, 12, 30, tzinfo=timezone.utc),
+        dt_ict=datetime(2026, 7, 6, 19, 30),  # Monday
+    )
+    p = telegram_news.build_weekly_payload("weekly:2026-07-06", "6–10 Jul", [e])
+    assert p["event_id"] == "weekly:2026-07-06"
+    assert p["week_label"] == "6–10 Jul"
+    ev = p["events"][0]
+    assert ev["day"] == "Mon 6/7"
+    assert ev["time"] == "19:30"
+    assert ev["ts"] == "2026-07-06T12:30:00+00:00"
+    assert ev["country"] == "US" and ev["title"] == "CPI" and ev["impact"] == "high"
+    # gold-specific forecast/effect intentionally omitted (asset-neutral free bot)
+    assert "forecast" not in ev and "effect" not in ev
+
+
 def test_build_calendar_payload_sends_utc_iso_ts():
     from datetime import datetime, timezone
     e = _FakeEv(country="US", title="Core PCE", impact="high", forecast="", previous="", _hhmm="19:30",
