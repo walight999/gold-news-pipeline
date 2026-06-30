@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-06-30T18:55:49Z",
+      "ts": "2026-06-30T20:55:51Z",
       "title": "global · Other",
       "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-06-30T18:55:49Z",
+      "ts": "2026-06-30T20:55:51Z",
       "title": "global · Other",
       "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-06-30T18:55:49Z",
-      "title": "fed · Rate Policy",
-      "source": "Yahoo Finance",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-06-30T18:55:49Z",
-      "title": "mideast · Geopolitics · risk off",
-      "source": "Yahoo Finance",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-06-30T18:55:49Z",
-      "title": "global · Other · risk on",
-      "source": "Yahoo Finance",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-06-30T18:55:49Z",
-      "title": "global · Other",
-      "source": "Yahoo Finance",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-06-30T18:55:49Z",
-      "title": "global · Other · risk on",
-      "source": "Yahoo Finance",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-06-30T18:55:49Z",
+      "ts": "2026-06-30T20:55:51Z",
       "title": "global · Other",
       "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-06-30T18:55:49Z",
+      "ts": "2026-06-30T20:55:51Z",
       "title": "global · Other",
       "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-06-30T18:55:49Z",
-      "title": "fed · Rate Policy",
+      "ts": "2026-06-30T20:55:51Z",
+      "title": "global · Other",
+      "source": "Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-06-30T20:55:51Z",
+      "title": "global · Other",
       "source": "Cnbc",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-06-30T20:55:51Z",
+      "title": "global · Other",
+      "source": "Cnbc, Forexlive",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-06-30T20:55:51Z",
+      "title": "global · Other",
+      "source": "Cnbc, Forexlive",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-06-30T20:55:51Z",
+      "title": "us · Geopolitics · risk on",
+      "source": "Forexlive",
       "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-06-30T20:55:51Z",
+      "title": "global · Other",
+      "source": "Forexlive",
+      "score": 0.1,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-06-30T18:56:48.571736Z"
+  "written_at": "2026-06-30T20:58:10.866555Z"
 }
