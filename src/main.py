@@ -22,7 +22,7 @@ from typing import Any
 import yaml
 
 from . import calendar as cal
-from . import dedup, digest, fred, health, news_alert, price_feed, scorecard, scorer, social_feed, telegram_news, translator
+from . import dedup, digest, fred, health, macro_push, news_alert, price_feed, scorecard, scorer, social_feed, telegram_news, translator
 from .fetcher import fetch_all, plan_fetch
 from .line_client import LineClient
 from .line_flex import (
@@ -1261,6 +1261,14 @@ async def run_calendar_check() -> int:
     post_hi = int(cal_cfg.get("post_release_window_high_min", 0))
 
     relevant = cal.filter_by_impact(cal.filter_by_country(events, countries), impacts)
+
+    # News-event entry gate: push the soonest HIGH-impact release to the alert-bot so it
+    # suppresses NEW entries around the print. Env-gated (MACRO_WEBHOOK_*), best-effort,
+    # independent of LINE → never blocks the calendar run.
+    try:
+        macro_push.push_next_event_window(relevant, now_utc())
+    except Exception:
+        log.exception("event-window push failed")
 
     upcoming = cal.filter_upcoming(relevant, pre_lo, pre_hi)
     # Pre-release is owned by the GAS newsupdate-linebot since 2026-06-11

@@ -242,23 +242,63 @@ class MacroPushClient:
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10),
            reraise=True)
-    def _post(self, payload: dict[str, Any]) -> dict[str, Any]:
-        endpoint = f"{self.base_url}/webhook/macro/{self.secret}"
+    def _post(self, path: str, payload: dict[str, Any]) -> dict[str, Any]:
+        endpoint = f"{self.base_url}/{path}/{self.secret}"
         with httpx.Client(timeout=15.0) as c:
             r = c.post(endpoint, json=payload)
         if r.status_code >= 500 or r.status_code == 429:
-            raise httpx.HTTPStatusError(f"macro webhook {r.status_code}", request=r.request, response=r)
+            raise httpx.HTTPStatusError(f"{path} {r.status_code}", request=r.request, response=r)
         return {"status": r.status_code, "body": r.text}
 
-    def push(self, payload: dict[str, Any]) -> dict[str, Any]:
+    def _send(self, path: str, payload: dict[str, Any]) -> dict[str, Any]:
         try:
-            return self._post(payload)
+            return self._post(path, payload)
         except RetryError as e:
-            log.warning("macro push failed after retries: %s", e)
+            log.warning("%s push failed after retries: %s", path, e)
             return {"status": 0, "body": "retry_exhausted"}
         except httpx.HTTPError as e:
-            log.warning("macro push http error: %s", e)
+            log.warning("%s push http error: %s", path, e)
             return {"status": 0, "body": str(e)}
+
+    def push(self, payload: dict[str, Any]) -> dict[str, Any]:
+        return self._send("webhook/macro", payload)
+
+    def push_event_window(self, payload: dict[str, Any]) -> dict[str, Any]:
+        return self._send("webhook/event-window", payload)
+
+
+def next_high_impact(events: list, now, within_min: int = 45):
+    """Soonest HIGH-impact event within `within_min` minutes from now (pure). None if
+    none. events must expose .dt_utc (tz-aware) + .impact + .title."""
+    soon = None
+    for e in events or []:
+        dt = getattr(e, "dt_utc", None)
+        if dt is None or str(getattr(e, "impact", "")).lower() != "high":
+            continue
+        mins = (dt - now).total_seconds() / 60.0
+        if 0 <= mins <= within_min and (soon is None or dt < soon.dt_utc):
+            soon = e
+    return soon
+
+
+def push_next_event_window(events: list, now, within_min: int = 45) -> dict[str, Any] | None:
+    """Find the soonest HIGH-impact release + POST its window to the alert-bot news-event
+    gate (it suppresses new ENTRIES around the release). Env-gated + best-effort."""
+    client = MacroPushClient.from_env()
+    if client is None:
+        return None
+    soon = next_high_impact(events, now, within_min)
+    if soon is None:
+        return None
+    res = client.push_event_window({
+        "event_ts": soon.dt_utc.isoformat(),
+        "title": getattr(soon, "title", ""),
+        "impact": "high",
+    })
+    log.info("event-window push: %s %s (in %.0fm) -> %s",
+             getattr(soon, "country", ""), getattr(soon, "title", ""),
+             (soon.dt_utc - now).total_seconds() / 60.0, res.get("status"))
+    return res
 
 
 def compute_and_push(
