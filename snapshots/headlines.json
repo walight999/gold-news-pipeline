@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-06-30T04:35:53Z",
+      "ts": "2026-06-30T08:25:48Z",
       "title": "global · Other",
       "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-06-30T04:35:53Z",
+      "ts": "2026-06-30T08:25:48Z",
+      "title": "us · Growth",
+      "source": "Yahoo Finance",
+      "score": 0.2,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-06-30T08:25:48Z",
       "title": "global · Other",
       "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-06-30T04:35:53Z",
-      "title": "global · Other · dovish",
-      "source": "Cnbc",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-06-30T04:35:53Z",
+      "ts": "2026-06-30T08:25:48Z",
       "title": "global · Other",
       "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-06-30T04:35:53Z",
+      "ts": "2026-06-30T08:25:48Z",
       "title": "global · Other",
       "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-06-30T04:35:53Z",
-      "title": "mideast · Geopolitics",
-      "source": "Yahoo Finance",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-06-30T04:35:53Z",
+      "ts": "2026-06-30T08:25:48Z",
       "title": "global · Other",
       "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-06-30T04:35:53Z",
+      "ts": "2026-06-30T08:25:48Z",
       "title": "global · Other",
       "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-06-30T04:35:53Z",
+      "ts": "2026-06-30T08:25:48Z",
+      "title": "wgc · Gold Flow",
+      "source": "Yahoo Finance",
+      "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-06-30T08:25:48Z",
       "title": "global · Other",
       "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-06-30T04:35:53Z",
-      "title": "global · Other",
-      "source": "Cnbc",
+      "ts": "2026-06-30T08:25:48Z",
+      "title": "global · Other · risk on",
+      "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-06-30T04:45:25.653580Z"
+  "written_at": "2026-06-30T08:30:34.995537Z"
 }
