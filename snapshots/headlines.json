@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-07-01T17:11:37Z",
+      "ts": "2026-07-01T19:15:55Z",
       "title": "global · Other",
-      "source": "Forexlive",
+      "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-01T17:11:37Z",
-      "title": "fed · Rate Policy · hawkish",
-      "source": "Forexlive",
+      "ts": "2026-07-01T19:15:55Z",
+      "title": "mideast · Geopolitics",
+      "source": "Yahoo Finance",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-01T17:11:37Z",
-      "title": "fed · Rate Policy",
-      "source": "Forexlive",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-01T17:11:37Z",
-      "title": "global · Other",
-      "source": "Forexlive",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-01T17:11:37Z",
-      "title": "ecb · Rate Policy · hawkish",
-      "source": "Forexlive",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-01T17:11:37Z",
+      "ts": "2026-07-01T19:15:55Z",
       "title": "us · Usd Yields",
-      "source": "Forexlive",
+      "source": "Yahoo Finance",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-01T17:11:37Z",
-      "title": "mideast · Geopolitics",
-      "source": "Forexlive",
+      "ts": "2026-07-01T19:15:55Z",
+      "title": "fed · Rate Policy",
+      "source": "Yahoo Finance",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-01T17:11:37Z",
-      "title": "us · Inflation",
-      "source": "Forexlive",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-01T17:11:37Z",
+      "ts": "2026-07-01T19:15:55Z",
       "title": "global · Other",
-      "source": "Forexlive",
+      "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-01T17:11:37Z",
-      "title": "ecb · Rate Policy",
-      "source": "Forexlive",
+      "ts": "2026-07-01T19:15:55Z",
+      "title": "china · Geopolitics",
+      "source": "Cnbc",
       "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-01T19:15:55Z",
+      "title": "mideast · Geopolitics · risk off",
+      "source": "Cnbc",
+      "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-01T19:15:55Z",
+      "title": "global · Other",
+      "source": "Cnbc, Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-01T19:15:55Z",
+      "title": "global · Other",
+      "source": "Cnbc, Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-01T19:15:55Z",
+      "title": "global · Other",
+      "source": "Cnbc, Forexlive",
+      "score": 0.1,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-07-01T17:13:59.200608Z"
+  "written_at": "2026-07-01T19:18:20.827235Z"
 }
