@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-07-02T08:06:04Z",
+      "ts": "2026-07-02T11:05:58Z",
       "title": "global · Other",
-      "source": "Yahoo Finance",
+      "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-02T08:06:04Z",
+      "ts": "2026-07-02T11:05:58Z",
       "title": "global · Other",
-      "source": "Yahoo Finance",
+      "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-02T08:06:04Z",
+      "ts": "2026-07-02T11:05:58Z",
       "title": "global · Other",
-      "source": "Yahoo Finance",
+      "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-02T08:06:04Z",
+      "ts": "2026-07-02T11:05:58Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-02T11:05:58Z",
       "title": "global · Other",
       "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-02T08:06:04Z",
+      "ts": "2026-07-02T11:05:58Z",
+      "title": "mideast · Geopolitics",
+      "source": "Bbc World",
+      "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-02T11:05:58Z",
       "title": "global · Other",
-      "source": "Cnbc",
+      "source": "Bbc World, Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-02T08:06:04Z",
-      "title": "us · Inflation",
-      "source": "Investing Cb",
+      "ts": "2026-07-02T11:05:58Z",
+      "title": "fed · Inflation",
+      "source": "Cnbc",
       "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-02T08:06:04Z",
-      "title": "global · Other",
-      "source": "Cnbc, Investing Cb",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-02T08:06:04Z",
+      "ts": "2026-07-02T11:05:58Z",
       "title": "global · Other",
       "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-02T08:06:04Z",
-      "title": "global · Other",
-      "source": "Cnbc",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-02T08:06:04Z",
-      "title": "global · Other",
-      "source": "Cnbc",
+      "ts": "2026-07-02T11:05:58Z",
+      "title": "global · Other · risk on",
+      "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-07-02T08:11:41.858709Z"
+  "written_at": "2026-07-02T11:06:53.292989Z"
 }
