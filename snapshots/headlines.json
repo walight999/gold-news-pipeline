@@ -2,70 +2,70 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-07-02T04:35:54Z",
+      "ts": "2026-07-02T08:06:04Z",
       "title": "global · Other",
       "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-02T04:35:54Z",
-      "title": "fed · Rate Policy · hawkish",
-      "source": "Yahoo Finance",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-02T04:35:54Z",
+      "ts": "2026-07-02T08:06:04Z",
       "title": "global · Other",
       "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-02T04:35:54Z",
+      "ts": "2026-07-02T08:06:04Z",
+      "title": "global · Other",
+      "source": "Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-02T08:06:04Z",
       "title": "global · Other",
       "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-02T04:35:54Z",
+      "ts": "2026-07-02T08:06:04Z",
       "title": "global · Other",
       "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-02T04:35:54Z",
-      "title": "global · Other",
-      "source": "Yahoo Finance",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-02T04:35:54Z",
-      "title": "global · Other",
-      "source": "Cnbc",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-02T04:35:54Z",
+      "ts": "2026-07-02T08:06:04Z",
       "title": "us · Inflation",
-      "source": "Cnbc",
+      "source": "Investing Cb",
       "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-02T04:35:54Z",
+      "ts": "2026-07-02T08:06:04Z",
+      "title": "global · Other",
+      "source": "Cnbc, Investing Cb",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-02T08:06:04Z",
       "title": "global · Other",
       "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-02T04:35:54Z",
+      "ts": "2026-07-02T08:06:04Z",
+      "title": "global · Other",
+      "source": "Cnbc",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-02T08:06:04Z",
       "title": "global · Other",
       "source": "Cnbc",
       "score": 0.1,
@@ -73,5 +73,5 @@
     }
   ],
   "count": 10,
-  "written_at": "2026-07-02T04:40:03.517412Z"
+  "written_at": "2026-07-02T08:11:41.858709Z"
 }
