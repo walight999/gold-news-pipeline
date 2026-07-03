@@ -2,70 +2,70 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-07-03T12:11:36Z",
-      "title": "us · Inflation",
-      "source": "Forexlive",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-03T12:11:36Z",
+      "ts": "2026-07-03T14:41:34Z",
       "title": "global · Other",
       "source": "Forexlive",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-03T12:11:36Z",
+      "ts": "2026-07-03T14:41:34Z",
       "title": "pboc · Gold Flow",
       "source": "Forexlive",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-03T12:11:36Z",
+      "ts": "2026-07-03T14:41:34Z",
       "title": "japan · Growth",
       "source": "Forexlive",
       "score": 0.2,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-03T12:11:36Z",
+      "ts": "2026-07-03T14:41:34Z",
       "title": "global · Other",
       "source": "Forexlive",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-03T12:11:36Z",
+      "ts": "2026-07-03T14:41:34Z",
       "title": "pboc · Gold Flow",
       "source": "Forexlive",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-03T12:11:36Z",
+      "ts": "2026-07-03T14:41:34Z",
       "title": "fed · Inflation · hawkish",
       "source": "Forexlive",
       "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-03T12:11:36Z",
+      "ts": "2026-07-03T14:41:34Z",
       "title": "fed · Inflation · hawkish",
       "source": "Forexlive",
       "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-03T12:11:36Z",
+      "ts": "2026-07-03T14:41:34Z",
       "title": "global · Other",
       "source": "Forexlive",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-03T12:11:36Z",
+      "ts": "2026-07-03T14:41:34Z",
+      "title": "us · Jobs",
+      "source": "Forexlive",
+      "score": 0.5,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-03T14:41:34Z",
       "title": "us · Jobs",
       "source": "Forexlive",
       "score": 0.5,
@@ -73,5 +73,5 @@
     }
   ],
   "count": 10,
-  "written_at": "2026-07-03T12:15:55.064178Z"
+  "written_at": "2026-07-03T14:41:53.113099Z"
 }
