@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-07-02T23:35:51Z",
+      "ts": "2026-07-03T02:56:19Z",
       "title": "global · Other",
-      "source": "Cnbc",
+      "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-02T23:35:51Z",
+      "ts": "2026-07-03T02:56:19Z",
+      "title": "wgc · Gold Flow",
+      "source": "Yahoo Finance",
+      "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-03T02:56:19Z",
       "title": "global · Other",
-      "source": "Cnbc",
+      "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-02T23:35:51Z",
+      "ts": "2026-07-03T02:56:19Z",
       "title": "global · Other",
-      "source": "Cnbc",
+      "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-02T23:35:51Z",
-      "title": "global · Other",
-      "source": "Cnbc",
+      "ts": "2026-07-03T02:56:19Z",
+      "title": "global · Other · risk on",
+      "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-02T23:35:51Z",
-      "title": "us · Inflation",
-      "source": "Forexlive",
-      "score": 0.5,
+      "ts": "2026-07-03T02:56:19Z",
+      "title": "global · Other · risk on",
+      "source": "Bbc World",
+      "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-02T23:35:51Z",
-      "title": "us · Jobs",
-      "source": "Forexlive",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-02T23:35:51Z",
-      "title": "fed · Rate Policy · hawkish",
-      "source": "Forexlive",
+      "ts": "2026-07-03T02:56:19Z",
+      "title": "ukraine · Geopolitics",
+      "source": "Bbc World",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-02T23:35:51Z",
-      "title": "us · Jobs",
-      "source": "Forexlive",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-02T23:35:51Z",
+      "ts": "2026-07-03T02:56:19Z",
       "title": "global · Other",
-      "source": "Cnbc",
+      "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-02T23:35:51Z",
-      "title": "us · Usd Yields",
-      "source": "Forexlive",
-      "score": 0.3,
+      "ts": "2026-07-03T02:56:19Z",
+      "title": "global · Other",
+      "source": "Bbc World, Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-03T02:56:19Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-07-02T23:37:11.178961Z"
+  "written_at": "2026-07-03T02:58:48.992183Z"
 }
