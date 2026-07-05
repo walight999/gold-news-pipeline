@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-07-05T22:06:21Z",
+      "ts": "2026-07-05T23:31:09Z",
+      "title": "us · Growth",
+      "source": "Forexlive",
+      "score": 0.2,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-05T23:31:09Z",
       "title": "global · Other",
-      "source": "Yahoo Finance",
+      "source": "Forexlive",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-05T22:06:21Z",
-      "title": "us · Inflation",
-      "source": "Marketwatch",
+      "ts": "2026-07-05T23:31:09Z",
+      "title": "global · Other",
+      "source": "Forexlive",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-05T23:31:09Z",
+      "title": "mideast · Geopolitics · risk off",
+      "source": "Forexlive",
+      "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-05T23:31:09Z",
+      "title": "global · Other",
+      "source": "Forexlive",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-05T23:31:09Z",
+      "title": "us · Inflation · hawkish",
+      "source": "Forexlive",
       "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-05T22:06:21Z",
-      "title": "mideast · Geopolitics",
-      "source": "Bbc World",
+      "ts": "2026-07-05T23:31:09Z",
+      "title": "us · Geopolitics · risk off",
+      "source": "Forexlive",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-05T22:06:21Z",
-      "title": "mideast · Geopolitics",
-      "source": "Bbc World",
+      "ts": "2026-07-05T23:31:09Z",
+      "title": "ecb · Rate Policy · hawkish",
+      "source": "Forexlive",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-05T22:06:21Z",
-      "title": "mideast · Geopolitics · risk off",
-      "source": "Cnbc",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-05T22:06:21Z",
-      "title": "mideast · Geopolitics · risk off",
-      "source": "Investing Commodities",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-05T22:06:21Z",
-      "title": "mideast · Geopolitics · risk off",
-      "source": "Investing Commodities",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-05T22:06:21Z",
-      "title": "fed · Rate Policy · hawkish",
-      "source": "Yahoo Finance",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-05T22:06:21Z",
+      "ts": "2026-07-05T23:31:09Z",
       "title": "global · Other",
-      "source": "Bbc World, Cnbc, Marketwatch +1",
+      "source": "Forexlive",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-05T22:06:21Z",
-      "title": "global · Other",
-      "source": "Bbc World, Cnbc, Marketwatch",
-      "score": 0.1,
+      "ts": "2026-07-05T23:31:09Z",
+      "title": "mideast · Geopolitics · risk off",
+      "source": "Forexlive",
+      "score": 0.4,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-07-05T22:09:55.473911Z"
+  "written_at": "2026-07-05T23:35:44.670701Z"
 }
