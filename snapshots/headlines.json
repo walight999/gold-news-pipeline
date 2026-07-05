@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-07-05T19:45:58Z",
-      "title": "israel · Geopolitics · risk off",
-      "source": "Investing General",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-05T19:45:58Z",
+      "ts": "2026-07-05T20:55:55Z",
       "title": "global · Other",
-      "source": "Investing General, Yahoo Finance",
+      "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-05T19:45:58Z",
+      "ts": "2026-07-05T20:55:55Z",
       "title": "us · Inflation",
       "source": "Marketwatch",
       "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-05T19:45:58Z",
-      "title": "us · Jobs",
-      "source": "Fxstreet",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-05T19:45:58Z",
+      "ts": "2026-07-05T20:55:55Z",
       "title": "mideast · Geopolitics · risk off",
       "source": "Cnbc",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-05T19:45:58Z",
-      "title": "mideast · Geopolitics · risk off",
-      "source": "Investing Commodities",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-05T19:45:58Z",
-      "title": "mideast · Geopolitics · risk off",
-      "source": "Investing Commodities",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-05T19:45:58Z",
+      "ts": "2026-07-05T20:55:55Z",
       "title": "fed · Rate Policy · hawkish",
       "source": "Yahoo Finance",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-05T19:45:58Z",
-      "title": "mideast · Geopolitics · risk off",
-      "source": "Yahoo Finance",
-      "score": 0.4,
+      "ts": "2026-07-05T20:55:55Z",
+      "title": "us · Growth",
+      "source": "Forexlive",
+      "score": 0.2,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-05T19:45:58Z",
-      "title": "us · Usd Yields",
-      "source": "Fxstreet",
-      "score": 0.3,
+      "ts": "2026-07-05T20:55:55Z",
+      "title": "global · Other",
+      "source": "Cnbc, Marketwatch",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-05T20:55:55Z",
+      "title": "global · Other",
+      "source": "Cnbc, Marketwatch",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-05T20:55:55Z",
+      "title": "global · Other",
+      "source": "Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-05T20:55:55Z",
+      "title": "global · Other",
+      "source": "Cnbc, Marketwatch",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-05T20:55:55Z",
+      "title": "global · Other",
+      "source": "Cnbc",
+      "score": 0.1,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-07-05T19:50:41.292445Z"
+  "written_at": "2026-07-05T21:00:10.122344Z"
 }
