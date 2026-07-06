@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-07-06T03:31:11Z",
+      "ts": "2026-07-06T08:15:55Z",
       "title": "mideast · Geopolitics · risk off",
-      "source": "Forexlive",
+      "source": "Cnbc",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-06T03:31:11Z",
-      "title": "us · Geopolitics · risk off",
-      "source": "Forexlive",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-06T03:31:11Z",
-      "title": "ecb · Rate Policy · hawkish",
-      "source": "Forexlive",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-06T03:31:11Z",
+      "ts": "2026-07-06T08:15:55Z",
       "title": "global · Other",
-      "source": "Forexlive",
+      "source": "Cnbc, Marketwatch",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-06T03:31:11Z",
-      "title": "mideast · Geopolitics · risk off",
-      "source": "Forexlive",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-06T03:31:11Z",
-      "title": "global · Other · hawkish",
-      "source": "Forexlive",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-06T03:31:11Z",
-      "title": "us · Geopolitics · risk off",
-      "source": "Forexlive",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-06T03:31:11Z",
+      "ts": "2026-07-06T08:15:55Z",
       "title": "global · Other",
-      "source": "Forexlive",
+      "source": "Cnbc, Marketwatch",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-06T03:31:11Z",
-      "title": "mideast · Geopolitics · risk off",
-      "source": "Forexlive",
-      "score": 0.4,
+      "ts": "2026-07-06T08:15:55Z",
+      "title": "global · Other",
+      "source": "Cnbc, Marketwatch",
+      "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-06T03:31:11Z",
-      "title": "us · Usd Yields · risk on",
-      "source": "Forexlive",
-      "score": 0.3,
+      "ts": "2026-07-06T08:15:55Z",
+      "title": "global · Other",
+      "source": "Cnbc",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-06T08:15:55Z",
+      "title": "global · Other",
+      "source": "Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-06T08:15:55Z",
+      "title": "global · Other",
+      "source": "Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-06T08:15:55Z",
+      "title": "global · Other",
+      "source": "Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-06T08:15:55Z",
+      "title": "global · Other",
+      "source": "Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-06T08:15:55Z",
+      "title": "global · Other",
+      "source": "Yahoo Finance",
+      "score": 0.1,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-07-06T03:33:16.166745Z"
+  "written_at": "2026-07-06T08:20:37.679483Z"
 }
