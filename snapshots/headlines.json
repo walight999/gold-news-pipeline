@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-07-07T12:25:53Z",
+      "ts": "2026-07-07T15:25:52Z",
+      "title": "us · Growth",
+      "source": "Forexlive",
+      "score": 0.2,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-07T15:25:52Z",
+      "title": "global · Other",
+      "source": "Forexlive",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-07T15:25:52Z",
+      "title": "us · Inflation",
+      "source": "Forexlive",
+      "score": 0.5,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-07T15:25:52Z",
+      "title": "global · Other",
+      "source": "Forexlive",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-07T15:25:52Z",
+      "title": "us · Inflation · hawkish",
+      "source": "Forexlive",
+      "score": 0.5,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-07T15:25:52Z",
+      "title": "ecb · Rate Policy · hawkish",
+      "source": "Forexlive",
+      "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-07T15:25:52Z",
+      "title": "wgc · Gold Flow",
+      "source": "Forexlive",
+      "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-07T15:25:52Z",
       "title": "mideast · Geopolitics · risk off",
       "source": "Forexlive",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-07T12:25:53Z",
-      "title": "pboc · Gold Flow",
+      "ts": "2026-07-07T15:25:52Z",
+      "title": "us · Inflation · hawkish",
       "source": "Forexlive",
-      "score": 0.3,
+      "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-07T12:25:53Z",
+      "ts": "2026-07-07T15:25:52Z",
       "title": "global · Other",
       "source": "Forexlive",
       "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-07T12:25:53Z",
-      "title": "boj · Rate Policy · dovish",
-      "source": "Forexlive",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-07T12:25:53Z",
-      "title": "global · Other",
-      "source": "Forexlive",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-07T12:25:53Z",
-      "title": "global · Other",
-      "source": "Forexlive",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-07T12:25:53Z",
-      "title": "pboc · Gold Flow · risk off",
-      "source": "Forexlive",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-07T12:25:53Z",
-      "title": "global · Other",
-      "source": "Forexlive",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-07T12:25:53Z",
-      "title": "mideast · Geopolitics · risk on",
-      "source": "Forexlive",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-07T12:25:53Z",
-      "title": "us · Usd Yields",
-      "source": "Forexlive",
-      "score": 0.3,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-07-07T12:27:26.407798Z"
+  "written_at": "2026-07-07T15:27:03.267729Z"
 }
