@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-07-07T21:21:44Z",
+      "ts": "2026-07-07T22:36:22Z",
       "title": "global · Other",
       "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-07T21:21:44Z",
+      "ts": "2026-07-07T22:36:22Z",
+      "title": "global · Other",
+      "source": "Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-07T22:36:22Z",
+      "title": "us · Jobs",
+      "source": "Yahoo Finance",
+      "score": 0.5,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-07T22:36:22Z",
+      "title": "global · Other",
+      "source": "Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-07T22:36:22Z",
       "title": "mideast · Geopolitics · risk off",
       "source": "Bbc World",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-07T21:21:44Z",
+      "ts": "2026-07-07T22:36:22Z",
+      "title": "global · Other · risk on",
+      "source": "Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-07T22:36:22Z",
       "title": "global · Other",
-      "source": "Bbc World",
+      "source": "Bbc World, Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-07T21:21:44Z",
-      "title": "global · Other",
-      "source": "Bbc World",
+      "ts": "2026-07-07T22:36:22Z",
+      "title": "global · Other · risk on",
+      "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-07T21:21:44Z",
-      "title": "mideast · Geopolitics",
-      "source": "Bbc World",
-      "score": 0.4,
+      "ts": "2026-07-07T22:36:22Z",
+      "title": "wgc · Gold Flow",
+      "source": "Yahoo Finance",
+      "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-07T21:21:44Z",
-      "title": "global · Other",
-      "source": "Bbc World",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-07T21:21:44Z",
-      "title": "mideast · Geopolitics",
-      "source": "Bbc World",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-07T21:21:44Z",
-      "title": "global · Other · risk off",
-      "source": "Bbc World",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-07T21:21:44Z",
-      "title": "global · Other",
-      "source": "Bbc World",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-07T21:21:44Z",
-      "title": "global · Other",
-      "source": "Bbc World",
-      "score": 0.1,
+      "ts": "2026-07-07T22:36:22Z",
+      "title": "us · Usd Yields",
+      "source": "Yahoo Finance",
+      "score": 0.3,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-07-07T21:24:30.388373Z"
+  "written_at": "2026-07-07T22:37:23.609136Z"
 }
