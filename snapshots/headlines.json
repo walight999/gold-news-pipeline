@@ -2,70 +2,70 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-07-08T12:55:49Z",
+      "ts": "2026-07-08T15:36:42Z",
       "title": "global · Other",
       "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-08T12:55:49Z",
-      "title": "global · Other",
-      "source": "Investing Cb",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-08T12:55:49Z",
-      "title": "us · Growth",
-      "source": "Investing Cb",
-      "score": 0.2,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-08T12:55:49Z",
-      "title": "fed · Rate Policy",
-      "source": "Investing Cb",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-08T12:55:49Z",
-      "title": "russia · Geopolitics · risk off",
-      "source": "Cnbc",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-08T12:55:49Z",
-      "title": "global · Other",
-      "source": "Investing Cb",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-08T12:55:49Z",
+      "ts": "2026-07-08T15:36:42Z",
       "title": "global · Other",
       "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-08T12:55:49Z",
+      "ts": "2026-07-08T15:36:42Z",
+      "title": "global · Other",
+      "source": "Cnbc, Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-08T15:36:42Z",
+      "title": "global · Other",
+      "source": "Cnbc, Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-08T15:36:42Z",
       "title": "global · Other",
       "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-08T12:55:49Z",
+      "ts": "2026-07-08T15:36:42Z",
       "title": "global · Other",
-      "source": "Cnbc, Investing Cb, Yahoo Finance",
+      "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-08T12:55:49Z",
+      "ts": "2026-07-08T15:36:42Z",
+      "title": "global · Other",
+      "source": "Cnbc",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-08T15:36:42Z",
+      "title": "global · Other",
+      "source": "Cnbc",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-08T15:36:42Z",
+      "title": "global · Other",
+      "source": "Cnbc",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-08T15:36:42Z",
       "title": "mideast · Geopolitics · risk off",
       "source": "Cnbc",
       "score": 0.4,
@@ -73,5 +73,5 @@
     }
   ],
   "count": 10,
-  "written_at": "2026-07-08T13:03:47.288880Z"
+  "written_at": "2026-07-08T15:41:39.242204Z"
 }
