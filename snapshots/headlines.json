@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-07-09T13:45:59Z",
-      "title": "china · Geopolitics · risk off",
-      "source": "Cnbc",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-09T13:45:59Z",
-      "title": "global · Other",
-      "source": "Yahoo Finance",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-09T13:45:59Z",
+      "ts": "2026-07-09T16:25:52Z",
       "title": "global · Other",
       "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-09T13:45:59Z",
+      "ts": "2026-07-09T16:25:52Z",
       "title": "mideast · Geopolitics · risk off",
       "source": "Cnbc",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-09T13:45:59Z",
+      "ts": "2026-07-09T16:25:52Z",
       "title": "global · Other",
-      "source": "Yahoo Finance",
+      "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-09T13:45:59Z",
-      "title": "fed · Rate Policy",
+      "ts": "2026-07-09T16:25:52Z",
+      "title": "global · Other",
       "source": "Cnbc",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-09T16:25:52Z",
+      "title": "us · Geopolitics · risk off",
+      "source": "Forexlive",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-09T13:45:59Z",
+      "ts": "2026-07-09T16:25:52Z",
       "title": "mideast · Geopolitics · risk off",
-      "source": "Cnbc",
+      "source": "Forexlive",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-09T13:45:59Z",
-      "title": "mideast · Geopolitics",
-      "source": "Cnbc",
+      "ts": "2026-07-09T16:25:52Z",
+      "title": "us · Usd Yields",
+      "source": "Forexlive",
+      "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-09T16:25:52Z",
+      "title": "us · Inflation",
+      "source": "Forexlive",
+      "score": 0.5,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-09T16:25:52Z",
+      "title": "us · Geopolitics · risk on",
+      "source": "Forexlive",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-09T13:45:59Z",
+      "ts": "2026-07-09T16:25:52Z",
       "title": "global · Other",
-      "source": "Cnbc",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-09T13:45:59Z",
-      "title": "global · Other",
-      "source": "Cnbc",
+      "source": "Forexlive",
       "score": 0.1,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-07-09T13:50:02.527471Z"
+  "written_at": "2026-07-09T16:27:46.984814Z"
 }
