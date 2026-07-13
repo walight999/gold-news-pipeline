@@ -2,70 +2,70 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-07-13T22:55:55Z",
+      "ts": "2026-07-13T23:55:50Z",
       "title": "us · Inflation",
       "source": "Yahoo Finance",
       "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-13T22:55:55Z",
+      "ts": "2026-07-13T23:55:50Z",
       "title": "us · Jobs · dovish",
       "source": "Cnbc",
       "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-13T22:55:55Z",
+      "ts": "2026-07-13T23:55:50Z",
       "title": "mideast · Geopolitics",
       "source": "Yahoo Finance",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-13T22:55:55Z",
+      "ts": "2026-07-13T23:55:50Z",
       "title": "global · Other",
       "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-13T22:55:55Z",
+      "ts": "2026-07-13T23:55:50Z",
       "title": "global · Other",
       "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-13T22:55:55Z",
+      "ts": "2026-07-13T23:55:50Z",
       "title": "global · Other",
       "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-13T22:55:55Z",
+      "ts": "2026-07-13T23:55:50Z",
+      "title": "wgc · Gold Flow",
+      "source": "Yahoo Finance",
+      "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-13T23:55:50Z",
       "title": "global · Other",
       "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-13T22:55:55Z",
+      "ts": "2026-07-13T23:55:50Z",
       "title": "global · Other",
       "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-13T22:55:55Z",
-      "title": "global · Other",
-      "source": "Cnbc",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-13T22:55:55Z",
+      "ts": "2026-07-13T23:55:50Z",
       "title": "global · Other",
       "source": "Cnbc",
       "score": 0.1,
@@ -73,5 +73,5 @@
     }
   ],
   "count": 10,
-  "written_at": "2026-07-13T22:58:14.793987Z"
+  "written_at": "2026-07-13T23:59:05.431093Z"
 }
