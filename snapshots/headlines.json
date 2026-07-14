@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-07-14T11:51:39Z",
-      "title": "global · Other",
-      "source": "Forexlive",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-14T11:51:39Z",
-      "title": "fed · Rate Policy · hawkish",
-      "source": "Forexlive",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-14T11:51:39Z",
-      "title": "mideast · Geopolitics · risk off",
-      "source": "Forexlive",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-14T11:51:39Z",
-      "title": "global · Other",
-      "source": "Forexlive",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-14T11:51:39Z",
-      "title": "pboc · Gold Flow",
-      "source": "Forexlive",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-14T11:51:39Z",
-      "title": "us · Inflation · dovish",
-      "source": "Forexlive",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-14T11:51:39Z",
+      "ts": "2026-07-14T13:41:14Z",
       "title": "us · Usd Yields · risk off",
       "source": "Forexlive",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-14T11:51:39Z",
+      "ts": "2026-07-14T13:41:14Z",
       "title": "global · Other",
       "source": "Forexlive",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-14T11:51:39Z",
+      "ts": "2026-07-14T13:41:14Z",
       "title": "us · Inflation · dovish",
       "source": "Forexlive",
       "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-14T11:51:39Z",
+      "ts": "2026-07-14T13:41:14Z",
       "title": "us · Inflation · hawkish",
       "source": "Forexlive",
       "score": 0.5,
       "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-14T13:41:14Z",
+      "title": "china · Geopolitics",
+      "source": "Forexlive",
+      "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-14T13:41:14Z",
+      "title": "us · Inflation",
+      "source": "Forexlive",
+      "score": 0.5,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-14T13:41:14Z",
+      "title": "us · Geopolitics · risk off",
+      "source": "Forexlive",
+      "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-14T13:41:14Z",
+      "title": "us · Inflation",
+      "source": "Forexlive",
+      "score": 0.5,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-14T13:41:14Z",
+      "title": "us · Inflation",
+      "source": "Forexlive",
+      "score": 0.5,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-14T13:41:14Z",
+      "title": "global · Other",
+      "source": "Forexlive",
+      "score": 0.1,
+      "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-07-14T11:54:08.052406Z"
+  "written_at": "2026-07-14T13:43:11.545902Z"
 }
