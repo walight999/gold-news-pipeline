@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-07-14T10:15:57Z",
+      "ts": "2026-07-14T11:51:39Z",
       "title": "global · Other",
-      "source": "Yahoo Finance",
+      "source": "Forexlive",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-14T10:15:57Z",
-      "title": "global · Other",
-      "source": "Investing Cb",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-14T10:15:57Z",
-      "title": "us · Inflation",
-      "source": "Investing Cb",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-14T10:15:57Z",
-      "title": "us · Growth",
-      "source": "Investing Cb",
-      "score": 0.2,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-14T10:15:57Z",
-      "title": "global · Other",
-      "source": "Yahoo Finance",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-14T10:15:57Z",
-      "title": "global · Other",
-      "source": "Investing Cb",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-14T10:15:57Z",
-      "title": "mideast · Geopolitics · risk off",
-      "source": "Yahoo Finance",
+      "ts": "2026-07-14T11:51:39Z",
+      "title": "fed · Rate Policy · hawkish",
+      "source": "Forexlive",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-14T10:15:57Z",
+      "ts": "2026-07-14T11:51:39Z",
+      "title": "mideast · Geopolitics · risk off",
+      "source": "Forexlive",
+      "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-14T11:51:39Z",
       "title": "global · Other",
-      "source": "Yahoo Finance",
+      "source": "Forexlive",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-14T10:15:57Z",
+      "ts": "2026-07-14T11:51:39Z",
+      "title": "pboc · Gold Flow",
+      "source": "Forexlive",
+      "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-14T11:51:39Z",
+      "title": "us · Inflation · dovish",
+      "source": "Forexlive",
+      "score": 0.5,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-14T11:51:39Z",
+      "title": "us · Usd Yields · risk off",
+      "source": "Forexlive",
+      "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-14T11:51:39Z",
       "title": "global · Other",
-      "source": "Cnbc",
+      "source": "Forexlive",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-14T10:15:57Z",
-      "title": "global · Other",
-      "source": "Cnbc",
-      "score": 0.1,
+      "ts": "2026-07-14T11:51:39Z",
+      "title": "us · Inflation · dovish",
+      "source": "Forexlive",
+      "score": 0.5,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-14T11:51:39Z",
+      "title": "us · Inflation · hawkish",
+      "source": "Forexlive",
+      "score": 0.5,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-07-14T10:16:43.829691Z"
+  "written_at": "2026-07-14T11:54:08.052406Z"
 }
