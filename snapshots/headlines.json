@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-07-15T19:06:34Z",
-      "title": "wgc · Gold Flow",
-      "source": "Yahoo Finance",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-15T19:06:34Z",
+      "ts": "2026-07-15T20:31:21Z",
       "title": "global · Other",
-      "source": "Bbc World",
+      "source": "Forexlive",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-15T19:06:34Z",
+      "ts": "2026-07-15T20:31:21Z",
       "title": "us · Inflation",
-      "source": "Yahoo Finance",
+      "source": "Forexlive",
       "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-15T19:06:34Z",
-      "title": "mideast · Geopolitics · risk off",
-      "source": "Yahoo Finance",
+      "ts": "2026-07-15T20:31:21Z",
+      "title": "global · Other",
+      "source": "Forexlive",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-15T20:31:21Z",
+      "title": "us · Inflation",
+      "source": "Forexlive",
+      "score": 0.5,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-15T20:31:21Z",
+      "title": "fed · Inflation",
+      "source": "Forexlive",
+      "score": 0.5,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-15T20:31:21Z",
+      "title": "fed · Rate Policy",
+      "source": "Fxstreet",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-15T19:06:34Z",
-      "title": "global · Other",
-      "source": "Yahoo Finance",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-15T19:06:34Z",
-      "title": "us · Inflation",
-      "source": "Yahoo Finance",
+      "ts": "2026-07-15T20:31:21Z",
+      "title": "us · Inflation · dovish",
+      "source": "Forexlive",
       "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-15T19:06:34Z",
-      "title": "global · Other",
-      "source": "Yahoo Finance",
+      "ts": "2026-07-15T20:31:21Z",
+      "title": "us · Inflation",
+      "source": "Fxstreet",
+      "score": 0.5,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-15T20:31:21Z",
+      "title": "global · Other · risk on",
+      "source": "Fxstreet",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-15T19:06:34Z",
-      "title": "global · Other",
-      "source": "Bbc World, Yahoo Finance",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-15T19:06:34Z",
-      "title": "global · Other",
-      "source": "Bbc World",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-15T19:06:34Z",
-      "title": "global · Other",
-      "source": "Yahoo Finance",
-      "score": 0.1,
+      "ts": "2026-07-15T20:31:21Z",
+      "title": "us · Inflation · risk off",
+      "source": "Forexlive",
+      "score": 0.5,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-07-15T19:11:03.327760Z"
+  "written_at": "2026-07-15T20:33:27.666328Z"
 }
