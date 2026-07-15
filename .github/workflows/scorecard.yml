@@ -26,6 +26,9 @@ jobs:
       LINE_HEALTH_TARGET: ${{ secrets.LINE_HEALTH_TARGET }}
       GSHEET_ID:          ${{ secrets.GSHEET_ID }}
       GSHEET_CREDS:       ${{ secrets.GSHEET_CREDS }}
+      # CHUM News Bot (Telegram) — rolling accuracy card (T0-1 track record).
+      NEWS_BOT_WEBHOOK_URL: ${{ secrets.NEWS_BOT_WEBHOOK_URL }}
+      NEWS_BOT_SECRET:      ${{ secrets.NEWS_BOT_SECRET }}
       PYTHONUNBUFFERED:   "1"
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
     steps:

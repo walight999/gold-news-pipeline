@@ -21,6 +21,17 @@ jobs:
       GSHEET_ID:          ${{ secrets.GSHEET_ID }}
       GSHEET_CREDS:       ${{ secrets.GSHEET_CREDS }}
       FRED_API_KEY:       ${{ secrets.FRED_API_KEY }}
+      # Thai "what this print means for gold" explainer on Released-News cards
+      # (Claude Haiku → Gemini). Without these the card silently degrades to
+      # directional-only. Env-gated no-op when unset.
+      ANTHROPIC_API_KEY:  ${{ secrets.ANTHROPIC_API_KEY }}
+      GEMINI_API_KEY:     ${{ secrets.GEMINI_API_KEY }}
+      # CHUM News Bot (Telegram) — pre T-15 + post Released-News cards.
+      NEWS_BOT_WEBHOOK_URL: ${{ secrets.NEWS_BOT_WEBHOOK_URL }}
+      NEWS_BOT_SECRET:      ${{ secrets.NEWS_BOT_SECRET }}
+      # Alert-bot next-event window gate (push_next_event_window). Env-gated.
+      MACRO_WEBHOOK_URL:    ${{ secrets.MACRO_WEBHOOK_URL }}
+      MACRO_WEBHOOK_SECRET: ${{ secrets.MACRO_WEBHOOK_SECRET }}
       PYTHONUNBUFFERED:   "1"
     steps:
       - uses: actions/checkout@v4

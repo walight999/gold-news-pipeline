@@ -74,6 +74,36 @@ def test_watchdog_flags_line_push_failing_at_5_consecutive(store):
     assert "line_push_failing" in types
 
 
+def test_multi_recipient_resp_counts_per_recipient(store):
+    """A broadcast to 1:1 + group that both succeed consumes 2 of the 500/mo
+    quota, not 1 — the old +1-per-call undercount fired the 80% alarm too late."""
+    resp = {"status": 200, "body": "multi:2/2_ok", "results": [
+        {"to": "U1", "status": 200}, {"to": "C2", "status": 200}]}
+    record_line_outcome(store, resp)
+    assert get_line_quota_status(store)["count"] == 2
+
+
+def test_multi_recipient_partial_counts_delivered_and_stays_alive(store):
+    """1:1 delivered, group 429'd: bill the one that landed AND keep the channel
+    marked alive (partial success must not trip the push-failing streak)."""
+    resp = {"status": 429, "body": "multi:1/2_ok", "results": [
+        {"to": "U1", "status": 200}, {"to": "C2", "status": 429}]}
+    record_line_outcome(store, resp)
+    assert get_line_quota_status(store)["count"] == 1
+    row = store.get("source_state", (LINE_PUSH_SOURCE_ID,))
+    assert int(row["consecutive_errors"]) == 0
+
+
+def test_full_multi_failure_increments_streak(store):
+    """Both recipients failed → nothing billed, streak advances."""
+    resp = {"status": 500, "body": "multi:0/2_ok", "results": [
+        {"to": "U1", "status": 500}, {"to": "C2", "status": 500}]}
+    record_line_outcome(store, resp)
+    assert get_line_quota_status(store)["count"] == 0
+    row = store.get("source_state", (LINE_PUSH_SOURCE_ID,))
+    assert int(row["consecutive_errors"]) == 1
+
+
 def test_watchdog_no_warning_at_low_volume(store):
     """A few messages — no warnings should fire."""
     from src.health import check_pipeline_health, write_heartbeat

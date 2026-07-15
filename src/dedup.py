@@ -221,9 +221,11 @@ def cluster(items: list[Item], kw_config: dict[str, Any]) -> list[Event]:
 
 def serialize_event_for_store(ev: Event, score: float, status: str) -> dict[str, Any]:
     # title/summary/url let the 6-window digest reconstruct + render an event
-    # from event_state alone (no re-fetch). The translation_cache still holds
-    # the Thai rewrite keyed off (title, summary), so re-classifying a stored
-    # event at slot time is a cache hit, not a fresh Claude call.
+    # from event_state alone (no re-fetch). Store `classify_summary` (the SAME
+    # text the breaking/alert path feeds the classifier) — NOT representative_
+    # summary — so the translation_cache key (title, summary) matches and the
+    # digest's re-classify is a genuine cache hit instead of a second full LLM
+    # call with a different key.
     article_url = next((i.url for i in ev.items if i.url), "")
     return {
         "event_id": ev.event_id,
@@ -238,6 +240,6 @@ def serialize_event_for_store(ev: Event, score: float, status: str) -> dict[str,
         "score": round(score, 3),
         "status": status,
         "title": ev.representative_title[:300],
-        "summary": ev.representative_summary[:500],
+        "summary": ev.classify_summary,
         "url": article_url[:1000],
     }

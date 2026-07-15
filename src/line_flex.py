@@ -52,6 +52,7 @@ SOURCE_NAMES: dict[str, str] = {
     "_classifier_health":   "Classifier",
     "_workflow_failures":   "GitHub Actions",
     "_line_push":           "LINE API",
+    "_macro_health":        "Macro Push",
     "yahoo_finance":        "Yahoo Finance",
     "reuters_macro":        "Reuters",
 }
@@ -69,6 +70,8 @@ WARNING_MESSAGES: dict[str, str] = {
     "workflow_failure":            "GitHub Actions workflow failed in last 24h — check Actions tab",
     "line_push_failing":           "LINE push failing 5× in a row — token expired or channel disabled?",
     "line_quota_high":             "LINE free-tier usage above 80% this month — consider Light plan",
+    "macro_push_dead":             "Macro push silent — Pillar-C tagging going null; check macro_push.yml / cron-job.org",
+    "workflow_disabled":           "A critical workflow is disabled_manually — re-enable with `gh workflow enable`",
     # source_noisy:<source_id> is dynamic — handled by _format_warning.
 }
 

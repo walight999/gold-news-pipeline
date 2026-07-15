@@ -396,3 +396,41 @@ def test_ping_deadman_swallows_errors(monkeypatch):
 
     monkeypatch.setitem(__import__("sys").modules, "httpx", _BoomHttpx)
     assert health.ping_deadman("https://hc-ping.com/abc") is False  # never raises
+
+
+def test_check_disabled_workflows_flags_only_critical(monkeypatch):
+    """A CRITICAL workflow in a non-active state is flagged; a non-critical one
+    and an active one are ignored. Catches the disabled_manually 15-day outage."""
+    import src.health as health
+    monkeypatch.setenv("GITHUB_REPOSITORY", "u/r")
+    monkeypatch.setenv("GITHUB_TOKEN", "t")
+
+    class _R:
+        def raise_for_status(self): pass
+        def json(self):
+            return {"workflows": [
+                {"name": "calendar-daily",
+                 "path": ".github/workflows/calendar_daily.yml", "state": "disabled_manually"},
+                {"name": "news-cron",
+                 "path": ".github/workflows/news_cron.yml", "state": "active"},
+                {"name": "ff-gas",
+                 "path": ".github/workflows/ff_gas_weekly.yml", "state": "disabled_manually"},
+            ]}
+
+    class _FakeHttpx:
+        @staticmethod
+        def get(url, headers=None, params=None, timeout=None):
+            return _R()
+
+    monkeypatch.setitem(__import__("sys").modules, "httpx", _FakeHttpx)
+    out = health.check_disabled_workflows()
+    assert len(out) == 1                    # ff_gas is not critical → ignored
+    assert "calendar-daily" in out[0]
+    assert "disabled_manually" in out[0]
+
+
+def test_check_disabled_workflows_noop_without_env(monkeypatch):
+    import src.health as health
+    monkeypatch.delenv("GITHUB_REPOSITORY", raising=False)
+    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+    assert health.check_disabled_workflows() == []

@@ -9,9 +9,12 @@ on:
   workflow_dispatch: {}
 
 concurrency:
-  # READ-ONLY on the sheet (event_state for the live news factor; no flush()), so
-  # it does NOT share the gold-news write-lock group. Own group, no cancel.
-  group: macro-push
+  # run_macro_push writes a heartbeat (write_macro_heartbeat → flush of
+  # source_state), and store.flush() rewrites the WHOLE tab — a separate group
+  # let it clobber a concurrent news-cron source_state write (and vice-versa).
+  # Share the gold-news write-lock group; every-6h cadence makes queueing a
+  # non-issue.
+  group: gold-news
   cancel-in-progress: false
 
 jobs:

@@ -13,7 +13,11 @@ on:
   workflow_dispatch: {}
 
 concurrency:
-  group: gold-news-watchdog
+  # Shares the gold-news write-lock group: run_watchdog flushes health_log, and
+  # store.flush() rewrites whole tabs — a separate group let it clobber a
+  # concurrent news-cron write to source_state/health_log. It runs in seconds,
+  # so queueing behind news-cron is harmless.
+  group: gold-news
   cancel-in-progress: false
 
 # `actions: read` is needed for check_recent_workflow_failures().

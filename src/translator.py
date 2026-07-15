@@ -189,7 +189,9 @@ def _get_anthropic_client():
             return False
         try:
             import anthropic
-            _anthropic_client = anthropic.Anthropic(api_key=key)
+            # Explicit per-request timeout — the SDK default is 600s with 2 internal
+            # retries, so one hung call could eat the whole 5-min news-cron job.
+            _anthropic_client = anthropic.Anthropic(api_key=key, timeout=30.0)
         except ImportError:
             log.warning("anthropic SDK not installed — falling back to Google")
             _anthropic_client = False

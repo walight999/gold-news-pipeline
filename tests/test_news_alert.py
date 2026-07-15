@@ -16,6 +16,62 @@ from src.news_alert import (
 )
 
 
+def _seed_cache(store, title, summary, alert):
+    store.upsert("translation_cache", {
+        "cache_key": _cache_key_alert(title, summary),
+        "source_preview": title[:80],
+        "thai_text": alert.to_json(),
+        "hits": "1",
+        "created_at": "2026-07-01T00:00:00+00:00",
+    })
+
+
+def test_high_quality_honors_cached_reject_without_calling_claude(store):
+    """A rejected noisy item must NOT re-hit Sonnet on every 5-min cron just
+    because it's routed BREAKING (high_quality) — that was the top spend leak."""
+    title, summary = "Some celebrity gossip", ""
+    _seed_cache(store, title, summary, MarketAlert(action="reject", reason="off-topic"))
+    with patch("src.news_alert._classify_claude_with_usage") as m_claude:
+        out = classify_and_rewrite(title, summary, store=store, high_quality=True)
+        assert out.action == "reject"
+        m_claude.assert_not_called()
+
+
+def test_high_quality_refreshes_cached_keep_with_claude(store):
+    """A cached KEEP is still re-run for high_quality so breaking gets the
+    sharper Sonnet summary on cards we actually send."""
+    title, summary = "Fed holds rates, signals cuts", "FOMC statement"
+    _seed_cache(store, title, summary, MarketAlert(action="keep", headline_th="เก่า"))
+    fresh = MarketAlert(action="keep", headline_th="ใหม่จาก Sonnet")
+    with patch("src.news_alert._classify_claude_with_usage",
+               return_value=(fresh, 100, 20)) as m_claude:
+        out = classify_and_rewrite(title, summary, store=store, high_quality=True)
+        m_claude.assert_called_once()
+        assert out.headline_th == "ใหม่จาก Sonnet"
+
+
+def test_monthly_token_cap_skips_claude(store, monkeypatch):
+    """Over the monthly token cap → Claude is skipped, chain drops to Gemini."""
+    monkeypatch.setenv("CLASSIFIER_MONTHLY_TOKEN_CAP", "1000")
+    from src.utils_time import now_ict
+    store.upsert("source_state", {
+        "source_id": "_classifier_health",
+        "items_last_hour": json.dumps({
+            "buckets": [], "month": now_ict().strftime("%Y-%m"),
+            "month_tokens_in": 900, "month_tokens_out": 900,   # 1800 >= 1000
+        }),
+    })
+    kept = MarketAlert(action="keep", headline_th="จาก Gemini")
+    with patch("src.news_alert._classify_claude_with_usage") as m_claude, \
+         patch("src.news_alert._classify_gemini_with_usage",
+               return_value=(kept, 50, 10)) as m_gemini:
+        out = classify_and_rewrite("CPI hotter than expected", "US CPI print",
+                                   store=store, high_quality=True)
+        m_claude.assert_not_called()
+        m_gemini.assert_called_once()
+        assert out.headline_th == "จาก Gemini"
+
+
 def test_market_alert_should_send_only_when_keep():
     """Only `keep` produces a push. Everything else (reject, empty) is
     silently dropped by the caller."""

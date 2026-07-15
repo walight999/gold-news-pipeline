@@ -51,6 +51,9 @@ jobs:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
+      NEWS_BOT_WEBHOOK_URL: ${{ secrets.NEWS_BOT_WEBHOOK_URL }}
+      NEWS_BOT_SECRET: ${{ secrets.NEWS_BOT_SECRET }}
+      HEALTHCHECK_PING_URL: ${{ secrets.HEALTHCHECK_PING_URL }}
       GH_TOKEN: ${{ github.token }}
       PYTHONUNBUFFERED: "1"
     steps:

@@ -29,6 +29,10 @@ jobs:
       # Off-GAS CHUM News Bot (Telegram). Env-gated: no-op when unset.
       NEWS_BOT_WEBHOOK_URL: ${{ secrets.NEWS_BOT_WEBHOOK_URL }}
       NEWS_BOT_SECRET: ${{ secrets.NEWS_BOT_SECRET }}
+      # External dead-man ping (healthchecks.io) — independent of GitHub Actions
+      # + cron-job.org, which the in-repo watchdog shares a lifeline with. Pinged
+      # each cron/event run; a missed ping alerts even during a full GHA outage.
+      HEALTHCHECK_PING_URL: ${{ secrets.HEALTHCHECK_PING_URL }}
       PYTHONUNBUFFERED: "1"
     steps:
       - uses: actions/checkout@v4
