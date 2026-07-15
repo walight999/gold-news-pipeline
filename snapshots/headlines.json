@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-07-15T14:16:12Z",
-      "title": "global · Other",
-      "source": "Yahoo Finance",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-15T14:16:12Z",
-      "title": "global · Other",
-      "source": "Yahoo Finance",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-15T14:16:12Z",
+      "ts": "2026-07-15T15:56:26Z",
       "title": "fed · Inflation",
       "source": "Cnbc",
       "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-15T14:16:12Z",
+      "ts": "2026-07-15T15:56:26Z",
       "title": "global · Other",
       "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-15T14:16:12Z",
+      "ts": "2026-07-15T15:56:26Z",
       "title": "global · Other",
       "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-15T14:16:12Z",
+      "ts": "2026-07-15T15:56:26Z",
       "title": "global · Other",
       "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-15T14:16:12Z",
-      "title": "us · Inflation",
-      "source": "Cnbc",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-15T14:16:12Z",
+      "ts": "2026-07-15T15:56:26Z",
       "title": "global · Other",
       "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-15T14:16:12Z",
+      "ts": "2026-07-15T15:56:26Z",
       "title": "global · Other",
       "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-15T14:16:12Z",
+      "ts": "2026-07-15T15:56:26Z",
       "title": "global · Other",
       "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-15T15:56:26Z",
+      "title": "mideast · Geopolitics · risk off",
+      "source": "Cnbc",
+      "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-15T15:56:26Z",
+      "title": "fed · Rate Policy · hawkish",
+      "source": "Forexlive",
+      "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-15T15:56:26Z",
+      "title": "us · Inflation · dovish",
+      "source": "Forexlive",
+      "score": 0.5,
+      "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-07-15T14:19:49.230296Z"
+  "written_at": "2026-07-15T16:01:51.889082Z"
 }
