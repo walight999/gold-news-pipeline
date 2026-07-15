@@ -182,8 +182,25 @@ def xau_base_and_returns_from_release(
                     break
             return closes[best] if best >= 0 else None
 
+        def _close_before(target: datetime) -> float | None:
+            """Price JUST BEFORE `target`, excluding the bar `target` falls
+            inside. yfinance 5-min bars are stamped by OPEN time, so the bar
+            opened at T covers [T, T+5m) and its close already reflects the
+            post-print reaction. For the release BASE we want the prior bar
+            (opened ≤ target-5m) so the measured move starts from the pre-print
+            price — using _close_at here put the base ~5 min into the spike and
+            systematically damped / sign-flipped the reaction the scorecard grades."""
+            cutoff = target - timedelta(minutes=5)
+            best = -1
+            for i, ts in enumerate(idx_utc):
+                if ts <= cutoff:
+                    best = i
+                else:
+                    break
+            return closes[best] if best >= 0 else None
+
         ref = release_dt_utc.astimezone(timezone.utc) if release_dt_utc.tzinfo else release_dt_utc.replace(tzinfo=timezone.utc)
-        base = _close_at(ref)
+        base = _close_before(ref)
         if not base:
             return None, dict(out)
         now = datetime.now(timezone.utc)
@@ -220,14 +237,13 @@ def xau_return_pct(release_dt_utc: datetime, minutes_after: int = 5) -> float | 
     Used for the post-release reaction display + Phase 3 calibration of
     base_impact via xau_return_5m/15m/30m. Returns None if either price
     point is unavailable (off-hours, holidays, etc.).
+
+    Delegates to `xau_base_and_returns_from_release` so it uses the SAME
+    pre-release base (bar that closed before the print) — the old path took the
+    base from the bar the release fell INTO, ~5 min into the spike. One fetch,
+    not two.
     """
-    price_at_release = get_intraday_price_at("GC=F", release_dt_utc)
-    if price_at_release is None or price_at_release == 0:
+    base, rets = xau_base_and_returns_from_release(release_dt_utc, (minutes_after,))
+    if base is None:
         return None
-    later = release_dt_utc + timedelta(minutes=minutes_after)
-    if later > datetime.now(timezone.utc):
-        return None   # the future hasn't happened yet
-    price_later = get_intraday_price_at("GC=F", later)
-    if price_later is None:
-        return None
-    return (price_later - price_at_release) / price_at_release * 100
+    return rets.get(minutes_after)

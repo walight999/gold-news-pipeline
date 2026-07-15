@@ -115,12 +115,19 @@ def fetch_tweets(token: str, handles: list[str], since_minutes: int = 20,
         "lang": "en",
     }
     try:
+        # Token in the Authorization header, NOT the query string. httpx's
+        # HTTPStatusError string embeds the full request URL, so a query-string
+        # token would leak into this PUBLIC repo's Actions logs on any Apify
+        # 4xx/5xx (429s are routine).
         with httpx.Client(timeout=timeout) as c:
-            r = c.post(ENDPOINT, params={"token": token}, json=payload)
+            r = c.post(ENDPOINT, headers={"Authorization": f"Bearer {token}"}, json=payload)
         r.raise_for_status()
         items = r.json()
     except Exception as e:  # noqa: BLE001 — Apify is best-effort, never block the run
-        log.warning("apify fetch failed: %s", e)
+        # Defence in depth: redact the token from the error text too, in case a
+        # future code path (or the SDK) ever echoes it.
+        msg = str(e).replace(token, "***") if token else str(e)
+        log.warning("apify fetch failed: %s", msg)
         return []
     entries: list[dict[str, Any]] = []
     for t in items if isinstance(items, list) else []:

@@ -66,12 +66,36 @@ _SERIES_MAP: list[tuple[re.Pattern[str], str, str]] = [
 ]
 
 
+# Release frequency per series — used to reject a stale FRED observation (one
+# that FRED hasn't updated yet at release time, so obs[0] is the PRIOR period's
+# number → a bogus beat/miss verdict). Anything not listed is monthly.
+_SERIES_FREQ: dict[str, str] = {
+    "ICSA": "weekly", "CCSA": "weekly",
+    "A191RL1Q225SBEA": "quarterly",
+}
+# Generous max lag (release_date − observation_date). Sized so a FRESH obs
+# passes and only a full-extra-period-stale obs is rejected — a false reject
+# just falls through to the FF HTML actual / directional-only card (safe).
+_MAX_LAG_DAYS: dict[str, int] = {"weekly": 21, "monthly": 62, "quarterly": 135}
+
+# Absolute in-line tolerance floor per transform, in the transform's display
+# unit. Guards the relative (5%-of-forecast) band from collapsing to ~0 on
+# small forecasts (CPI m/m 0.2% → 0.01pp band would call "0.3%, in-line" a miss).
+_SURPRISE_FLOOR: dict[str, float] = {
+    "mom_pct": 0.05, "level_pct": 0.05,   # percentage points
+    "delta_k": 10.0,                       # thousands of jobs (NFP)
+    "count_to_k": 5.0,                     # thousands (initial claims)
+    "count_to_m": 0.02, "thousands_to_m": 0.02,   # millions
+}
+
+
 @dataclass(frozen=True)
 class FredResult:
     series_id: str
     actual_text: str        # human-readable, e.g. "+0.4%", "215K", "3.9%"
     actual_value: float     # numeric value in the same unit as actual_text (sans suffix)
     observation_date: str   # YYYY-MM-DD from FRED
+    surprise_floor: float = 0.0   # absolute in-line band for compute_surprise_label
 
 
 def fred_api_key() -> str:
@@ -124,7 +148,10 @@ def _apply_transform(transform: str, obs: list[dict]) -> tuple[str, float] | Non
             if prev == 0:
                 return None
             pct = (latest - prev) / prev * 100
-            return (f"{pct:+.1f}%", round(pct, 2))
+            # Round to 1 decimal to match the officially printed figure (and the
+            # 1-decimal FF forecast) — comparing an unrounded 0.28 vs a printed
+            # 0.3 forecast produced spurious beat/miss calls.
+            return (f"{pct:+.1f}%", round(pct, 1))
         # delta_k
         delta = latest - prev
         return (f"{delta:+.0f}K", round(delta, 0))
@@ -142,7 +169,18 @@ def _apply_transform(transform: str, obs: list[dict]) -> tuple[str, float] | Non
     return None
 
 
-def fetch_actual(title: str, api_key: str | None = None) -> FredResult | None:
+def _obs_date(s: str):
+    """Parse a FRED 'YYYY-MM-DD' observation date to a date, or None."""
+    from datetime import date
+    try:
+        y, m, d = (int(x) for x in (s or "").split("-"))
+        return date(y, m, d)
+    except (ValueError, TypeError):
+        return None
+
+
+def fetch_actual(title: str, api_key: str | None = None,
+                 release_dt=None) -> FredResult | None:
     """Try to fetch the actual value for a calendar event.
 
     Returns None if:
@@ -150,6 +188,10 @@ def fetch_actual(title: str, api_key: str | None = None) -> FredResult | None:
       - Event title doesn't map to any supported series.
       - FRED has fewer than 2 observations for the series (deltas need it).
       - HTTP / parse error.
+      - `release_dt` is given and FRED's latest observation is too stale to be
+        THIS release (FRED hasn't ingested the new print yet → obs[0] is the
+        prior period → we'd publish a bogus beat/miss). The caller then falls
+        back to the FF HTML actual / directional-only card.
     """
     if api_key is None:
         api_key = fred_api_key()
@@ -170,8 +212,23 @@ def fetch_actual(title: str, api_key: str | None = None) -> FredResult | None:
     result = _apply_transform(transform, obs)
     if result is None:
         return None
+
+    # Freshness guard — reject an observation FRED hasn't updated for this release.
+    if release_dt is not None:
+        od = _obs_date(obs[0].get("date", ""))
+        rd = release_dt.date() if hasattr(release_dt, "date") else release_dt
+        if od is not None and rd is not None:
+            max_lag = _MAX_LAG_DAYS[_SERIES_FREQ.get(sid, "monthly")]
+            lag = (rd - od).days
+            if lag > max_lag:
+                log.warning("fred stale series=%s obs=%s release=%s lag=%dd > %dd "
+                            "— skipping (FF/directional fallback)",
+                            sid, obs[0].get("date"), rd, lag, max_lag)
+                return None
+
     text, val = result
-    return FredResult(sid, text, val, obs[0].get("date", ""))
+    return FredResult(sid, text, val, obs[0].get("date", ""),
+                      _SURPRISE_FLOOR.get(transform, 0.0))
 
 
 def parse_forecast_value(text: str) -> float | None:
@@ -194,14 +251,16 @@ def parse_forecast_value(text: str) -> float | None:
         return None
 
 
-def compute_surprise_label(actual: float, forecast: float, tolerance_pct: float = 5.0) -> str:
+def compute_surprise_label(actual: float, forecast: float,
+                           tolerance_pct: float = 5.0, abs_tol: float = 0.0) -> str:
     """beat / miss / in-line.
-    'In-line' if |diff| is within tolerance_pct % of |forecast| (default 5%).
+    'In-line' if |diff| is within the LARGER of tolerance_pct % of |forecast|
+    and `abs_tol` (an absolute floor in the value's display unit). The floor
+    stops a small forecast (e.g. CPI m/m 0.2%) from shrinking the band to noise.
     """
-    if forecast == 0:
-        return "in-line" if actual == 0 else ("beat" if actual > 0 else "miss")
     diff = actual - forecast
-    if abs(diff) <= abs(forecast) * (tolerance_pct / 100.0):
+    tol = max(abs(forecast) * (tolerance_pct / 100.0), abs_tol)
+    if abs(diff) <= tol:
         return "in-line"
     return "beat" if diff > 0 else "miss"
 

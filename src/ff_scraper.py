@@ -155,35 +155,46 @@ def _try_fetch(url: str, timeout: float) -> str | None:
     return None
 
 
-def scrape_ff_html(
-    url: str = CALENDAR_URL,
-    impersonate: str | None = None,
-    timeout: float = 25.0,
-) -> list[dict[str, Any]]:
-    """Returns a list of FF-JSON-shaped dicts for the requested week."""
-    if impersonate:
-        r = cffi.get(url, impersonate=impersonate, timeout=timeout)
-        html = r.text if r.status_code == 200 else None
-    else:
-        html = _try_fetch(url, timeout)
-    if not html:
-        log.warning("FF scrape: every impersonation failed for %s", url)
-        return []
-    soup = BeautifulSoup(html, "lxml")
-    table = soup.find("table", class_="calendar__table")
-    if not table:
-        log.warning("FF scrape: no calendar__table in response")
-        return []
+def _row_date_et(tr, ref: datetime) -> datetime | None:
+    """The authoritative per-day date: FF stamps the day's date ONLY in the
+    `calendar__date` cell of that day's first row (`--new-day`); every
+    following row of the day leaves that cell empty and inherits it.
 
-    ref_now = datetime.now(timezone.utc)
+    Sourcing the date here — not from the separate day-breaker spacer row's
+    text — is what makes the parser robust to days that have no events (a
+    holiday Monday, a quiet weekend day). Those days still carry a populated
+    `calendar__date` cell, whereas their day-breaker text is easy to drop or
+    misparse; when that happened the day's events silently inherited the
+    PREVIOUS day's date and the whole Week-Ahead card shifted a day. Returns
+    None for rows with no/empty date cell (i.e. same day as the row above)."""
+    date_td = tr.find("td", class_="calendar__date")
+    if not date_td:
+        return None
+    txt = date_td.get_text(strip=True)
+    if not txt:
+        return None
+    return _parse_date_header(txt, ref)
+
+
+def _parse_calendar_table(table, ref_now: datetime) -> list[dict[str, Any]]:
+    """Pure row-parser over an FF `calendar__table` soup element. Split out
+    from the network fetch so the day-shift logic is unit-testable against
+    fixture HTML."""
     current_date_et: datetime | None = None
     last_time: tuple[int, int] | None = None
     out: list[dict[str, Any]] = []
 
     for tr in table.find_all("tr"):
         cls = tr.get("class", []) or []
-        if any("day-breaker" in c or "calendar__row--day" in c for c in cls):
-            current_date_et = _parse_date_header(tr.get_text(strip=True), ref_now)
+        # Advance to a new day whenever this row stamps a date. Do this BEFORE
+        # the day-breaker check so an unparseable/missing breaker can't strand
+        # us on the previous day's date.
+        row_date = _row_date_et(tr, ref_now)
+        if row_date is not None:
+            current_date_et = row_date
+            last_time = None
+        if any("day-breaker" in c for c in cls):
+            # Spacer row between days — no event, just reset the time run.
             last_time = None
             continue
 
@@ -202,6 +213,10 @@ def scrape_ff_html(
             parsed = _parse_time(time_s)
             if parsed:
                 last_time = parsed
+            elif time_s.lower() in ("all day", "tentative"):
+                # Explicit non-timed row — don't let it inherit the previous
+                # row's clock time (that produced phantom same-time events).
+                last_time = None
         if not last_time:
             # "All Day", "Tentative", or unparseable — skip; we only care
             # about time-specific releases for the preview.
@@ -222,16 +237,41 @@ def scrape_ff_html(
             "forecast": fc_td.get_text(strip=True) if fc_td else "",
             "previous": prv_td.get_text(strip=True) if prv_td else "",
         })
+    return out
 
+
+def scrape_ff_html(
+    url: str = CALENDAR_URL,
+    impersonate: str | None = None,
+    timeout: float = 25.0,
+) -> list[dict[str, Any]]:
+    """Returns a list of FF-JSON-shaped dicts for the requested week."""
+    if impersonate:
+        r = cffi.get(url, impersonate=impersonate, timeout=timeout)
+        html = r.text if r.status_code == 200 else None
+    else:
+        html = _try_fetch(url, timeout)
+    if not html:
+        log.warning("FF scrape: every impersonation failed for %s", url)
+        return []
+    soup = BeautifulSoup(html, "lxml")
+    table = soup.find("table", class_="calendar__table")
+    if not table:
+        log.warning("FF scrape: no calendar__table in response")
+        return []
+
+    out = _parse_calendar_table(table, datetime.now(timezone.utc))
     log.info("FF scrape parsed %d events from %s", len(out), url)
     return out
 
 
-def _make_actual_key(country: str, title: str) -> str:
-    """Key on country + title only. FF HTML displays times in geo-IP
-    timezone (ET for US runners, ICT for Bangkok), so a UTC-time match
-    breaks. (country, title) is unique within a week for our targets."""
-    return f"{country}|{title.strip().lower()}"
+def _make_actual_key(country: str, title: str, date_str: str = "") -> str:
+    """Key on country + ET calendar date + title. Time is excluded (FF renders
+    it in the runner's geo-IP timezone, so a UTC-time match is unreliable), but
+    the DATE is included so a title that repeats within a week (bond auctions,
+    repeated speeches/testimonies, multi-day series) can't serve the wrong
+    instance's actual. A date mismatch just misses → directional-only card (safe)."""
+    return f"{country}|{date_str}|{title.strip().lower()}"
 
 
 def scrape_current_week_actuals(timeout: float = 25.0) -> dict[str, str]:
@@ -257,8 +297,11 @@ def scrape_current_week_actuals(timeout: float = 25.0) -> dict[str, str]:
 
     for tr in table.find_all("tr"):
         cls = tr.get("class", []) or []
-        if any("day-breaker" in c or "calendar__row--day" in c for c in cls):
-            current_date_et = _parse_date_header(tr.get_text(strip=True), ref_now)
+        row_date = _row_date_et(tr, ref_now)
+        if row_date is not None:
+            current_date_et = row_date
+            last_time = None
+        if any("day-breaker" in c for c in cls):
             last_time = None
             continue
 
@@ -288,13 +331,14 @@ def scrape_current_week_actuals(timeout: float = 25.0) -> dict[str, str]:
         if not country or not title:
             continue
 
-        # Date intentionally NOT in the key — see _make_actual_key().
-        out[_make_actual_key(country, title)] = actual_s
+        out[_make_actual_key(country, title, dt_et.strftime("%Y-%m-%d"))] = actual_s
 
     log.info("FF actuals scrape: %d events with actuals", len(out))
     return out
 
 
 def lookup_actual_for_event(event, actuals: dict[str, str]) -> str | None:
-    """Match a CalEvent against an actuals dict from scrape_current_week_actuals."""
-    return actuals.get(_make_actual_key(event.country, event.title))
+    """Match a CalEvent against an actuals dict from scrape_current_week_actuals.
+    The event's ET calendar date is used to disambiguate same-title repeats."""
+    date_str = event.dt_utc.astimezone(ET).strftime("%Y-%m-%d")
+    return actuals.get(_make_actual_key(event.country, event.title, date_str))

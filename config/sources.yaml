@@ -5,7 +5,8 @@
 x_accounts:
   enabled: true
   min_interval_min: 12        # don't re-scrape more often than this (cost guard)
-  since_minutes: 20           # look back this far each scrape
+  since_minutes: 14           # look back this far each scrape (= interval + 2m buffer;
+                              # was 20 → paid for ~8m of overlapping tweets every scrape)
   max_per_handle: 8
   handles:
     - DeItaone                # Walter Bloomberg — fast Fed/macro headlines
@@ -26,9 +27,12 @@ sources:
   #
   # source_class kept for legacy code paths but `organization` is the
   # field the breaking/alert confirmation logic now uses.
-  - {id: fed,         tier: 0, source_class: official,   organization: us_gov,       role: policy,       url: "https://www.federalreserve.gov/feeds/press_all.xml", poll_min: 15, enabled: true}
-  - {id: bls,         tier: 0, source_class: official,   organization: us_gov,       role: data_release, url: "https://www.bls.gov/feed/bls_latest.rss",            poll_min: 15, enabled: true}
-  - {id: ecb,         tier: 0, source_class: official,   organization: ecb,          role: policy,       url: "https://www.ecb.europa.eu/rss/press.xml",            poll_min: 15, enabled: true}
+  # tier-0 official sources poll every 5 min (was 15): a Fed statement / BLS print
+  # is the highest-value gold event and must not sit up to 15 min behind ForexLive.
+  # Cost is ~free — conditional GET (ETag / If-Modified-Since) returns 304 most polls.
+  - {id: fed,         tier: 0, source_class: official,   organization: us_gov,       role: policy,       url: "https://www.federalreserve.gov/feeds/press_all.xml", poll_min: 5,  enabled: true}
+  - {id: bls,         tier: 0, source_class: official,   organization: us_gov,       role: data_release, url: "https://www.bls.gov/feed/bls_latest.rss",            poll_min: 5,  enabled: true}
+  - {id: ecb,         tier: 0, source_class: official,   organization: ecb,          role: policy,       url: "https://www.ecb.europa.eu/rss/press.xml",            poll_min: 5,  enabled: true}
   - {id: treasury,    tier: 0, source_class: official,   organization: us_gov,       role: yields,       url: "",                                                   poll_min: 15, enabled: false, note: "no public RSS endpoint"}
   - {id: bbc_world,   tier: 1, source_class: aggregator, organization: bbc,          role: geopolitics,  url: "https://feeds.bbci.co.uk/news/world/rss.xml",        poll_min: 15, enabled: true}
   - {id: aljazeera,   tier: 1, source_class: aggregator, organization: aljazeera,    role: geopolitics,  url: "https://www.aljazeera.com/xml/rss/all.xml",          poll_min: 15, enabled: true}

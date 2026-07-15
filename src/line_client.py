@@ -28,10 +28,17 @@ LINE_FREE_TIER_QUOTA = 500
 LINE_PUSH_SOURCE_ID = "_line_push"
 
 
-def record_line_outcome(store, status_code: int) -> None:
-    """Stamp the LINE push health row. Increments the monthly counter on
-    success (status 200) and consecutive_errors on failure. Used by:
-      - watchdog → line_push_failing warning (5+ consecutive failures)
+def record_line_outcome(store, resp) -> None:
+    """Stamp the LINE push health row. `resp` is the dict returned by
+    push/push_flex (carries "status" and, for multi-recipient sends, a
+    per-target "results" list); a bare int status is also accepted for
+    back-compat.
+
+    Counts the monthly quota per RECIPIENT that actually received the message.
+    LINE_NEWS_TARGET is the 1:1 chat + the group, so one broadcast consumes 2
+    of the 500/mo free quota, not 1 — the old +1-per-call counter ran at ~half
+    the real usage and would fire the 80% alarm far too late. Used by:
+      - watchdog → line_push_failing warning (5+ consecutive total failures)
       - watchdog → line_quota_high warning (>80% of monthly cap)
       - EOD recap → optional quota display
     """
@@ -41,6 +48,18 @@ def record_line_outcome(store, status_code: int) -> None:
     from .utils_time import iso_utc, now_ict, now_utc
     ts = iso_utc(now_utc())
     cur_month = now_ict().strftime("%Y-%m")
+
+    # Status + how many recipients actually got it.
+    if isinstance(resp, dict):
+        status_code = int(resp.get("status", 0) or 0)
+        results = resp.get("results")
+        if results:
+            success_n = sum(1 for r in results if r.get("status") == 200)
+        else:
+            success_n = 1 if status_code == 200 else 0
+    else:
+        status_code = int(resp or 0)
+        success_n = 1 if status_code == 200 else 0
 
     row = store.get("source_state", (LINE_PUSH_SOURCE_ID,)) or {"source_id": LINE_PUSH_SOURCE_ID}
     consec = int(row.get("consecutive_errors") or 0)
@@ -58,9 +77,11 @@ def record_line_outcome(store, status_code: int) -> None:
     if counters.get("month") != cur_month:
         counters = {"month": cur_month, "count": 0}
 
-    if status_code == 200:
+    if success_n > 0:
+        # At least one recipient delivered → LINE is alive; reset the failure
+        # streak and bill each recipient that received the message.
         consec = 0
-        counters["count"] = int(counters.get("count", 0)) + 1
+        counters["count"] = int(counters.get("count", 0)) + success_n
         row["last_success_ts"] = ts
     else:
         consec += 1

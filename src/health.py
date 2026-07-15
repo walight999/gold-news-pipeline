@@ -354,6 +354,51 @@ def check_recent_workflow_failures(
     return out
 
 
+# Workflows whose silent disabling would break a user-visible feature. A
+# disabled_manually workflow produces NO runs and NO failures, so
+# check_recent_workflow_failures can't see it — this is the exact 2026-06-26
+# incident (calendar_daily sat disabled_manually for 15 days after a migration
+# PR edited its YAML but never ran `gh workflow enable`).
+CRITICAL_WORKFLOWS: set[str] = {
+    "news_cron.yml", "calendar_check.yml", "calendar_daily.yml",
+    "weekly_preview.yml", "eod_recap.yml", "scorecard.yml",
+    "watchdog.yml", "social_post.yml", "macro_push.yml",
+}
+
+
+def check_disabled_workflows(
+    repo: str | None = None,
+    token: str | None = None,
+) -> list[str]:
+    """Flag any CRITICAL workflow GitHub has in a non-active state
+    (disabled_manually / disabled_inactivity). Returns short descriptions;
+    empty (fail-open) when repo/token are missing or the API errors."""
+    import os as _os
+    repo = repo or _os.environ.get("GITHUB_REPOSITORY")
+    token = token or _os.environ.get("GITHUB_TOKEN")
+    if not repo or not token:
+        return []
+
+    import httpx as _httpx
+    url = f"https://api.github.com/repos/{repo}/actions/workflows"
+    headers = {"Authorization": f"Bearer {token}",
+               "Accept": "application/vnd.github+json"}
+    out: list[str] = []
+    try:
+        r = _httpx.get(url, headers=headers, params={"per_page": 100}, timeout=15)
+        r.raise_for_status()
+        for wf in r.json().get("workflows", []):
+            state = wf.get("state", "")
+            if state and state != "active":
+                base = (wf.get("path") or "").rsplit("/", 1)[-1]
+                if base in CRITICAL_WORKFLOWS:
+                    out.append(f"{wf.get('name') or base} is {state}")
+    except Exception as e:
+        log.warning("check_disabled_workflows: %s", e)
+        return []
+    return out
+
+
 def check_source_health(
     store: Store,
     source: dict[str, Any],

@@ -50,11 +50,13 @@ def _is_transient_sheets_error(exc: BaseException) -> bool:
 
 
 def _retry(fn):
-    """Decorator: 4 attempts, exponential backoff 2-10s, only on transient
-    Sheets errors. Other exceptions bubble immediately."""
+    """Decorator: 5 attempts, exponential backoff 2-30s, only on transient
+    Sheets errors. Other exceptions bubble immediately. The 30s ceiling (was
+    10s) lets a per-minute read/write quota window (429) reset between attempts
+    instead of exhausting retries inside it — live 429s were failing whole runs."""
     return retry(
-        stop=stop_after_attempt(4),
-        wait=wait_exponential(multiplier=1, min=2, max=10),
+        stop=stop_after_attempt(5),
+        wait=wait_exponential(multiplier=1, min=2, max=30),
         retry=retry_if_exception(_is_transient_sheets_error),
         reraise=True,
     )(fn)
@@ -100,6 +102,18 @@ def _ws_update(ws: gspread.Worksheet, range_: str, values, **kwargs) -> Any:
 @_retry
 def _ws_clear(ws: gspread.Worksheet) -> Any:
     return ws.clear()
+
+
+@_retry
+def _ws_batch_clear(ws: gspread.Worksheet, ranges: list[str]) -> Any:
+    return ws.batch_clear(ranges)
+
+
+def _last_col_letter(n_cols: int) -> str:
+    """Column letter for the n-th (1-based) column, e.g. 11 → 'K'."""
+    from gspread.utils import rowcol_to_a1
+    a1 = rowcol_to_a1(1, max(1, n_cols))
+    return "".join(ch for ch in a1 if ch.isalpha())
 
 _SCOPES = [
     "https://www.googleapis.com/auth/spreadsheets",
@@ -243,8 +257,19 @@ class Store:
 
     def upsert(self, tab: str, row: dict[str, Any]) -> dict[str, Any]:
         row = {c: row.get(c, "") for c in SCHEMAS[tab]}
-        row["updated_at"] = iso_utc(now_utc())
         rk = _row_key(tab, row)
+        existing = self.data.get(tab, {}).get(rk)
+        if existing is not None and all(
+            str(existing.get(c, "")) == str(row.get(c, ""))
+            for c in SCHEMAS[tab] if c != "updated_at"
+        ):
+            # No-op: every field except updated_at is unchanged vs what's already
+            # loaded (== what's in the sheet). Do NOT bump updated_at or dirty the
+            # tab — a dirtied tab triggers a whole-tab rewrite in flush(). This
+            # kills the per-run rewrite of calibration_log (every score≥2 event
+            # re-upserted identically) and settled event_state rows.
+            return existing
+        row["updated_at"] = iso_utc(now_utc())
         self.data.setdefault(tab, {})[rk] = row
         self.dirty.setdefault(tab, set()).add(rk)
         return row
@@ -335,7 +360,12 @@ class Store:
         self.api_calls += 1
 
     def flush(self) -> None:
-        """Write back only dirty rows. One batch write per tab."""
+        """Write back changed tabs. WRITE-THEN-TRIM: the full payload is written
+        from A1 first, then only the stale surplus rows a previously-larger tab
+        left below it are cleared. This never leaves a tab momentarily empty —
+        the old clear-then-write could, and a crash / 429 landing in that gap
+        blanked the tab (an emptied sent_log then mass-re-sends every event
+        still inside its window)."""
         if not self._sh:
             log.warning("store.flush called without connect() — skipping")
             return
@@ -344,6 +374,7 @@ class Store:
                 continue
             ws = _ws_worksheet(self._sh, tab)
             self.api_calls += 1
+            prev_rows = ws.row_count   # grid size at fetch (>= previous data length)
             all_rows = list(self.data[tab].values())
             cols = SCHEMAS[tab]
             # Diagnostic — surface which column carried a non-finite float so the
@@ -355,10 +386,15 @@ class Store:
                         log.warning("store.flush non-finite float in tab=%s col=%s key=%s value=%r",
                                     tab, c, _row_key(tab, r), val)
             values = [cols] + [[_cell(r.get(c, "")) for c in cols] for r in all_rows]
-            _ws_clear(ws)
-            self.api_calls += 1
+            n_written = len(values)
             _ws_update(ws, "A1", values, value_input_option="RAW")
             self.api_calls += 1
+            # Clear ONLY the rows below the new data (stale surplus from when the
+            # tab held more rows — e.g. after a purge). Never touches live data.
+            if prev_rows > n_written:
+                rng = f"A{n_written + 1}:{_last_col_letter(len(cols))}{prev_rows}"
+                _ws_batch_clear(ws, [rng])
+                self.api_calls += 1
             log.info("store.flush tab=%s rows=%d dirty=%d", tab, len(all_rows), len(dirty_keys))
             self.dirty[tab] = set()
 

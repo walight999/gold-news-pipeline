@@ -24,7 +24,7 @@ import yaml
 from . import calendar as cal
 from . import dedup, digest, fred, health, macro_push, news_alert, price_feed, scorecard, scorer, social_feed, telegram_news, translator
 from .fetcher import fetch_all, plan_fetch
-from .line_client import LineClient
+from .line_client import LineClient, record_line_outcome
 from .line_flex import (
     _pick_article_url,
     _source_label,
@@ -81,9 +81,22 @@ def _push_or_skip(line, target, alt, bubble, sched_cfg, label="", bypass_quiet=F
     # Health tracking — counts only ACTUAL push attempts (not quiet-hour
     # suppressions). Records success or failure on every push attempt
     # so the watchdog can spot a degrading channel before it goes silent.
-    from .line_client import record_line_outcome
-    record_line_outcome(store, resp.get("status", 0))
+    record_line_outcome(store, resp)   # pass full resp → counts per recipient
     return resp
+
+
+def _delivered(resp: dict[str, Any]) -> bool:
+    """True if the push reached at least one recipient. This is the correct
+    sent_log idempotency gate for a multi-target broadcast (1:1 + group):
+    marking sent only on ALL-targets-200 meant one failing target (a group 429)
+    left the row unmarked, so the NEXT run re-sent the card to the target that
+    already got it — a duplicate on the 1:1. The failing target forgoes a retry
+    (best-effort), which beats a guaranteed duplicate on the one that succeeded."""
+    if resp.get("status") == 200:
+        return True
+    results = resp.get("results")
+    return bool(results) and any(r.get("status") == 200 for r in results)
+
 
 log = logging.getLogger("gold-news")
 CFG_DIR = Path(__file__).resolve().parent.parent / "config"
@@ -135,8 +148,11 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
     if tier_filter is not None:
         sources = [s for s in sources if int(s["tier"]) in tier_filter]
 
-    # 1. Plan + fetch
-    plan = plan_fetch(sources, store)
+    # 1. Plan + fetch. Event mode FORCES the fetch every iteration — otherwise
+    # the tier-0 poll_min gate makes the 60s hot-window loop a no-op (it would
+    # only actually fetch once every poll_min, defeating the whole point of the
+    # CPI/NFP fast window). Conditional GET (ETag/IMS) keeps forced polls cheap.
+    plan = plan_fetch(sources, store, force=(mode == "event"))
     log.info("plan: fetch=%d skipped_disabled=%d skipped_poll=%d",
              len(plan.sources), len(plan.skipped_disabled), len(plan.skipped_polled_recently))
     results = await fetch_all(plan, store)
@@ -255,7 +271,7 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
                 bubble = alert_bubble(ev, d.score, kw_cfg, alert=alert_obj)
                 alt = alt_text_for_event("🔔 ALERT", ev, d.score)
             resp = _push_or_skip(line, news_target, alt, bubble, sched_cfg, label=d.route.value, store=store)
-            if resp["status"] == 200:
+            if _delivered(resp):
                 store.upsert("sent_log", {
                     "event_id": ev.event_id,
                     "route_type": d.route.value,
@@ -442,10 +458,13 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
                             "card(s) in degraded mode", slot, len(cards))
             log.info("news round %s: %d/%d candidates kept%s", slot, len(cards),
                      len(candidates), " (degraded)" if degraded_mode else "")
-            if not cards:
-                store.flush()
-                return 0
-            carousel = news_update_carousel(cards, slot, degraded=degraded_mode)
+            # No cards this round: DON'T early-return — fall through to the
+            # heartbeat (step 8) + social-feed flush (step 8b) + state flush.
+            # A quiet digest window happens most of the day; early-returning
+            # here starved the watchdog heartbeat (false silence alarms) and
+            # dropped social drafts queued by breaking/alert pushes earlier in
+            # THIS same run.
+            carousel = news_update_carousel(cards, slot, degraded=degraded_mode) if cards else None
             if carousel and news_target:
                 line = line or LineClient.from_env()
                 alt = (f"📰 News Update {slot} ICT — {len(cards)} event(s)"
@@ -457,11 +476,16 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
                 # round AND mark_sent records it as delivered.
                 resp = _push_or_skip(line, news_target, alt, carousel, sched_cfg,
                                      label="digest", bypass_quiet=True, store=store)
-                digest.mark_sent(store, slot, resp["status"])
+                # Only mark the slot delivered once it reached ≥1 recipient.
+                # Marking on a full failure (status 0/5xx/429 to all) silently
+                # burns the whole round — the 210-min catch-up window would skip
+                # it forever; leaving it unmarked lets the next run retry.
+                if _delivered(resp):
+                    digest.mark_sent(store, slot, resp["status"])
                 # Per-event sent_log rows: mark each event as digest so the next
                 # window round won't repeat it, and EOD top_topics counts only
                 # events that actually reached the user.
-                if resp["status"] == 200:
+                if _delivered(resp):
                     for card, row in zip(cards, kept_rows):
                         ev_id = str(row.get("event_id") or "")
                         store.upsert("sent_log", {
@@ -639,7 +663,7 @@ async def run_eod_recap() -> int:
         log.info("eod_recap already sent for %s — skipping", target_key)
         store.flush()
         return 0
-    breaking_n = alert_n = cal_pre_n = cal_post_n = 0
+    breaking_n = alert_n = cal_pre_n = cal_post_n = digest_n = 0
     from .utils_time import parse_iso
     for row in store.all_rows("sent_log"):
         ts = parse_iso(row.get("sent_ts"))
@@ -650,6 +674,11 @@ async def run_eod_recap() -> int:
         elif rt == "alert": alert_n += 1
         elif rt == "calendar_pre": cal_pre_n += 1
         elif rt == "calendar_post": cal_post_n += 1
+        # Count digest-routed EVENTS only — exclude the "digest:{slot}" per-round
+        # marker rows (also route_type=digest). This is the true "Digest events"
+        # figure; the old sum-over-topic_stats double-counted breaking+alert.
+        elif rt == "digest" and not str(row.get("event_id", "")).startswith("digest:"):
+            digest_n += 1
 
     # Top topics — only count events that were ACTUALLY PUSHED (not the
     # classifier-rejected ones). We intersect sent_log (filtered to the
@@ -680,7 +709,9 @@ async def run_eod_recap() -> int:
         for topic, scores in topic_stats.items()
     ]
     top_topics.sort(key=lambda x: (-x[2], -x[1]))
-    digest_events_n = sum(len(s) for s in topic_stats.values())
+    # digest-routed events only (top_topics above still spans all pushed events —
+    # that's intentionally "what topics were hot today").
+    digest_events_n = digest_n
 
     # Classifier counters — 24h rolling window (Batch O: was cumulative
     # forever, now resets so degradation alerts fire on recent activity).
@@ -708,9 +739,11 @@ async def run_eod_recap() -> int:
         "month_tokens_out": month_tokens_out,
         "month_label": cl.get("month", ""),
     }
-    target = os.environ.get("LINE_NEWS_TARGET", "")
+    # Daily recap is a private end-of-day summary — 1:1 chat ONLY, never the
+    # group (same policy as the scorecard). Push to the first U-prefixed id.
+    target = _private_target()
     if not target:
-        log.warning("LINE_NEWS_TARGET not set — skipping eod_recap push")
+        log.warning("no 1:1 (U...) target in LINE_NEWS_TARGET — skipping eod_recap push")
         store.flush()
         return 0
     line = LineClient.from_env()
@@ -718,7 +751,11 @@ async def run_eod_recap() -> int:
     bubble = eod_recap_bubble(stats, short_date)
     alt = (f"🌙 EoD — {breaking_n} breaking, {alert_n} alert, "
            f"{cal_pre_n}+{cal_post_n} calendar")
-    resp = _push_or_skip(line, target, alt, bubble, sched_cfg, label="eod_recap", store=store)
+    # bypass_quiet: a cron-drop can push this run to 04:00-04:59 ICT (targeting
+    # yesterday) — inside the quiet window. The recap is once/day and must not be
+    # silently eaten there (it would never retry). 23:00 ICT is outside quiet anyway.
+    resp = _push_or_skip(line, target, alt, bubble, sched_cfg, label="eod_recap",
+                         bypass_quiet=True, store=store)
     if resp["status"] == 200:
         store.upsert("sent_log", {
             "event_id": sent_key, "route_type": "eod_recap",
@@ -1015,6 +1052,7 @@ async def run_scorecard() -> int:
     alt = f"🎯 ความแม่นยำ {short_date}: ถูก {card['n_correct']}/{card['n_graded']}"
     line = LineClient.from_env()
     resp = line.push_flex(target, alt, bubble)
+    record_line_outcome(store, resp)   # count against the LINE monthly quota
     if resp.get("status") == 200:
         store.upsert("sent_log", {
             "event_id": sent_key, "route_type": "scorecard",
@@ -1137,12 +1175,17 @@ async def run_weekly_preview() -> int:
         store.flush()
         return 0
     line = LineClient.from_env()
+    # bypass_quiet: the Monday "last chance" fallback slot fires at 04:00 ICT
+    # (Sun 21:00 UTC) — inside the quiet window. That slot exists precisely for
+    # when Saturday's run found no data; quiet-suppressing it here means the
+    # fallback is dead exactly when it's needed (and it never retries).
     resp = _push_or_skip(line, target, f"📅 Week Ahead — {len(filtered)} events",
-                          bubble, sched_cfg, label="weekly_preview", store=store)
-    if resp["status"] == 200:
+                          bubble, sched_cfg, label="weekly_preview",
+                          bypass_quiet=True, store=store)
+    if _delivered(resp):
         store.upsert("sent_log", {
             "event_id": sent_key, "route_type": "weekly_preview",
-            "sent_ts": iso_utc(now_utc()), "line_status": 200,
+            "sent_ts": iso_utc(now_utc()), "line_status": resp["status"],
         })
 
     # Also deliver the week-ahead to the free CHUM News Bot (T0-5). Best-effort +
@@ -1237,10 +1280,10 @@ async def run_calendar_daily() -> int:
     resp = _push_or_skip(line, target, f"📅 Calendar — {len(filtered)} events today",
                           bubble, sched_cfg, label="calendar_daily",
                           bypass_quiet=True, store=store)
-    if resp["status"] == 200:
+    if _delivered(resp):
         store.upsert("sent_log", {
             "event_id": sent_key, "route_type": "calendar_daily",
-            "sent_ts": iso_utc(now_utc()), "line_status": 200,
+            "sent_ts": iso_utc(now_utc()), "line_status": resp["status"],
         })
     # Off-GAS CHUM News Bot (Telegram) — the daily brief is the bot's backbone.
     # Env-gated + best-effort; worker dedups on event_id=sent_key. Never blocks LINE.
@@ -1332,10 +1375,10 @@ async def run_calendar_check() -> int:
             bubble = pre_release_bubble(ev, mins_to, impact_info, effect_info)
             alt = f"⏰ T-{mins_to}min · {ev.country} {ev.title}"
             resp = _push_or_skip(line, target, alt, bubble, sched_cfg, label="calendar", store=store)
-            if resp["status"] == 200:
+            if _delivered(resp):
                 store.upsert("sent_log", {
                     "event_id": sent_key, "route_type": "calendar_pre",
-                    "sent_ts": iso_utc(now_utc()), "line_status": 200,
+                    "sent_ts": iso_utc(now_utc()), "line_status": resp["status"],
                 })
                 pre_pushed += 1
             # Telegram is independent of LINE — push regardless of the LINE result
@@ -1360,11 +1403,15 @@ async def run_calendar_check() -> int:
             impact_info = cal.gold_impact_directional(ev)
             actual_text = surprise = verdict = None
             actual_value: float | None = None
+            surprise_floor = 0.0
             if fred_key:
-                result = fred.fetch_actual(ev.title, fred_key)
+                # Pass the release time so a stale FRED observation (not yet
+                # updated for this print) is rejected → FF/directional fallback.
+                result = fred.fetch_actual(ev.title, fred_key, release_dt=ev.dt_utc)
                 if result:
                     actual_text = result.actual_text
                     actual_value = result.actual_value
+                    surprise_floor = result.surprise_floor
             # FF HTML actuals fallback for non-FRED events
             if actual_text is None:
                 if ff_actuals_cache is None:
@@ -1386,7 +1433,8 @@ async def run_calendar_check() -> int:
             if actual_text is not None and actual_value is not None:
                 forecast_val = fred.parse_forecast_value(ev.forecast)
                 if forecast_val is not None:
-                    surprise = fred.compute_surprise_label(actual_value, forecast_val)
+                    surprise = fred.compute_surprise_label(
+                        actual_value, forecast_val, abs_tol=surprise_floor)
                     verdict = fred.reconcile_with_impact(surprise, impact_info)
             # XAU reaction since release (Phase 3 — when intraday data is
             # available; off-hours / 429s gracefully return None).
@@ -1414,10 +1462,10 @@ async def run_calendar_check() -> int:
             alt_extra = f" · actual {actual_text}" if actual_text else ""
             alt = f"📊 Released · {ev.country} {ev.title}{alt_extra}"
             resp = _push_or_skip(line, target, alt, bubble, sched_cfg, label="calendar", store=store)
-            if resp["status"] == 200:
+            if _delivered(resp):
                 store.upsert("sent_log", {
                     "event_id": sent_key, "route_type": "calendar_post",
-                    "sent_ts": iso_utc(now_utc()), "line_status": 200,
+                    "sent_ts": iso_utc(now_utc()), "line_status": resp["status"],
                 })
                 post_pushed += 1
                 # Scorecard (Phase 1): persist the directional verdict so the EOD
@@ -1463,7 +1511,7 @@ def _watchdog_source_id(warning_type: str) -> str:
         return "_ff_scraper"
     if warning_type == "classifier_degraded":
         return "_classifier_health"
-    if warning_type == "workflow_failure":
+    if warning_type in ("workflow_failure", "workflow_disabled"):
         return "_workflow_failures"
     if warning_type == "macro_push_dead":
         return "_macro_health"
@@ -1518,6 +1566,16 @@ async def run_watchdog() -> int:
             msg = f"Workflow failed: {first}"
         warnings.append(("workflow_failure", msg))
 
+    # Disabled-workflow check — catches a critical workflow silently sitting
+    # `disabled_manually` (produces no runs AND no failures, so the failure
+    # check above can't see it). This is the 2026-06-26 15-day calendar_daily
+    # outage class.
+    wf_disabled = health.check_disabled_workflows()
+    if wf_disabled:
+        warnings.append(("workflow_disabled",
+                         f"{len(wf_disabled)} critical workflow(s) disabled: "
+                         + "; ".join(wf_disabled[:3])))
+
     warning_types = {wt for wt, _ in warnings}
 
     line = None
@@ -1529,8 +1587,8 @@ async def run_watchdog() -> int:
     # auto-resolve via the scan below.
     recovered: list[tuple[str, str]] = []
     static_types = ("watchdog_silence", "watchdog_no_items", "ff_scraper_dead",
-                    "classifier_degraded", "workflow_failure",
-                    "line_push_failing", "line_quota_high")
+                    "classifier_degraded", "workflow_failure", "workflow_disabled",
+                    "macro_push_dead", "line_push_failing", "line_quota_high")
     for warning_type in static_types:
         if warning_type in warning_types:
             continue
@@ -1564,7 +1622,9 @@ async def run_watchdog() -> int:
         warning_pairs = [(sid, wt) for sid, wt, _ in fresh]
         bubble = health_bubble(warning_pairs)
         alt = f"🚨 Pipeline alert — {len(fresh)} issue(s)"
-        line.push_flex(health_target, alt, bubble)
+        # Route through the quota counter — health pushes count against the same
+        # 500/mo LINE free tier as everything else.
+        record_line_outcome(store, line.push_flex(health_target, alt, bubble))
         for sid, wt, msg in fresh:
             log.warning("watchdog: %s/%s — %s", sid, wt, msg)
 
@@ -1572,7 +1632,7 @@ async def run_watchdog() -> int:
         line = line or LineClient.from_env()
         bubble = health_recovered_bubble(recovered)
         alt = f"✅ Pipeline recovered — {len(recovered)} item(s)"
-        line.push_flex(health_target, alt, bubble)
+        record_line_outcome(store, line.push_flex(health_target, alt, bubble))
 
     log.info("watchdog: fresh=%d recovered=%d", len(fresh), len(recovered))
     store.flush()
@@ -1640,7 +1700,9 @@ async def run_event_mode(duration_min: int = 30, sleep_sec: int = 60) -> int:
         log.info("event-mode iteration #%d", iteration)
         try:
             await run_once(mode="event", tier_filter={0})
-        except (RuntimeError, ValueError, OSError) as e:
+        except Exception as e:  # noqa: BLE001 — one bad iteration (e.g. a gspread
+            # APIError or httpx error) must not kill the whole 30-min hot-window
+            # loop around a CPI/NFP print; log and continue to the next tick.
             log.exception("event-mode iteration failed: %s", e)
         await asyncio.sleep(sleep_sec)
     return 0

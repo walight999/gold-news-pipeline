@@ -363,6 +363,35 @@ def _cache_write(store: "Store | None", key: str, src_title: str, alert: MarketA
     })
 
 
+def _month_tokens_over_cap(store: "Store | None") -> bool:
+    """True when this month's classifier token spend has crossed the hard cap —
+    the caller then skips Claude and drops to Gemini (free) / literal fallback.
+
+    This is the only in-repo brake on LLM spend (the Anthropic console cap is
+    external and may not be set). Override or disable via the
+    CLASSIFIER_MONTHLY_TOKEN_CAP env var; 0 disables. Default ~8M tokens keeps
+    the classifier a few $/mo even during a noisy news week. The counter resets
+    on month rollover, so the brake self-releases."""
+    if store is None:
+        return False
+    try:
+        cap = int(os.environ.get("CLASSIFIER_MONTHLY_TOKEN_CAP", "8000000"))
+    except ValueError:
+        cap = 8_000_000
+    if cap <= 0:
+        return False
+    try:
+        c = get_classifier_counters(store, source_id=None)
+        total = int(c.get("month_tokens_in", 0)) + int(c.get("month_tokens_out", 0))
+    except Exception:  # noqa: BLE001 — the brake must never crash classification
+        return False
+    if total >= cap:
+        log.warning("classifier monthly token cap reached (%d >= %d) — skipping "
+                    "Claude, using Gemini/fallback until month rolls over", total, cap)
+        return True
+    return False
+
+
 def classify_and_rewrite(
     title: str,
     summary: str,
@@ -393,24 +422,33 @@ def classify_and_rewrite(
 
     key = _cache_key_alert(title, summary or "")
 
-    # high_quality (BREAKING) skips the cache LOOKUP so it always gets the
-    # stronger model fresh — but it still writes its result back below, so a
-    # later alert/digest of the same event reuses the better classification.
-    if not high_quality:
-        cached = _cache_lookup(store, key)
-        if cached is not None:
-            _cache_write(store, key, title, cached)
-            _record_classifier_outcome(store, source_id, cached,
-                                        used_fallback=False, cache_hit=True)
-            return cached
+    # Cache-first. For high_quality (BREAKING) we still HONOR a cached REJECT —
+    # re-running a rejected noisy item through Sonnet on every 5-min cron was the
+    # single biggest wasted-spend multiplier: a sticky breaking-score item never
+    # enters sent_log, so without this it re-classified on the stronger model
+    # forever. A cached KEEP is still refreshed for high_quality so breaking gets
+    # the sharper Sonnet summary on the cards we actually send.
+    cached = _cache_lookup(store, key)
+    if cached is not None and not (high_quality and cached.action == "keep"):
+        # Do NOT _cache_write on a hit — bumping the `hits` counter dirties the
+        # translation_cache tab, which flush() rewrites WHOLE (~2-3 MB) every run
+        # for a vanity metric. The hit itself is the only work needed.
+        _record_classifier_outcome(store, source_id, cached,
+                                    used_fallback=False, cache_hit=True)
+        return cached
 
     age_h_str = f"{age_hours:.1f}" if age_hours is not None else "unknown"
     # Provider chain: Claude (primary) → Gemini (secondary, e.g. when the
     # Anthropic monthly spend cap is hit) → literal-translation fallback.
     # Gemini uses the SAME prompt + JSON contract, so a Claude outage no
     # longer drops card quality to "Other"/garbled — it just switches model.
-    result, tin, tout = _classify_claude_with_usage(
-        title, summary or "", source_id, age_h_str, high_quality=high_quality)
+    # Monthly spend brake: if this month's Claude tokens are over the cap, skip
+    # Claude entirely and drop to Gemini (free) → fallback. There is NO other
+    # in-repo gate on LLM spend, so a noisy news week could otherwise run unbounded.
+    result, tin, tout = (None, 0, 0)
+    if not _month_tokens_over_cap(store):
+        result, tin, tout = _classify_claude_with_usage(
+            title, summary or "", source_id, age_h_str, high_quality=high_quality)
     if result is None:
         g_result, g_tin, g_tout = _classify_gemini_with_usage(
             title, summary or "", source_id, age_h_str)

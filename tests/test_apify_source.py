@@ -59,17 +59,21 @@ def test_fetch_tweets_parses_response(monkeypatch):
         def __init__(self, **kw): pass
         def __enter__(self): return self
         def __exit__(self, *a): pass
-        def post(self, url, params=None, json=None):
+        def post(self, url, params=None, json=None, headers=None):
             captured["url"] = url
             captured["params"] = params
             captured["json"] = json
+            captured["headers"] = headers
             return _Resp()
 
     monkeypatch.setattr(ap.httpx, "Client", _Client)
     out = ap.fetch_tweets("tok", ["KitcoNewsNOW"], since_minutes=20, max_per_handle=8)
     assert len(out) == 1                       # retweet dropped
     assert out[0]["source_id"] == "x_kitconewsnow"
-    assert captured["params"]["token"] == "tok"
+    # Token must travel in the Authorization header, NOT the query string
+    # (query strings leak into httpx error logs on a public repo).
+    assert captured["params"] is None
+    assert captured["headers"]["Authorization"] == "Bearer tok"
     assert captured["json"]["searchTerms"][0].startswith("from:KitcoNewsNOW since:")
     assert captured["json"]["maxItems"] == 8
 
