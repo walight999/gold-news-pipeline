@@ -13,9 +13,40 @@ from src.line_flex import (
     alert_bubble,
     alt_text_for_event,
     breaking_bubble,
+    eod_recap_bubble,
     health_bubble,
     news_update_carousel,
 )
+
+
+def _all_text(node) -> list[str]:
+    """Flatten every text string in a Flex node tree."""
+    out: list[str] = []
+    if isinstance(node, dict):
+        if node.get("type") == "text":
+            out.append(str(node.get("text", "")))
+        for v in node.values():
+            out += _all_text(v)
+    elif isinstance(node, list):
+        for v in node:
+            out += _all_text(v)
+    return out
+
+
+def test_eod_recap_health_digest_section():
+    """The recap carries the once-a-day health digest — warnings listed when
+    present, an OK line when clean, plus the 24h alert count."""
+    b = eod_recap_bubble(
+        {"health_warnings": ["FXStreet: no new items 30m+"], "health_alerts_24h": 3},
+        "16/7/26")
+    txt = " ".join(_all_text(b))
+    assert "SYSTEM HEALTH" in txt
+    assert "FXStreet" in txt
+    assert "24 ชม.: 3" in txt
+
+    clean = " ".join(_all_text(eod_recap_bubble({}, "16/7/26")))
+    assert "SYSTEM HEALTH" in clean
+    assert "ปกติ" in clean
 from src.news_alert import MarketAlert
 from src.normalizer import Item
 

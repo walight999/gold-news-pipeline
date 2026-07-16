@@ -434,3 +434,30 @@ def test_check_disabled_workflows_noop_without_env(monkeypatch):
     monkeypatch.delenv("GITHUB_REPOSITORY", raising=False)
     monkeypatch.delenv("GITHUB_TOKEN", raising=False)
     assert health.check_disabled_workflows() == []
+
+
+def test_warning_severity_split():
+    """Real-outage warnings are CRITICAL (immediate push); flappy/informational
+    ones are ROUTINE (daily digest only)."""
+    from src import health
+    for w in ("http_errors_streak", "watchdog_silence", "ff_scraper_dead",
+              "line_push_failing", "workflow_disabled", "macro_push_dead"):
+        assert health.is_critical_warning(w) is True
+    for w in ("tier2_no_item", "tier1_no_success", "line_quota_high",
+              "workflow_failure", "source_noisy:forexlive"):
+        assert health.is_critical_warning(w) is False
+
+
+def test_open_warnings_and_24h_count(store):
+    from src import health
+    # Two open + one resolved.
+    health.raise_warning(store, "fxstreet", "tier2_no_item", cooldown_min=0)
+    health.raise_warning(store, "forexlive", "tier2_no_item", cooldown_min=0)
+    health.raise_warning(store, "_pipeline_heartbeat", "watchdog_silence", cooldown_min=0)
+    health.resolve_warning(store, "_pipeline_heartbeat", "watchdog_silence")
+    opens = health.open_warnings(store)
+    keys = {(sid, wt) for sid, wt, _ in opens}
+    assert ("fxstreet", "tier2_no_item") in keys
+    assert ("forexlive", "tier2_no_item") in keys
+    assert ("_pipeline_heartbeat", "watchdog_silence") not in keys   # resolved
+    assert health.count_warnings_since(store, 24) == 3               # all raises count
