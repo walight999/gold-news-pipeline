@@ -2,70 +2,70 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-07-16T22:06:21Z",
+      "ts": "2026-07-16T23:21:39Z",
       "title": "global · Other",
-      "source": "Yahoo Finance",
+      "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-16T22:06:21Z",
+      "ts": "2026-07-16T23:21:39Z",
       "title": "global · Other",
-      "source": "Yahoo Finance",
+      "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-16T22:06:21Z",
-      "title": "fed · Inflation",
-      "source": "Yahoo Finance",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-16T22:06:21Z",
+      "ts": "2026-07-16T23:21:39Z",
       "title": "global · Other",
-      "source": "Yahoo Finance",
+      "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-16T22:06:21Z",
-      "title": "us · Inflation",
-      "source": "Yahoo Finance",
-      "score": 0.5,
+      "ts": "2026-07-16T23:21:39Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-16T22:06:21Z",
-      "title": "fed · Rate Policy",
-      "source": "Yahoo Finance",
+      "ts": "2026-07-16T23:21:39Z",
+      "title": "mideast · Geopolitics · risk off",
+      "source": "Bbc World",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-16T22:06:21Z",
-      "title": "global · Other · risk on",
-      "source": "Yahoo Finance",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-16T22:06:21Z",
+      "ts": "2026-07-16T23:21:39Z",
       "title": "global · Other",
       "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-16T22:06:21Z",
+      "ts": "2026-07-16T23:21:39Z",
       "title": "global · Other",
       "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-16T22:06:21Z",
+      "ts": "2026-07-16T23:21:39Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-16T23:21:39Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-16T23:21:39Z",
       "title": "global · Other",
       "source": "Bbc World",
       "score": 0.1,
@@ -73,5 +73,5 @@
     }
   ],
   "count": 10,
-  "written_at": "2026-07-16T22:09:27.964505Z"
+  "written_at": "2026-07-16T23:25:29.333075Z"
 }
