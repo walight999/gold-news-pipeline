@@ -666,6 +666,30 @@ def eod_recap_bubble(stats: dict[str, Any], date_label: str) -> dict[str, Any]:
                      "size": "xs", "color": "#6B7280", "flex": 0, "align": "end"},
                 ],
             })
+    # System-health digest — the once-a-day roll-up of routine warnings that no
+    # longer push per-cron (critical issues still alert immediately). `health_
+    # warnings` is a list of ready-made Thai/label strings; `health_alerts_24h`
+    # is the total alert count in the window.
+    health_items = stats.get("health_warnings") or []
+    health_24h = int(stats.get("health_alerts_24h", 0) or 0)
+    rows.append({"type": "separator", "margin": "lg"})
+    rows.append({"type": "text", "text": "SYSTEM HEALTH", "size": "xs",
+                 "color": "#9CA3AF", "weight": "bold", "margin": "md"})
+    if health_items:
+        for lbl in health_items[:6]:
+            rows.append({"type": "text", "text": f"⚠ {lbl}", "size": "xs",
+                         "color": "#D97706", "wrap": True, "margin": "xs"})
+        if len(health_items) > 6:
+            rows.append({"type": "text", "text": f"… +{len(health_items) - 6} เพิ่มเติม",
+                         "size": "xxs", "color": "#9CA3AF", "margin": "xs"})
+    else:
+        rows.append({"type": "text", "text": "✅ ปกติ — ไม่มีเตือนค้าง",
+                     "size": "sm", "color": "#059669", "margin": "xs"})
+    if health_24h:
+        rows.append({"type": "text",
+                     "text": f"แจ้งเตือนรวม 24 ชม.: {health_24h} ครั้ง",
+                     "size": "xxs", "color": "#9CA3AF", "margin": "xs"})
+
     title = f"🌙 Daily Recap for {date_label}" if date_label else "🌙 Daily Recap"
     return {
         "type": "bubble", "size": "giga",

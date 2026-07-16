@@ -350,25 +350,32 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
         if health.resolve_warning(store, sid, wtype) > 0 and open_min >= MIN_OPEN_MIN_FOR_RECOVERY_PUSH:
             recovered.append((sid, wtype))
 
-    # Push new warnings (gated by raise_warning cooldown)
+    # Record ALL current warnings to health_log (cooldown history + the daily
+    # EoD digest reads them), but PUSH only the CRITICAL ones. Routine warnings
+    # (tier2_no_item, source quiet, quota climbing) flapped and spammed flex
+    # every cron — they now surface once/day in the recap instead.
     if current_warnings and health_target:
-        line = line or LineClient.from_env()
         cooldown = int(health_cfg.get("alert_cooldown_minutes", 60))
-        emitted_warnings: list[tuple[str, str]] = []
+        emitted_critical: list[tuple[str, str]] = []
         for sid, wtype in current_warnings:
-            if health.raise_warning(store, sid, wtype, cooldown):
-                emitted_warnings.append((sid, wtype))
-        if emitted_warnings:
-            bubble = health_bubble(emitted_warnings)
-            alt = f"⚠️ Health Check — {len(emitted_warnings)} warning(s)"
+            emitted = health.raise_warning(store, sid, wtype, cooldown)
+            if emitted and health.is_critical_warning(wtype):
+                emitted_critical.append((sid, wtype))
+        if emitted_critical:
+            line = line or LineClient.from_env()
+            bubble = health_bubble(emitted_critical)
+            alt = f"🚨 Health Alert — {len(emitted_critical)} critical"
             _push_or_skip(line, health_target, alt, bubble, sched_cfg, label="health", store=store)
 
-    # Push recoveries
+    # Push recoveries — CRITICAL only (routine recover silently; the digest
+    # already shows their current state once/day).
     if recovered and health_target:
-        line = line or LineClient.from_env()
-        bubble = health_recovered_bubble(recovered)
-        alt = f"✅ Health Recovered — {len(recovered)} item(s)"
-        _push_or_skip(line, health_target, alt, bubble, sched_cfg, label="health_recovered", store=store)
+        crit_recovered = [(s, w) for s, w in recovered if health.is_critical_warning(w)]
+        if crit_recovered:
+            line = line or LineClient.from_env()
+            bubble = health_recovered_bubble(crit_recovered)
+            alt = f"✅ Health Recovered — {len(crit_recovered)} item(s)"
+            _push_or_skip(line, health_target, alt, bubble, sched_cfg, label="health_recovered", store=store)
 
     # 7. News Update round if in slot.
     #
@@ -635,7 +642,7 @@ async def run_eod_recap() -> int:
     if is_weekend_ict():
         log.info("weekend (ICT) — skipping eod_recap")
         return 0
-    _, _, sched_cfg = _load_configs()
+    src_cfg, _, sched_cfg = _load_configs()
     store = Store.from_env()
     store.connect()
     store.load_all()
@@ -739,6 +746,26 @@ async def run_eod_recap() -> int:
         "month_tokens_out": month_tokens_out,
         "month_label": cl.get("month", ""),
     }
+
+    # Daily health digest — the once-a-day roll-up. Routine warnings no longer
+    # push per-cron (that was the flex spam); they surface here instead. We
+    # compute the CURRENT snapshot fresh (accurate "right now" state) plus the
+    # 24h alert count. Best-effort — never blocks the recap.
+    try:
+        from . import line_flex as _lf
+        hc = sched_cfg.get("health", {})
+        health_labels: list[str] = []
+        for s in src_cfg["sources"]:
+            if s.get("enabled"):
+                for sid, wt in health.check_source_health(store, s, hc):
+                    health_labels.append(f"{_lf.SOURCE_NAMES.get(sid, sid)}: {_lf._format_warning(sid, wt)}")
+        for _wt, msg in health.check_pipeline_health(store):
+            health_labels.append(msg)
+        stats["health_warnings"] = health_labels
+        stats["health_alerts_24h"] = health.count_warnings_since(store, 24)
+    except Exception:
+        log.exception("eod health digest failed — recap still sent")
+
     # Daily recap is a private end-of-day summary — 1:1 chat ONLY, never the
     # group (same policy as the scorecard). Push to the first U-prefixed id.
     target = _private_target()
@@ -1615,26 +1642,32 @@ async def run_watchdog() -> int:
         if new_row:
             fresh.append((sid, warning_type, message))
 
-    if fresh and health_target:
+    # PUSH only CRITICAL fresh warnings (routine ones — line_quota_high,
+    # source_noisy, self-healing workflow_failure — are recorded and surface in
+    # the daily EoD digest). All fresh warnings are still logged for the record.
+    for sid, wt, msg in fresh:
+        log.warning("watchdog: %s/%s — %s", sid, wt, msg)
+    fresh_critical = [(sid, wt) for sid, wt, _ in fresh if health.is_critical_warning(wt)]
+    if fresh_critical and health_target:
         line = line or LineClient.from_env()
         # health_bubble takes (source_id, warning_type) pairs — labels come
         # from SOURCE_NAMES + WARNING_MESSAGES tables in line_flex.py.
-        warning_pairs = [(sid, wt) for sid, wt, _ in fresh]
-        bubble = health_bubble(warning_pairs)
-        alt = f"🚨 Pipeline alert — {len(fresh)} issue(s)"
+        bubble = health_bubble(fresh_critical)
+        alt = f"🚨 Pipeline alert — {len(fresh_critical)} issue(s)"
         # Route through the quota counter — health pushes count against the same
         # 500/mo LINE free tier as everything else.
         record_line_outcome(store, line.push_flex(health_target, alt, bubble))
-        for sid, wt, msg in fresh:
-            log.warning("watchdog: %s/%s — %s", sid, wt, msg)
 
-    if recovered and health_target:
+    # Recovery push — CRITICAL only (routine recover silently).
+    crit_recovered = [(sid, wt) for sid, wt in recovered if health.is_critical_warning(wt)]
+    if crit_recovered and health_target:
         line = line or LineClient.from_env()
-        bubble = health_recovered_bubble(recovered)
-        alt = f"✅ Pipeline recovered — {len(recovered)} item(s)"
+        bubble = health_recovered_bubble(crit_recovered)
+        alt = f"✅ Pipeline recovered — {len(crit_recovered)} item(s)"
         record_line_outcome(store, line.push_flex(health_target, alt, bubble))
 
-    log.info("watchdog: fresh=%d recovered=%d", len(fresh), len(recovered))
+    log.info("watchdog: fresh=%d (critical=%d) recovered=%d", len(fresh),
+             len(fresh_critical), len(recovered))
     store.flush()
     return 0
 

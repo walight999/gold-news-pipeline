@@ -114,6 +114,61 @@ def _count_recent_warnings(store: Store, source_id: str, warning_type: str, hour
     return n
 
 
+# --- Severity: CRITICAL warnings push to LINE immediately; everything else is
+# ROUTINE (flappy / informational) and is rolled into the once-a-day EoD health
+# digest instead of a per-cron flex. This is the anti-spam split — a tier-2
+# source going quiet for 30 min, quota climbing, or a single self-healing
+# workflow failure should NOT each cost a flex message every hour.
+CRITICAL_WARNINGS: set[str] = {
+    "http_errors_streak",           # a source erroring repeatedly
+    "tier0_event_day_no_success",   # Fed/BLS/ECB dark during a CPI/NFP window
+    "watchdog_silence",             # pipeline not running at all
+    "watchdog_no_items",            # every source returning 0 for hours
+    "ff_scraper_dead",              # FF Cloudflare bypass broke
+    "classifier_degraded",          # Claude+Gemini both down
+    "workflow_disabled",            # a critical workflow silently disabled
+    "line_push_failing",            # LINE channel failing 5x
+    "macro_push_dead",              # alert-bot macro feed silent
+}
+
+
+def is_critical_warning(warning_type: str) -> bool:
+    """CRITICAL → immediate LINE push. Everything else (tier1_no_success,
+    tier2_no_item, line_quota_high, source_noisy:*, workflow_failure) is ROUTINE
+    → surfaced once/day in the EoD health digest, never pushed per-cron."""
+    return warning_type in CRITICAL_WARNINGS
+
+
+def open_warnings(store: Store) -> list[tuple[str, str, float]]:
+    """Currently-unresolved health_log warnings as (source_id, warning_type,
+    open_minutes), most-recently-raised first, deduped per (source, type).
+    Feeds the daily EoD health digest."""
+    seen: set[tuple[str, str]] = set()
+    out: list[tuple[str, str, float]] = []
+    for row in sorted(store.all_rows("health_log"),
+                      key=lambda r: r.get("warning_ts", ""), reverse=True):
+        if row.get("resolved_ts"):
+            continue
+        key = (row.get("source_id", ""), row.get("warning_type", ""))
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append((key[0], key[1], warning_open_minutes(store, key[0], key[1])))
+    return out
+
+
+def count_warnings_since(store: Store, hours: int = 24) -> int:
+    """Total health warnings raised in the last N hours (all sources/types).
+    The '24h alert count' line in the daily digest."""
+    cutoff = now_utc() - timedelta(hours=hours)
+    n = 0
+    for row in store.all_rows("health_log"):
+        ts = parse_iso(row.get("warning_ts"))
+        if ts and ts >= cutoff:
+            n += 1
+    return n
+
+
 def resolve_warning(store: Store, source_id: str, warning_type: str) -> int:
     """Mark all open warnings of this (source, type) as resolved. Returns count resolved."""
     ts = iso_utc(now_utc())
