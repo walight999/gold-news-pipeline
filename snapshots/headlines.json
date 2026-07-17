@@ -2,70 +2,70 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-07-17T00:55:51Z",
+      "ts": "2026-07-17T04:36:15Z",
       "title": "global · Other",
       "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-17T00:55:51Z",
+      "ts": "2026-07-17T04:36:15Z",
       "title": "mideast · Geopolitics · risk off",
       "source": "Yahoo Finance",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-17T00:55:51Z",
-      "title": "global · Other",
-      "source": "Yahoo Finance",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-17T00:55:51Z",
+      "ts": "2026-07-17T04:36:15Z",
       "title": "us · Inflation",
       "source": "Yahoo Finance",
       "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-17T00:55:51Z",
+      "ts": "2026-07-17T04:36:15Z",
       "title": "global · Other",
       "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-17T00:55:51Z",
-      "title": "global · Other · hawkish",
+      "ts": "2026-07-17T04:36:15Z",
+      "title": "us · Usd Yields",
       "source": "Yahoo Finance",
-      "score": 0.1,
+      "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-17T00:55:51Z",
-      "title": "global · Other",
-      "source": "Cnbc",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-17T00:55:51Z",
-      "title": "mideast · Geopolitics",
-      "source": "Cnbc",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-17T00:55:51Z",
-      "title": "us · Jobs",
-      "source": "Investing Cb",
+      "ts": "2026-07-17T04:36:15Z",
+      "title": "us · Inflation",
+      "source": "Yahoo Finance",
       "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-17T00:55:51Z",
+      "ts": "2026-07-17T04:36:15Z",
+      "title": "global · Other",
+      "source": "Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-17T04:36:15Z",
+      "title": "fed · Inflation",
+      "source": "Yahoo Finance",
+      "score": 0.5,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-17T04:36:15Z",
+      "title": "global · Other",
+      "source": "Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-17T04:36:15Z",
       "title": "global · Other",
       "source": "Cnbc",
       "score": 0.1,
@@ -73,5 +73,5 @@
     }
   ],
   "count": 10,
-  "written_at": "2026-07-17T01:01:08.680931Z"
+  "written_at": "2026-07-17T04:40:54.680661Z"
 }
