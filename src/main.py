@@ -1776,6 +1776,16 @@ async def run_watchdog() -> int:
     log.info("watchdog: fresh=%d (critical=%d) recovered=%d", len(fresh),
              len(fresh_critical), len(recovered))
     store.flush()
+
+    # Independent liveness ping for the WATCHDOG itself. The in-repo watchdog
+    # shares GitHub Actions + the cron-job.org dispatcher's lifeline with the
+    # main cron, and its own check_disabled_workflows() can't see the watchdog
+    # sitting disabled_manually (it runs INSIDE the watchdog — catch-22, the
+    # exact 2026-06-26 calendar_daily class of outage). A SEPARATE deadman check
+    # (WATCHDOG_PING_URL, distinct from the cron's HEALTHCHECK_PING_URL so the
+    # cron's pings can't mask a watchdog-only death) alerts when these pings stop.
+    # After flush, so a persistence failure withholds the healthy signal.
+    health.ping_deadman(os.environ.get("WATCHDOG_PING_URL"))
     return 0
 
 
