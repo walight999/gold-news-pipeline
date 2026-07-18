@@ -36,6 +36,10 @@ jobs:
       GSHEET_ID: ${{ secrets.GSHEET_ID }}
       GSHEET_CREDS: ${{ secrets.GSHEET_CREDS }}
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # LINE-independent ops channel (ops_alert.py) — direct Telegram DM so a
+      # LINE outage can't swallow its own "LINE is down" alert. No-op if unset.
+      OPS_TG_BOT_TOKEN: ${{ secrets.OPS_TG_BOT_TOKEN }}
+      OPS_TG_CHAT_ID: ${{ secrets.OPS_TG_CHAT_ID }}
       PYTHONUNBUFFERED: "1"
     steps:
       - uses: actions/checkout@v4

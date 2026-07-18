@@ -104,6 +104,33 @@ def test_full_multi_failure_increments_streak(store):
     assert int(row["consecutive_errors"]) == 1
 
 
+def test_line_push_failing_message_names_quota_on_429(store):
+    """A 429 streak must say 'quota exhausted, resets on the 1st' — NOT the
+    generic 'token expired' — so the operator knows it self-heals and doesn't
+    go chasing a dead token. This is the 2026-07-18 incident's signal."""
+    from src.health import check_pipeline_health, write_heartbeat
+    write_heartbeat(store, items_seen=5)
+    for _ in range(5):
+        record_line_outcome(store, 429)
+    warns = dict(check_pipeline_health(store))
+    assert "line_push_failing" in warns
+    assert "429" in warns["line_push_failing"]
+    assert "quota" in warns["line_push_failing"].lower()
+
+
+def test_line_push_failing_message_names_auth_on_401(store):
+    """A 401 streak = token/channel problem — a human must act; message must
+    NOT claim quota (which would wrongly imply it self-heals on the 1st)."""
+    from src.health import check_pipeline_health, write_heartbeat
+    write_heartbeat(store, items_seen=5)
+    for _ in range(5):
+        record_line_outcome(store, 401)
+    warns = dict(check_pipeline_health(store))
+    assert "line_push_failing" in warns
+    assert "401" in warns["line_push_failing"]
+    assert "quota" not in warns["line_push_failing"].lower()
+
+
 def test_watchdog_no_warning_at_low_volume(store):
     """A few messages — no warnings should fire."""
     from src.health import check_pipeline_health, write_heartbeat

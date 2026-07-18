@@ -329,8 +329,17 @@ def check_pipeline_health(
     line_row = store.get("source_state", (LINE_PUSH_SOURCE_ID,)) or {}
     line_consec = int(line_row.get("consecutive_errors") or 0)
     if line_consec >= 5:
+        last_status = str(line_row.get("last_status") or "0")
+        if last_status == "429":
+            reason = ("monthly free-tier quota EXHAUSTED (HTTP 429) — resets on the "
+                      "1st (Asia/Bangkok). Nothing delivers on LINE until then; "
+                      "upgrade the OA plan or wait for the reset.")
+        elif last_status in ("401", "403"):
+            reason = f"auth/channel error (HTTP {last_status}) — token expired or channel disabled?"
+        else:
+            reason = "token expired? channel disabled? network down?"
         out.append(("line_push_failing",
-                    f"LINE push failed {line_consec}× in a row — token expired? channel disabled?"))
+                    f"LINE push failed {line_consec}× in a row — {reason}"))
     qs = get_line_quota_status(store)
     if qs.get("count", 0) > 0:
         pct = qs.get("pct", 0)

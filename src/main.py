@@ -22,7 +22,7 @@ from typing import Any
 import yaml
 
 from . import calendar as cal
-from . import dedup, digest, fred, health, macro_push, news_alert, price_feed, scorecard, scorer, social_feed, telegram_news, translator
+from . import dedup, digest, fred, health, macro_push, news_alert, ops_alert, price_feed, scorecard, scorer, social_feed, telegram_news, translator
 from .fetcher import fetch_all, plan_fetch
 from .line_client import LineClient, record_line_outcome
 from .line_flex import (
@@ -366,6 +366,10 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
             bubble = health_bubble(emitted_critical)
             alt = f"🚨 Health Alert — {len(emitted_critical)} critical"
             _push_or_skip(line, health_target, alt, bubble, sched_cfg, label="health", store=store)
+            # LINE-independent mirror (see run_watchdog) — reach the operator even
+            # when LINE is the failing channel. No-op unless OPS_TG_* is set.
+            if ops_alert.is_configured():
+                ops_alert.mirror_health(emitted_critical, kind="alert")
 
     # Push recoveries — CRITICAL only (routine recover silently; the digest
     # already shows their current state once/day).
@@ -1676,6 +1680,17 @@ async def run_watchdog() -> int:
         # Route through the quota counter — health pushes count against the same
         # 500/mo LINE free tier as everything else.
         record_line_outcome(store, line.push_flex(health_target, alt, bubble))
+
+    # LINE-independent mirror. The LINE push above CANNOT deliver a "LINE is
+    # failing / quota exhausted" alert (the channel it uses is the thing that's
+    # down — the 2026-07-18 silent week). Fan critical + quota warnings out to a
+    # direct Telegram DM instead; no-op when OPS_TG_* is unset. Also carries the
+    # `line_quota_high` 80% early-warning, which is ROUTINE on LINE (must not burn
+    # a flex at 80%) but free and high-value on Telegram.
+    if ops_alert.is_configured():
+        ops_pairs = [(sid, wt, msg) for sid, wt, msg in fresh if ops_alert.should_mirror(wt)]
+        if ops_pairs:
+            ops_alert.mirror_health(ops_pairs, kind="alert")
 
     # Recovery push — CRITICAL only (routine recover silently).
     crit_recovered = [(sid, wt) for sid, wt in recovered if health.is_critical_warning(wt)]

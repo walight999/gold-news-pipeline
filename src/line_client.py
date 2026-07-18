@@ -90,6 +90,10 @@ def record_line_outcome(store, resp) -> None:
     row["source_id"] = LINE_PUSH_SOURCE_ID
     row["last_attempt_ts"] = ts
     row["consecutive_errors"] = str(consec)
+    # Remember the last HTTP status so the watchdog can say WHY LINE is failing:
+    # 429 = monthly quota exhausted (recovers on the 1st), 401/403 = token /
+    # channel broken (needs a human). 0 = transport error (network/timeout).
+    row["last_status"] = str(status_code)
     row["items_last_hour"] = _json.dumps(counters)
     row["updated_at"] = ts
     store.upsert("source_state", row)
@@ -173,7 +177,14 @@ class LineClient:
             return {"status": 0, "body": "retry_exhausted"}
         except httpx.HTTPError as e:
             log.warning("line push http error: %s", e)
-            return {"status": 0, "body": str(e)}
+            # Preserve the real HTTP status (429 = monthly quota exhausted,
+            # 401 = token expired, 403 = channel disabled). Callers/health can
+            # then tell "quota, resets on the 1st" apart from "auth broken",
+            # instead of a blind status-0. HTTPStatusError carries .response;
+            # transport errors (no response) stay status 0.
+            resp = getattr(e, "response", None)
+            status = getattr(resp, "status_code", 0) if resp is not None else 0
+            return {"status": status, "body": str(e)}
 
     def _broadcast(self, target: str | list[str] | None,
                    messages: list[dict[str, Any]]) -> dict[str, Any]:
