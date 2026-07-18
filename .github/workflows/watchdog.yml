@@ -40,6 +40,9 @@ jobs:
       # LINE outage can't swallow its own "LINE is down" alert. No-op if unset.
       OPS_TG_BOT_TOKEN: ${{ secrets.OPS_TG_BOT_TOKEN }}
       OPS_TG_CHAT_ID: ${{ secrets.OPS_TG_CHAT_ID }}
+      # Separate dead-man check for the watchdog itself (distinct from the cron's
+      # HEALTHCHECK_PING_URL) so a watchdog-only outage is caught. No-op if unset.
+      WATCHDOG_PING_URL: ${{ secrets.WATCHDOG_PING_URL }}
       PYTHONUNBUFFERED: "1"
     steps:
       - uses: actions/checkout@v4

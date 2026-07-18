@@ -3,16 +3,41 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 
+import httpx
+
 from src.health import (
     HEARTBEAT_SOURCE_ID,
     _count_recent_warnings,
     check_pipeline_health,
     check_source_health,
+    ping_deadman,
     raise_warning,
     resolve_warning,
     write_heartbeat,
 )
 from src.utils_time import iso_utc
+
+
+def test_ping_deadman_noop_when_no_url():
+    assert ping_deadman(None) is False
+    assert ping_deadman("") is False
+
+
+def test_ping_deadman_gets_the_url(monkeypatch):
+    """A configured deadman URL is GET-pinged. This is the watchdog's own
+    liveness signal (WATCHDOG_PING_URL) and the cron's (HEALTHCHECK_PING_URL)."""
+    called = {}
+    monkeypatch.setattr(httpx, "get",
+                        lambda url, timeout=None: called.__setitem__("url", url))
+    assert ping_deadman("https://hc-ping.com/abc") is True
+    assert called["url"] == "https://hc-ping.com/abc"
+
+
+def test_ping_deadman_swallows_errors(monkeypatch):
+    def _boom(url, timeout=None):
+        raise httpx.ConnectError("down")
+    monkeypatch.setattr(httpx, "get", _boom)
+    assert ping_deadman("https://hc-ping.com/abc") is False
 
 
 def test_cooldown_suppresses_repeat(store):
