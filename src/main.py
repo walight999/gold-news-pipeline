@@ -24,7 +24,14 @@ import yaml
 from . import calendar as cal
 from . import dedup, digest, fred, health, macro_push, news_alert, ops_alert, price_feed, scorecard, scorer, social_feed, telegram_news, translator
 from .fetcher import fetch_all, plan_fetch
-from .line_client import LineClient, record_line_outcome
+from .line_client import (
+    PRIORITY_BRIEFING,
+    PRIORITY_CORE,
+    PRIORITY_REDUNDANT,
+    LineClient,
+    quota_allows,
+    record_line_outcome,
+)
 from .line_flex import (
     _pick_article_url,
     _source_label,
@@ -62,18 +69,28 @@ def _quiet_hours_cfg(sched_cfg):
 
 
 def _push_or_skip(line, target, alt, bubble, sched_cfg, label="", bypass_quiet=False,
-                   store=None):
-    """LINE push wrapped in the quiet-hours gate. Returns the response dict
-    on actual push, or a synthetic {status: 0, body: 'quiet_hours'} when
+                   store=None, priority=0):
+    """LINE push wrapped in the quota + quiet-hours gates. Returns the response
+    dict on actual push, or a synthetic {status: 0, body: '<reason>'} when
     suppressed so callers can keep idempotency logic clean.
 
     `bypass_quiet=True` skips the quiet-hours check — used for the daily
     calendar briefing at 04:40 ICT, which should fire even though it sits
     inside the 04:00-05:00 ICT market-close window.
 
+    `priority` (line_client.PRIORITY_*) drives the quota gate: when LINE is
+    exhausted (429 this month) or near the cap, lower-value cards are shed so
+    breaking/alert keep their quota. Default 0 = never gated (existing callers
+    unaffected). Requires `store` to read quota state.
+
     `store` is optional but recommended — passing it enables LINE
     quota + push-failure health tracking (watchdog detects 5xx streaks
     + 80% quota usage)."""
+    if priority > 0 and store is not None:
+        ok, reason = quota_allows(store, priority)
+        if not ok:
+            log.info("quota gate — skipping push (%s): %s", label or "", reason)
+            return {"status": 0, "body": "quota_gated"}
     if not bypass_quiet and is_quiet_hours_ict(_quiet_hours_cfg(sched_cfg)):
         log.info("quiet hours — suppressing push (%s)", label or "")
         return {"status": 0, "body": "quiet_hours"}
@@ -486,7 +503,8 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
                 # briefing) — otherwise quiet-hours silently eats the 04:30
                 # round AND mark_sent records it as delivered.
                 resp = _push_or_skip(line, news_target, alt, carousel, sched_cfg,
-                                     label="digest", bypass_quiet=True, store=store)
+                                     label="digest", bypass_quiet=True, store=store,
+                                     priority=PRIORITY_CORE)
                 # Only mark the slot delivered once it reached ≥1 recipient.
                 # Marking on a full failure (status 0/5xx/429 to all) silently
                 # burns the whole round — the 210-min catch-up window would skip
@@ -794,7 +812,7 @@ async def run_eod_recap() -> int:
     # yesterday) — inside the quiet window. The recap is once/day and must not be
     # silently eaten there (it would never retry). 23:00 ICT is outside quiet anyway.
     resp = _push_or_skip(line, target, alt, bubble, sched_cfg, label="eod_recap",
-                         bypass_quiet=True, store=store)
+                         bypass_quiet=True, store=store, priority=PRIORITY_CORE)
     if resp["status"] == 200:
         store.upsert("sent_log", {
             "event_id": sent_key, "route_type": "eod_recap",
@@ -1109,16 +1127,22 @@ async def run_scorecard() -> int:
     bubble = scorecard_bubble(card, short_date, rolling_pct=rolling)
     alt = f"🎯 ความแม่นยำ {short_date}: ถูก {card['n_correct']}/{card['n_graded']}"
     line = LineClient.from_env()
-    resp = line.push_flex(target, alt, bubble)
-    record_line_outcome(store, resp)   # count against the LINE monthly quota
-    if resp.get("status") == 200:
-        store.upsert("sent_log", {
-            "event_id": sent_key, "route_type": "scorecard",
-            "sent_ts": iso_utc(now_utc()), "line_status": 200,
-        })
+    ok, reason = quota_allows(store, PRIORITY_CORE)
+    if not ok:
+        # The rolling-accuracy Telegram card below still goes out (independent
+        # channel), so the scorecard isn't lost — only its LINE copy is shed.
+        log.info("quota gate — skipping scorecard LINE push: %s", reason)
     else:
-        log.warning("scorecard push failed status=%s body=%s",
-                    resp.get("status"), str(resp.get("body"))[:200])
+        resp = line.push_flex(target, alt, bubble)
+        record_line_outcome(store, resp)   # count against the LINE monthly quota
+        if resp.get("status") == 200:
+            store.upsert("sent_log", {
+                "event_id": sent_key, "route_type": "scorecard",
+                "sent_ts": iso_utc(now_utc()), "line_status": 200,
+            })
+        else:
+            log.warning("scorecard push failed status=%s body=%s",
+                        resp.get("status"), str(resp.get("body"))[:200])
     # Surface the rolling accuracy publicly: push to the free news bot, which shows it
     # on the weekly track-record card (T0-1 — the strongest free->paid credibility line).
     # Best-effort + env-gated; never affects the scorecard run.
@@ -1239,7 +1263,7 @@ async def run_weekly_preview() -> int:
     # fallback is dead exactly when it's needed (and it never retries).
     resp = _push_or_skip(line, target, f"📅 Week Ahead — {len(filtered)} events",
                           bubble, sched_cfg, label="weekly_preview",
-                          bypass_quiet=True, store=store)
+                          bypass_quiet=True, store=store, priority=PRIORITY_BRIEFING)
     if _delivered(resp):
         store.upsert("sent_log", {
             "event_id": sent_key, "route_type": "weekly_preview",
@@ -1337,7 +1361,7 @@ async def run_calendar_daily() -> int:
     # 04:00-05:00 ICT quiet window (it's the wake-up email of the day).
     resp = _push_or_skip(line, target, f"📅 Calendar — {len(filtered)} events today",
                           bubble, sched_cfg, label="calendar_daily",
-                          bypass_quiet=True, store=store)
+                          bypass_quiet=True, store=store, priority=PRIORITY_BRIEFING)
     if _delivered(resp):
         store.upsert("sent_log", {
             "event_id": sent_key, "route_type": "calendar_daily",
@@ -1432,7 +1456,8 @@ async def run_calendar_check() -> int:
             effect_info = cal.forecast_vs_previous_effect(ev)
             bubble = pre_release_bubble(ev, mins_to, impact_info, effect_info)
             alt = f"⏰ T-{mins_to}min · {ev.country} {ev.title}"
-            resp = _push_or_skip(line, target, alt, bubble, sched_cfg, label="calendar", store=store)
+            resp = _push_or_skip(line, target, alt, bubble, sched_cfg, label="calendar",
+                                 store=store, priority=PRIORITY_REDUNDANT)
             if _delivered(resp):
                 store.upsert("sent_log", {
                     "event_id": sent_key, "route_type": "calendar_pre",
@@ -1519,7 +1544,8 @@ async def run_calendar_check() -> int:
                                          detail_th=detail_th)
             alt_extra = f" · actual {actual_text}" if actual_text else ""
             alt = f"📊 Released · {ev.country} {ev.title}{alt_extra}"
-            resp = _push_or_skip(line, target, alt, bubble, sched_cfg, label="calendar", store=store)
+            resp = _push_or_skip(line, target, alt, bubble, sched_cfg, label="calendar",
+                                 store=store, priority=PRIORITY_CORE)
             if _delivered(resp):
                 store.upsert("sent_log", {
                     "event_id": sent_key, "route_type": "calendar_post",
