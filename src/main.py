@@ -223,7 +223,7 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
     breaking_alert_decisions = [d for d in decisions if d.route in (Route.BREAKING, Route.ALERT)]
     if breaking_alert_decisions:
         line = LineClient.from_env()
-    news_target = os.environ.get("LINE_NEWS_TARGET", "")
+    news_target = _group_targets()
     health_target = os.environ.get("LINE_HEALTH_TARGET", "")
 
     for d in decisions:
@@ -1005,6 +1005,25 @@ def _private_target() -> str:
     return ""
 
 
+def _group_targets() -> str:
+    """News-broadcast targets — the group/room (C.../R...) ids in
+    LINE_NEWS_TARGET, excluding the 1:1 (U...) chat.
+
+    Since 2026-07-18 news cards (breaking/alert/digest, calendar, weekly
+    preview) go to the group ONLY; the 1:1 chat carries private/ops cards
+    (eod_recap, scorecard, health). LINE bills the free-tier quota per
+    recipient, so dropping the duplicate 1:1 copy halves the news burn —
+    the quota exhausted mid-month of 2026-07 with both recipients on.
+
+    Falls back to the full LINE_NEWS_TARGET when it contains no group id,
+    so a group-less config degrades to the old behaviour instead of going
+    silent."""
+    raw = os.environ.get("LINE_NEWS_TARGET", "")
+    groups = [p.strip() for p in raw.split(",")
+              if p.strip() and not p.strip().startswith("U")]
+    return ",".join(groups) if groups else raw
+
+
 async def run_scorecard() -> int:
     """EOD directional-accuracy scorecard (Phase 1 — calendar verdicts).
 
@@ -1196,7 +1215,7 @@ async def run_weekly_preview() -> int:
     if bubble is None:
         store.flush()
         return 0
-    target = os.environ.get("LINE_NEWS_TARGET", "")
+    target = _group_targets()
     if not target:
         log.warning("LINE_NEWS_TARGET not set — skipping push")
         store.flush()
@@ -1276,7 +1295,7 @@ async def run_calendar_daily() -> int:
         store.flush()
         return 0
 
-    target = os.environ.get("LINE_NEWS_TARGET", "")
+    target = _group_targets()
     if not target:
         log.warning("LINE_NEWS_TARGET not set — skipping push")
         store.flush()
@@ -1378,7 +1397,7 @@ async def run_calendar_check() -> int:
     log.info("calendar_check: pre=%d in [%d,%d) min, post=%d in [%d,%d) min",
              len(upcoming), pre_lo, pre_hi, len(just_released), post_lo, post_hi)
 
-    target = os.environ.get("LINE_NEWS_TARGET", "")
+    target = _group_targets()
     if not target:
         log.warning("LINE_NEWS_TARGET not set — skipping push")
         store.flush()
