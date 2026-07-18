@@ -29,6 +29,10 @@ jobs:
     env:
       GSHEET_ID: ${{ secrets.GSHEET_ID }}
       GSHEET_CREDS: ${{ secrets.GSHEET_CREDS }}
+      # precision_report DMs its summary to the ops Telegram (private, and
+      # LINE-independent so it lands during a LINE outage). No-op when unset.
+      OPS_TG_BOT_TOKEN: ${{ secrets.OPS_TG_BOT_TOKEN }}
+      OPS_TG_CHAT_ID: ${{ secrets.OPS_TG_CHAT_ID }}
       PYTHONUNBUFFERED: "1"
     steps:
       - uses: actions/checkout@v4
