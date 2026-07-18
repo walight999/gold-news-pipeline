@@ -125,7 +125,7 @@ SCHEMAS: dict[str, list[str]] = {
     "source_state": [
         "source_id", "last_attempt_ts", "last_success_ts", "last_item_ts",
         "etag", "last_modified", "consecutive_errors", "items_last_hour",
-        "last_validation_ts", "last_health_alert_ts", "updated_at",
+        "last_validation_ts", "last_health_alert_ts", "last_status", "updated_at",
     ],
     "event_state": [
         "event_id", "cluster_key", "topic_bucket", "entity", "direction_label",

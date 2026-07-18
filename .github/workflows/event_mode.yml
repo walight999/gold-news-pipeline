@@ -33,6 +33,9 @@ jobs:
       # Off-GAS CHUM News Bot (Telegram). Env-gated: no-op when unset.
       NEWS_BOT_WEBHOOK_URL: ${{ secrets.NEWS_BOT_WEBHOOK_URL }}
       NEWS_BOT_SECRET: ${{ secrets.NEWS_BOT_SECRET }}
+      # LINE-independent ops channel (ops_alert.py). No-op when unset.
+      OPS_TG_BOT_TOKEN: ${{ secrets.OPS_TG_BOT_TOKEN }}
+      OPS_TG_CHAT_ID: ${{ secrets.OPS_TG_CHAT_ID }}
       # External dead-man ping — event mode also bumps it each iteration.
       HEALTHCHECK_PING_URL: ${{ secrets.HEALTHCHECK_PING_URL }}
       PYTHONUNBUFFERED: "1"

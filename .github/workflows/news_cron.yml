@@ -29,6 +29,10 @@ jobs:
       # Off-GAS CHUM News Bot (Telegram). Env-gated: no-op when unset.
       NEWS_BOT_WEBHOOK_URL: ${{ secrets.NEWS_BOT_WEBHOOK_URL }}
       NEWS_BOT_SECRET: ${{ secrets.NEWS_BOT_SECRET }}
+      # LINE-independent ops channel (ops_alert.py) — critical health alerts DM
+      # the operator over Telegram so a LINE outage can't swallow its own alarm.
+      OPS_TG_BOT_TOKEN: ${{ secrets.OPS_TG_BOT_TOKEN }}
+      OPS_TG_CHAT_ID: ${{ secrets.OPS_TG_CHAT_ID }}
       # External dead-man ping (healthchecks.io) — independent of GitHub Actions
       # + cron-job.org, which the in-repo watchdog shares a lifeline with. Pinged
       # each cron/event run; a missed ping alerts even during a full GHA outage.

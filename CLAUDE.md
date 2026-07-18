@@ -141,6 +141,14 @@ with no 15m bar show as ⏳ pending, not wrong.
 `GAS_WEBAPP_URL`, `GAS_WEBAPP_TOKEN`, and X: `X_API_KEY` `X_API_SECRET`
 `X_ACCESS_TOKEN` `X_ACCESS_TOKEN_SECRET` (OAuth 1.0a, @tradetongkam, Read+Write).
 
+**Ops channel (`ops_alert.py`) — `OPS_TG_BOT_TOKEN` + `OPS_TG_CHAT_ID`:** a
+direct Telegram DM to the operator, the ONLY delivery path that doesn't depend
+on LINE. Critical health warnings + the `line_quota_high` early-warning mirror
+here so a LINE outage (token/quota) can't swallow its own "LINE is down" alarm —
+the 2026-07-18 silent-week incident. Env-gated no-op until both are set. May
+reuse @FinisitNews_bot's token; the chat_id must be the operator's PRIVATE DM,
+not the public subscriber group. Wired into news_cron / event_mode / watchdog.
+
 **Classifier provider chain** (`news_alert.classify_and_rewrite`): Claude Haiku
 (primary) → **Gemini `gemini-2.0-flash`** (secondary, `GEMINI_API_KEY`, free tier,
 same prompt+JSON contract) → literal Google-Translate fallback (`category="Other"`,
