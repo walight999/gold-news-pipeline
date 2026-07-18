@@ -128,6 +128,7 @@ CRITICAL_WARNINGS: set[str] = {
     "classifier_degraded",          # Claude+Gemini both down
     "workflow_disabled",            # a critical workflow silently disabled
     "line_push_failing",            # LINE channel failing 5x
+    "telegram_push_failing",        # CHUM news-bot worker failing 5x (primary channel!)
     "macro_push_dead",              # alert-bot macro feed silent
 }
 
@@ -349,6 +350,19 @@ def check_pipeline_health(
             out.append(("line_quota_high",
                         f"LINE free-tier usage {count}/{LINE_FREE_TIER_QUOTA} ({pct}%) for {month} "
                         "— upgrading to Light plan recommended."))
+
+    # Telegram/news-bot push health. Telegram is the primary channel while LINE
+    # quota is exhausted, so a silent worker outage drops everything. Row is
+    # written by telegram_news.record_telegram_outcome; only fires if Telegram
+    # was ever used (row exists = NEWS_BOT_* configured).
+    from .telegram_news import TELEGRAM_HEALTH_SOURCE_ID
+    tg_row = store.get("source_state", (TELEGRAM_HEALTH_SOURCE_ID,))
+    if tg_row:
+        tg_consec = int(tg_row.get("consecutive_errors") or 0)
+        if tg_consec >= 5:
+            out.append(("telegram_push_failing",
+                        f"Telegram/news-bot push failed {tg_consec}× in a row — "
+                        "CHUM worker down or NEWS_BOT_WEBHOOK_URL/SECRET wrong?"))
 
     # Per-source reject rate. If a source's classifier reject rate is
     # >90% over the all-time counter window, it's just noise — consider

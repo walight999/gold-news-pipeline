@@ -83,6 +83,8 @@ def test_post_hits_the_webhook_endpoint(monkeypatch):
     client = telegram_news.TelegramNewsClient(base_url="https://news.justchum.com", secret="abc")
     res = client.post({"headline_th": "x"})
     assert res["status"] == 200
+    # store defaults to None → health tracking is a safe no-op
+    assert client.store is None
     # secret is NO LONGER in the URL — it rides the X-News-Secret header (audit H3)
     assert _FakeClient.last_url == "https://news.justchum.com/webhook/news"
     assert _FakeClient.last_headers == {"X-News-Secret": "abc"}
@@ -106,6 +108,69 @@ def test_post_accuracy_hits_the_accuracy_endpoint(monkeypatch):
     assert _FakeClient.last_url == "https://news.justchum.com/webhook/accuracy"
     assert _FakeClient.last_headers == {"X-News-Secret": "abc"}
     assert _FakeClient.last_json["accuracy"] == 0.68
+
+
+class _FailClient:
+    def __init__(self, *a, **k):
+        pass
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *a):
+        return False
+
+    def post(self, url, json=None, headers=None):  # noqa: A002
+        # 400 (client error) is non-retryable, so the health-tracking path is
+        # exercised without tenacity's exponential backoff slowing the suite.
+        return _FakeResp(400)
+
+
+def test_send_records_telegram_health_failure_streak(store, monkeypatch):
+    """5 failed worker posts in a row → _telegram_health consecutive_errors=5,
+    the watchdog's telegram_push_failing threshold (primary channel monitor)."""
+    from src.telegram_news import TELEGRAM_HEALTH_SOURCE_ID
+    monkeypatch.setattr(telegram_news.httpx, "Client", _FailClient)
+    client = telegram_news.TelegramNewsClient(
+        base_url="https://news.justchum.com", secret="abc", store=store)
+    for _ in range(5):
+        client.post({"headline_th": "x"})
+    row = store.get("source_state", (TELEGRAM_HEALTH_SOURCE_ID,))
+    assert int(row["consecutive_errors"]) == 5
+    assert row["last_status"] == "400"  # any non-200 advances the failure streak
+
+
+def test_send_success_resets_telegram_health_streak(store, monkeypatch):
+    from src.telegram_news import TELEGRAM_HEALTH_SOURCE_ID
+    monkeypatch.setattr(telegram_news.httpx, "Client", _FailClient)
+    client = telegram_news.TelegramNewsClient(
+        base_url="https://news.justchum.com", secret="abc", store=store)
+    client.post({"h": "x"})
+    client.post({"h": "x"})
+    monkeypatch.setattr(telegram_news.httpx, "Client", _FakeClient)  # now succeeds
+    client.post({"h": "x"})
+    row = store.get("source_state", (TELEGRAM_HEALTH_SOURCE_ID,))
+    assert int(row["consecutive_errors"]) == 0
+
+
+def test_watchdog_flags_telegram_push_failing(store, monkeypatch):
+    from src.health import check_pipeline_health, write_heartbeat
+    monkeypatch.setattr(telegram_news.httpx, "Client", _FailClient)
+    write_heartbeat(store, items_seen=5)
+    client = telegram_news.TelegramNewsClient(
+        base_url="https://news.justchum.com", secret="abc", store=store)
+    for _ in range(5):
+        client.post({"h": "x"})
+    types = [wt for wt, _ in check_pipeline_health(store)]
+    assert "telegram_push_failing" in types
+
+
+def test_watchdog_no_telegram_warning_when_never_used(store):
+    """No _telegram_health row (NEWS_BOT_* unset) → never fires."""
+    from src.health import check_pipeline_health, write_heartbeat
+    write_heartbeat(store, items_seen=5)
+    types = [wt for wt, _ in check_pipeline_health(store)]
+    assert "telegram_push_failing" not in types
 
 
 class _FakeEv:

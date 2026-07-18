@@ -236,7 +236,7 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
     line = None
     # Off-GAS CHUM News Bot (Telegram) — env-gated; None until NEWS_BOT_WEBHOOK_URL
     # + NEWS_BOT_SECRET are set. Mirrors the LINE push; never blocks it.
-    tg_news = telegram_news.TelegramNewsClient.from_env()
+    tg_news = telegram_news.TelegramNewsClient.from_env(store=store)
     breaking_alert_decisions = [d for d in decisions if d.route in (Route.BREAKING, Route.ALERT)]
     if breaking_alert_decisions:
         line = LineClient.from_env()
@@ -661,6 +661,32 @@ async def run_verify_sources() -> int:
     return 0
 
 
+def _eod_recap_text(stats: dict, short_date: str) -> str:
+    """Plain-text EoD recap for the ops Telegram fallback. The recap is a
+    PRIVATE 1:1 card; when LINE can't deliver it (quota/429), the operator's
+    private Telegram DM is the right home for it — so the daily summary isn't
+    lost while LINE is down. Mirrors the eod_recap_bubble content."""
+    lines = [f"🌙 สรุปสิ้นวัน {short_date}"]
+    lines.append(
+        f"Breaking {stats.get('breaking_n', 0)} · Alert {stats.get('alert_n', 0)} · "
+        f"Digest {stats.get('digest_events_n', 0)} · "
+        f"ปฏิทิน {stats.get('calendar_pre_n', 0)}+{stats.get('calendar_post_n', 0)}")
+    tt = stats.get("top_topics") or []
+    if tt:
+        lines.append("หัวข้อเด่น: " + ", ".join(f"{t}({n})" for t, n, _ in tt[:5]))
+    cl_total = stats.get("classifier_total", 0)
+    if cl_total:
+        lines.append(f"Classifier: kept {stats.get('classifier_kept', 0)}/{cl_total}, "
+                     f"fallback {stats.get('classifier_fallback', 0)}")
+    hw = stats.get("health_warnings") or []
+    if hw:
+        lines.append("⚠ สุขภาพระบบ:")
+        lines.extend(f"  • {w}" for w in hw[:8])
+    else:
+        lines.append("✅ ระบบปกติ")
+    return "\n".join(lines)
+
+
 async def run_eod_recap() -> int:
     """End-of-day recap @ 23:00 ICT. Idempotent per ICT date that the
     recap is FOR (not the date the workflow happens to fire on).
@@ -822,6 +848,16 @@ async def run_eod_recap() -> int:
             social_feed.flush(store, [social_feed.record_recap(stats, short_date)])
         except Exception:
             log.exception("social_feed recap record failed")
+    elif ops_alert.is_configured():
+        # LINE couldn't deliver (quota-gated / 429 / error). The recap is
+        # private, so send the text to the operator's ops Telegram DM — the
+        # daily summary shouldn't vanish just because LINE is exhausted. Mark
+        # sent so a same-day catch-up run doesn't DM it twice.
+        if ops_alert.send_ops_alert(_eod_recap_text(stats, short_date)):
+            store.upsert("sent_log", {
+                "event_id": sent_key, "route_type": "eod_recap",
+                "sent_ts": iso_utc(now_utc()), "line_status": "ops",
+            })
     store.flush()
     log.info("eod_recap done: %s", stats)
     return 0
@@ -1146,7 +1182,7 @@ async def run_scorecard() -> int:
     # Surface the rolling accuracy publicly: push to the free news bot, which shows it
     # on the weekly track-record card (T0-1 — the strongest free->paid credibility line).
     # Best-effort + env-gated; never affects the scorecard run.
-    tg_news = telegram_news.TelegramNewsClient.from_env()
+    tg_news = telegram_news.TelegramNewsClient.from_env(store=store)
     if tg_news:
         detail = scorecard.rolling_accuracy_detail(store.all_rows("scorecard_daily"), days=30)
         if detail:
@@ -1272,7 +1308,7 @@ async def run_weekly_preview() -> int:
 
     # Also deliver the week-ahead to the free CHUM News Bot (T0-5). Best-effort +
     # env-gated; never affects the LINE push. The bot owns its own dedup (event_id).
-    tg_news = telegram_news.TelegramNewsClient.from_env()
+    tg_news = telegram_news.TelegramNewsClient.from_env(store=store)
     if tg_news:
         try:
             tg_news.post_weekly(telegram_news.build_weekly_payload(sent_key, week_label, filtered))
@@ -1369,7 +1405,7 @@ async def run_calendar_daily() -> int:
         })
     # Off-GAS CHUM News Bot (Telegram) — the daily brief is the bot's backbone.
     # Env-gated + best-effort; worker dedups on event_id=sent_key. Never blocks LINE.
-    tg_news = telegram_news.TelegramNewsClient.from_env()
+    tg_news = telegram_news.TelegramNewsClient.from_env(store=store)
     if tg_news:
         try:
             tg_news.post_calendar(telegram_news.build_calendar_payload(sent_key, date_label, filtered))
@@ -1444,7 +1480,7 @@ async def run_calendar_check() -> int:
     if upcoming or just_released:
         line = LineClient.from_env()
         # Off-GAS CHUM News Bot (Telegram) — the trust loop (pre T-15 + post).
-        tg_news = telegram_news.TelegramNewsClient.from_env()
+        tg_news = telegram_news.TelegramNewsClient.from_env(store=store)
 
         # Pre-release alerts
         for ev in upcoming:
@@ -1601,6 +1637,8 @@ def _watchdog_source_id(warning_type: str) -> str:
         return "_macro_health"
     if warning_type in ("line_push_failing", "line_quota_high"):
         return "_line_push"
+    if warning_type == "telegram_push_failing":
+        return "_telegram_health"
     if warning_type.startswith("source_noisy:"):
         return f"_class:{warning_type.split(':', 1)[1][:30]}"
     return health.HEARTBEAT_SOURCE_ID
@@ -1672,7 +1710,8 @@ async def run_watchdog() -> int:
     recovered: list[tuple[str, str]] = []
     static_types = ("watchdog_silence", "watchdog_no_items", "ff_scraper_dead",
                     "classifier_degraded", "workflow_failure", "workflow_disabled",
-                    "macro_push_dead", "line_push_failing", "line_quota_high")
+                    "macro_push_dead", "line_push_failing", "line_quota_high",
+                    "telegram_push_failing")
     for warning_type in static_types:
         if warning_type in warning_types:
             continue
