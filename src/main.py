@@ -1008,32 +1008,71 @@ async def run_backfill_xau() -> int:
     return 0
 
 
-def _precision_table(rows: list[dict[str, Any]], move_threshold_pct: float = 0.15) -> list[dict[str, Any]]:
-    """Pure: group backfilled calibration rows by (topic, route) and compute
-    sample size, hit-rate (|15m move| >= threshold), avg |move|, avg signed
-    move. Rows without a numeric xau_return_15m are ignored."""
+_OFFICIAL_SOURCE_IDS = {"fed", "bls", "ecb", "treasury"}
+
+
+def _has_official_source(row: dict[str, Any]) -> bool:
+    srcs = str(row.get("source_list") or "")
+    return any(sid in srcs.split(",") for sid in _OFFICIAL_SOURCE_IDS)
+
+
+def _source_count_bucket(row: dict[str, Any]) -> str | None:
+    try:
+        n = int(float(row.get("source_count") or 0))
+    except (TypeError, ValueError):
+        return None
+    if n <= 0:
+        return None
+    return "1" if n == 1 else ("2" if n == 2 else "3+")
+
+
+def _precision_breakdown(rows: list[dict[str, Any]], key_fn, move_threshold_pct: float = 0.15,
+                         key_label: str = "key") -> list[dict[str, Any]]:
+    """Pure: group backfilled calibration rows by key_fn(row) and compute sample
+    size, hit-rate (|15m move| >= threshold), avg |move|, avg signed move. Rows
+    without a numeric xau_return_15m, or whose key_fn returns None, are ignored.
+
+    This is measure-first instrumentation: it reveals whether a signal
+    (direction / source-count / official-source) predicts the XAU move BEFORE any
+    of them is wired into scoring — so coefficients come from data, not a guess
+    (the same discipline that deferred freshness-decay tuning)."""
     def _f(v: Any) -> float | None:
         try:
             return float(v)
         except (TypeError, ValueError):
             return None
-    groups: dict[tuple[str, str], list[float]] = {}
+    groups: dict[Any, list[float]] = {}
     for r in rows:
         r15 = _f(r.get("xau_return_15m"))
         if r15 is None:
             continue
-        key = (r.get("topic_bucket") or "?", r.get("routed_as") or "?")
+        key = key_fn(r)
+        if key is None:
+            continue
         groups.setdefault(key, []).append(r15)
     table: list[dict[str, Any]] = []
-    for (topic, route), vals in groups.items():
+    for key, vals in groups.items():
         n = len(vals)
         hits = sum(1 for v in vals if abs(v) >= move_threshold_pct)
         table.append({
-            "topic": topic, "route": route, "n": n,
+            key_label: key, "n": n,
             "hit_pct": hits / n * 100.0,
             "avg_abs": sum(abs(v) for v in vals) / n,
             "avg_signed": sum(vals) / n,
         })
+    table.sort(key=lambda d: -d["n"])
+    return table
+
+
+def _precision_table(rows: list[dict[str, Any]], move_threshold_pct: float = 0.15) -> list[dict[str, Any]]:
+    """Group by (topic, route) — the original precision view. Backed by the
+    generic _precision_breakdown; keeps the "topic"/"route" keys for callers."""
+    table = _precision_breakdown(
+        rows,
+        lambda r: (r.get("topic_bucket") or "?", r.get("routed_as") or "?"),
+        move_threshold_pct, key_label="_tr")
+    for d in table:
+        d["topic"], d["route"] = d.pop("_tr")
     table.sort(key=lambda d: (-d["n"], d["topic"]))
     return table
 
@@ -1056,6 +1095,31 @@ async def run_precision_report(min_samples: int = 5, move_threshold_pct: float =
         flag = "" if d["n"] >= min_samples else "  (low-n)"
         log.info("%-14s %-9s %5d %5.0f%% %+9.3f %+10.3f%s",
                  d["topic"], d["route"], d["n"], d["hit_pct"], d["avg_abs"], d["avg_signed"], flag)
+
+    # Measure-first breakdowns for the signals NOT yet in scoring. These reveal
+    # whether each predicts the XAU move, so a future scoring change is
+    # data-driven, not a guess (per the deferred-freshness-decay discipline):
+    #   direction_label → does the tone predict the SIGN of the move? (avg_signed)
+    #   source_count    → does confirmation predict a BIGGER move? (avg|mv|, hit%)
+    #   official source → does a tier-0 source predict a different move profile?
+    rows = store.all_rows("calibration_log")
+    for label, key_fn in (
+        ("direction", lambda r: r.get("direction_label") or None),
+        ("source_count", _source_count_bucket),
+        # Exclude calendar rows (no source_list) so this stays a NEWS-source
+        # signal, not diluted by economic-release rows.
+        ("source_class", lambda r: (None if not str(r.get("source_list") or "").strip()
+                                    else ("official" if _has_official_source(r) else "other"))),
+    ):
+        bd = _precision_breakdown(rows, key_fn, move_threshold_pct, key_label="k")
+        if not bd:
+            continue
+        log.info("--- by %s ---", label)
+        log.info("%-14s %5s %7s %9s %11s", label, "n", "hit%", "avg|mv|", "avg_signed")
+        for d in bd:
+            flag = "" if d["n"] >= min_samples else "  (low-n)"
+            log.info("%-14s %5d %5.0f%% %+9.3f %+10.3f%s",
+                     str(d["k"]), d["n"], d["hit_pct"], d["avg_abs"], d["avg_signed"], flag)
     return 0
 
 

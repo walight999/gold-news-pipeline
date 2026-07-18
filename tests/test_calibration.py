@@ -7,7 +7,13 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 
-from src.main import _backfill_due, _precision_table
+from src.main import (
+    _backfill_due,
+    _has_official_source,
+    _precision_breakdown,
+    _precision_table,
+    _source_count_bucket,
+)
 from src.utils_time import iso_utc
 
 NOW = datetime(2026, 6, 21, 12, 0, 0, tzinfo=timezone.utc)
@@ -65,3 +71,46 @@ def test_precision_table_groups_and_stats():
 
 def test_precision_table_empty_when_no_returns():
     assert _precision_table([_row(xau_return_15m="")], 0.15) == []
+
+
+def test_source_count_bucket():
+    assert _source_count_bucket({"source_count": 1}) == "1"
+    assert _source_count_bucket({"source_count": 2}) == "2"
+    assert _source_count_bucket({"source_count": 5}) == "3+"
+    assert _source_count_bucket({"source_count": 0}) is None
+    assert _source_count_bucket({"source_count": ""}) is None
+
+
+def test_has_official_source():
+    assert _has_official_source({"source_list": "fed,forexlive"}) is True
+    assert _has_official_source({"source_list": "bbc_world,cnbc"}) is False
+    assert _has_official_source({"source_list": ""}) is False
+    # substring must not false-match (e.g. a source literally named 'fedwatch')
+    assert _has_official_source({"source_list": "fedwatch"}) is False
+
+
+def test_precision_breakdown_by_direction_reveals_signed_move():
+    """The measure-first view: does direction_label predict the SIGN of the
+    move? dovish → gold up (+), hawkish → gold down (-)."""
+    rows = [
+        _row(direction_label="dovish", xau_return_15m="0.30"),
+        _row(direction_label="dovish", xau_return_15m="0.20"),
+        _row(direction_label="hawkish", xau_return_15m="-0.25"),
+        _row(direction_label="", xau_return_15m="0.40"),   # no direction → skipped
+    ]
+    bd = {d["k"]: d for d in _precision_breakdown(
+        rows, lambda r: r.get("direction_label") or None, key_label="k")}
+    assert set(bd) == {"dovish", "hawkish"}
+    assert bd["dovish"]["avg_signed"] > 0
+    assert bd["hawkish"]["avg_signed"] < 0
+
+
+def test_precision_breakdown_by_source_count():
+    rows = [
+        _row(source_count=1, xau_return_15m="0.05"),
+        _row(source_count=3, xau_return_15m="0.40"),
+        _row(source_count=4, xau_return_15m="0.30"),
+    ]
+    bd = {d["k"]: d for d in _precision_breakdown(rows, _source_count_bucket, key_label="k")}
+    assert bd["1"]["n"] == 1
+    assert bd["3+"]["n"] == 2
