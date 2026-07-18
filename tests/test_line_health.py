@@ -131,6 +131,65 @@ def test_line_push_failing_message_names_auth_on_401(store):
     assert "quota" not in warns["line_push_failing"].lower()
 
 
+def test_quota_allows_fail_open_when_no_store():
+    from src.line_client import PRIORITY_REDUNDANT, quota_allows
+    assert quota_allows(None, PRIORITY_REDUNDANT)[0] is True
+
+
+def test_quota_allows_normal_sends_every_priority(store):
+    from src.line_client import (
+        PRIORITY_BRIEFING, PRIORITY_CORE, PRIORITY_CRITICAL, PRIORITY_REDUNDANT,
+        quota_allows,
+    )
+    record_line_outcome(store, 200)  # last_status=200, pct ~0
+    for p in (PRIORITY_CRITICAL, PRIORITY_CORE, PRIORITY_BRIEFING, PRIORITY_REDUNDANT):
+        assert quota_allows(store, p)[0] is True, p
+
+
+def test_quota_hard_429_sheds_all_but_breaking_alert(store):
+    """A 429 this month = exhausted: shed CORE/BRIEFING/REDUNDANT, but keep
+    breaking/alert (priority 0) as the recovery probe + highest value."""
+    from src.line_client import (
+        PRIORITY_CORE, PRIORITY_CRITICAL, PRIORITY_REDUNDANT, quota_allows,
+    )
+    record_line_outcome(store, 429)  # stamps last_status=429, month=current ICT
+    assert quota_allows(store, PRIORITY_CRITICAL)[0] is True
+    ok_core, reason = quota_allows(store, PRIORITY_CORE)
+    assert ok_core is False and "429" in reason
+    assert quota_allows(store, PRIORITY_REDUNDANT)[0] is False
+
+
+def test_quota_429_from_previous_month_does_not_gate(store):
+    """The free tier resets on the 1st — a July 429 must not gate August."""
+    import json
+    from src.line_client import LINE_PUSH_SOURCE_ID, PRIORITY_CORE, quota_allows
+    store.upsert("source_state", {
+        "source_id": LINE_PUSH_SOURCE_ID,
+        "last_status": "429",
+        "items_last_hour": json.dumps({"month": "2020-01", "count": 0}),
+    })
+    assert quota_allows(store, PRIORITY_CORE)[0] is True
+
+
+def test_quota_soft_gate_sheds_redundant_at_80pct(store):
+    from src.line_client import (
+        PRIORITY_BRIEFING, PRIORITY_CORE, PRIORITY_REDUNDANT, quota_allows,
+    )
+    for _ in range(400):  # 80% of 500
+        record_line_outcome(store, 200)
+    assert quota_allows(store, PRIORITY_REDUNDANT)[0] is False   # T-15 shed
+    assert quota_allows(store, PRIORITY_BRIEFING)[0] is True     # not yet
+    assert quota_allows(store, PRIORITY_CORE)[0] is True
+
+
+def test_quota_soft_gate_sheds_briefing_at_90pct_core_protected(store):
+    from src.line_client import PRIORITY_BRIEFING, PRIORITY_CORE, quota_allows
+    for _ in range(450):  # 90% of 500
+        record_line_outcome(store, 200)
+    assert quota_allows(store, PRIORITY_BRIEFING)[0] is False
+    assert quota_allows(store, PRIORITY_CORE)[0] is True         # core stays
+
+
 def test_watchdog_no_warning_at_low_volume(store):
     """A few messages — no warnings should fire."""
     from src.health import check_pipeline_health, write_heartbeat

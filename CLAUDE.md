@@ -29,6 +29,11 @@ normalize → dedup.cluster → scorer.score → router.decide
         │       1:1 U… carries private/ops only (eod_recap, scorecard, health).
         │       Reason: free-tier quota bills per recipient; dual-target news
         │       exhausted the 2026-07 quota mid-month (LINE 429 all pushes).
+        │     ⚠ Quota gate (line_client.quota_allows, priority PRIORITY_*): sheds
+        │       LOW-value LINE cards as usage climbs so breaking/alert keep quota.
+        │       Hard 429-this-month → shed all but breaking/alert; >=90% → shed
+        │       briefings; >=80% → shed T-15 pre-release. Telegram copies are
+        │       INDEPENDENT — they still deliver when the LINE copy is shed.
         │
         └─► social_feed sheet tab: tweet_writer composes a @tradetongkam-voice
               draft → operator types `yes` in `approved` → social_post posts to X

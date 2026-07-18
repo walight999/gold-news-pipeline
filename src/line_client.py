@@ -121,6 +121,51 @@ def get_line_quota_status(store) -> dict[str, int | str]:
             "limit": LINE_FREE_TIER_QUOTA, "pct": pct}
 
 
+# Quota-aware sender priority. LOWER number = higher value = shed LAST. The
+# quota gate (quota_allows) sheds from the bottom up as usage climbs, so a
+# scarce free tier spends its last messages on breaking/alert, not T-15 cards.
+PRIORITY_CRITICAL = 0   # breaking / alert — never gated (also the recovery probe)
+PRIORITY_CORE = 1       # digest / Released-News / eod_recap / scorecard / health
+PRIORITY_BRIEFING = 2   # calendar_daily / weekly_preview (redundant with the above)
+PRIORITY_REDUNDANT = 3  # calendar T-15 pre-release (calendar_daily + Released cover it)
+
+
+def quota_allows(store, priority: int) -> tuple[bool, str]:
+    """Should a push of this priority go out given current LINE quota state?
+
+    Two independent signals, because the local monthly counter is unreliable on
+    its own: it counts only DELIVERED messages, so during a 429 storm it stops
+    climbing and can read far below LINE's server-side cap. The authoritative
+    "we are out" signal is a real 429.
+
+      - Hard exhaustion: last push got HTTP 429 THIS ICT month (the free tier
+        resets on the 1st, so a July 429 must not gate August — we compare the
+        counter's month, which is stamped on every attempt). Shed everything
+        except breaking/alert: the rest would only burn ~15s of doomed retries,
+        and the rare breaking/alert attempts double as the recovery probe that
+        flips last_status back to 200.
+      - Soft pressure: the local counter is climbing. Shed briefings at >=90%,
+        the redundant T-15 cards at >=80% — early, before a hard 429.
+
+    Returns (allowed, reason). Fail-open (allow) when store is None."""
+    if store is None:
+        return True, ""
+    row = store.get("source_state", (LINE_PUSH_SOURCE_ID,)) or {}
+    last_status = str(row.get("last_status") or "0")
+    qs = get_line_quota_status(store)
+    pct = int(qs.get("pct", 0) or 0)
+    from .utils_time import now_ict
+    cur_month = now_ict().strftime("%Y-%m")
+    exhausted = last_status == "429" and qs.get("month") == cur_month
+    if exhausted and priority >= PRIORITY_CORE:
+        return False, "LINE quota exhausted (429) this month — conserving until reset"
+    if pct >= 90 and priority >= PRIORITY_BRIEFING:
+        return False, f"LINE quota {pct}% — shedding briefings to protect breaking/alert"
+    if pct >= 80 and priority >= PRIORITY_REDUNDANT:
+        return False, f"LINE quota {pct}% — shedding T-15 pre-release"
+    return True, ""
+
+
 def _split_targets(target: str | list[str] | None) -> list[str]:
     """Parse a comma-separated string or list into a clean dedup'd target list.
 
