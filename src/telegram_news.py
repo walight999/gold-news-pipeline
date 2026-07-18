@@ -23,6 +23,41 @@ from tenacity import RetryError, retry, stop_after_attempt, wait_exponential
 
 log = logging.getLogger(__name__)
 
+# Telegram is the pipeline's primary delivery channel while LINE's quota is
+# exhausted, so a silent worker outage would drop EVERYTHING. This health row
+# lets the watchdog catch it (telegram_push_failing → CRITICAL). Announced over
+# LINE + the ops channel, both DISTINCT transports from the CHUM worker, so the
+# "worker down" alert can still get out.
+TELEGRAM_HEALTH_SOURCE_ID = "_telegram_health"
+
+
+def record_telegram_outcome(store, resp) -> None:
+    """Stamp the Telegram/news-bot push health row (consecutive_errors +
+    last_status). `resp` is the {"status","body"} dict from _send (a bare int
+    is also accepted). A no-op when store is None. Success resets the streak."""
+    if store is None:
+        return
+    from .utils_time import iso_utc, now_utc
+    if isinstance(resp, dict):
+        status = int(resp.get("status", 0) or 0)
+    else:
+        status = int(resp or 0)
+    row = store.get("source_state", (TELEGRAM_HEALTH_SOURCE_ID,)) or {
+        "source_id": TELEGRAM_HEALTH_SOURCE_ID}
+    consec = int(row.get("consecutive_errors") or 0)
+    ts = iso_utc(now_utc())
+    if status == 200:
+        consec = 0
+        row["last_success_ts"] = ts
+    else:
+        consec += 1
+    row["source_id"] = TELEGRAM_HEALTH_SOURCE_ID
+    row["last_attempt_ts"] = ts
+    row["consecutive_errors"] = str(consec)
+    row["last_status"] = str(status)
+    row["updated_at"] = ts
+    store.upsert("source_state", row)
+
 
 def build_payload(
     *,
@@ -58,14 +93,15 @@ def build_payload(
 class TelegramNewsClient:
     base_url: str
     secret: str
+    store: Any = None   # optional — enables _telegram_health tracking
 
     @classmethod
-    def from_env(cls) -> "TelegramNewsClient | None":
+    def from_env(cls, store: Any = None) -> "TelegramNewsClient | None":
         url = os.environ.get("NEWS_BOT_WEBHOOK_URL", "").strip()
         secret = os.environ.get("NEWS_BOT_SECRET", "").strip()
         if not url or not secret:
             return None
-        return cls(base_url=url.rstrip("/"), secret=secret)
+        return cls(base_url=url.rstrip("/"), secret=secret, store=store)
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10),
            reraise=True)
@@ -80,13 +116,17 @@ class TelegramNewsClient:
 
     def _send(self, path: str, payload: dict[str, Any]) -> dict[str, Any]:
         try:
-            return self._post(path, payload)
+            resp = self._post(path, payload)
         except RetryError as e:
             log.warning("telegram push failed after retries (%s): %s", path, e)
-            return {"status": 0, "body": "retry_exhausted"}
+            resp = {"status": 0, "body": "retry_exhausted"}
         except httpx.HTTPError as e:
             log.warning("telegram push http error (%s): %s", path, e)
-            return {"status": 0, "body": str(e)}
+            resp = {"status": 0, "body": str(e)}
+        # Central health point — every post_* funnels through _send, so a single
+        # record here tracks the whole channel's liveness (no per-site wiring).
+        record_telegram_outcome(self.store, resp)
+        return resp
 
     def post(self, payload: dict[str, Any]) -> dict[str, Any]:
         return self._send("webhook/news", payload)
