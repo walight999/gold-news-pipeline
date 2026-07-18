@@ -1103,6 +1103,7 @@ async def run_precision_report(min_samples: int = 5, move_threshold_pct: float =
     #   source_count    → does confirmation predict a BIGGER move? (avg|mv|, hit%)
     #   official source → does a tier-0 source predict a different move profile?
     rows = store.all_rows("calibration_log")
+    breakdowns: dict[str, list[dict[str, Any]]] = {}
     for label, key_fn in (
         ("direction", lambda r: r.get("direction_label") or None),
         ("source_count", _source_count_bucket),
@@ -1112,6 +1113,7 @@ async def run_precision_report(min_samples: int = 5, move_threshold_pct: float =
                                     else ("official" if _has_official_source(r) else "other"))),
     ):
         bd = _precision_breakdown(rows, key_fn, move_threshold_pct, key_label="k")
+        breakdowns[label] = bd
         if not bd:
             continue
         log.info("--- by %s ---", label)
@@ -1120,7 +1122,42 @@ async def run_precision_report(min_samples: int = 5, move_threshold_pct: float =
             flag = "" if d["n"] >= min_samples else "  (low-n)"
             log.info("%-14s %5d %5.0f%% %+9.3f %+10.3f%s",
                      str(d["k"]), d["n"], d["hit_pct"], d["avg_abs"], d["avg_signed"], flag)
+
+    # Push a concise summary to the ops Telegram DM. The precision report is
+    # private model-introspection (like the scorecard), and the ops channel is
+    # LINE-independent so it lands even while LINE's quota is exhausted. This
+    # closes the measure-first loop: wire a monthly cron-job.org trigger for
+    # `--mode precision_report` and the findings arrive without reading GHA logs.
+    # Best-effort + no-op when OPS_TG_* is unset.
+    if ops_alert.is_configured():
+        ops_alert.send_ops_alert(_precision_report_text(table, breakdowns, total_n,
+                                                        move_threshold_pct, min_samples))
     return 0
+
+
+def _precision_report_text(table: list[dict[str, Any]], breakdowns: dict[str, list[dict[str, Any]]],
+                           total_n: int, move_threshold_pct: float, min_samples: int) -> str:
+    """Concise Thai-labelled precision summary for the ops DM. Shows the
+    top (topic, route) rows by average |move| — 'what actually moves gold' —
+    plus the direction / source-count / source-class signal one-liners."""
+    lines = [f"📊 Precision report — {total_n} events (hit=|move|≥{move_threshold_pct:.2f}% ใน 15m)"]
+    top = sorted((d for d in table if d["n"] >= min_samples),
+                 key=lambda d: -d["avg_abs"])[:6]
+    if top:
+        lines.append("แรงสุด (avg|move|):")
+        for d in top:
+            lines.append(f"  {d['topic']}/{d['route']} n={d['n']} "
+                         f"hit {d['hit_pct']:.0f}% |mv| {d['avg_abs']:.2f}% "
+                         f"signed {d['avg_signed']:+.2f}%")
+    for label in ("direction", "source_count", "source_class"):
+        bd = [d for d in breakdowns.get(label, []) if d["n"] >= min_samples]
+        if not bd:
+            continue
+        parts = [f"{d['k']}(n{d['n']},{d['avg_signed']:+.2f}%)" for d in bd]
+        lines.append(f"{label}: " + " · ".join(parts))
+    if len(lines) == 1:
+        lines.append("(ยังไม่พอ sample — รอ backfill สะสม)")
+    return "\n".join(lines)
 
 
 def _private_target() -> str:

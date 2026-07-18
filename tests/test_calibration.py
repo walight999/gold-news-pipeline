@@ -11,6 +11,7 @@ from src.main import (
     _backfill_due,
     _has_official_source,
     _precision_breakdown,
+    _precision_report_text,
     _precision_table,
     _source_count_bucket,
 )
@@ -114,3 +115,28 @@ def test_precision_breakdown_by_source_count():
     bd = {d["k"]: d for d in _precision_breakdown(rows, _source_count_bucket, key_label="k")}
     assert bd["1"]["n"] == 1
     assert bd["3+"]["n"] == 2
+
+
+def test_precision_report_text_summarizes_top_movers_and_signals():
+    table = [
+        {"topic": "rate_policy", "route": "archive", "n": 10, "hit_pct": 49.0,
+         "avg_abs": 0.345, "avg_signed": 0.05},
+        {"topic": "geopolitics", "route": "alert", "n": 8, "hit_pct": 40.0,
+         "avg_abs": 0.171, "avg_signed": -0.02},
+    ]
+    breakdowns = {
+        "direction": [{"k": "dovish", "n": 7, "hit_pct": 50, "avg_abs": 0.3, "avg_signed": 0.22}],
+        "source_count": [{"k": "3+", "n": 6, "hit_pct": 60, "avg_abs": 0.4, "avg_signed": 0.1}],
+        "source_class": [],
+    }
+    txt = _precision_report_text(table, breakdowns, total_n=18,
+                                 move_threshold_pct=0.15, min_samples=5)
+    # top mover surfaced first (highest avg|move|), signals summarised
+    assert "rate_policy/archive" in txt
+    assert txt.index("rate_policy/archive") < txt.index("geopolitics/alert")
+    assert "dovish" in txt and "3+" in txt
+
+
+def test_precision_report_text_handles_thin_data():
+    txt = _precision_report_text([], {}, total_n=0, move_threshold_pct=0.15, min_samples=5)
+    assert "sample" in txt.lower() or "Precision report" in txt
