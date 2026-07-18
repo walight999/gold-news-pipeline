@@ -35,9 +35,10 @@ def record_line_outcome(store, resp) -> None:
     back-compat.
 
     Counts the monthly quota per RECIPIENT that actually received the message.
-    LINE_NEWS_TARGET is the 1:1 chat + the group, so one broadcast consumes 2
-    of the 500/mo free quota, not 1 — the old +1-per-call counter ran at ~half
-    the real usage and would fire the 80% alarm far too late. Used by:
+    A multi-recipient broadcast consumes one quota unit per recipient, not 1
+    per call — the old +1-per-call counter ran at ~half the real usage and
+    would fire the 80% alarm far too late. (News sends are group-only since
+    2026-07-18 — see main._group_targets — so they now bill 1.) Used by:
       - watchdog → line_push_failing warning (5+ consecutive total failures)
       - watchdog → line_quota_high warning (>80% of monthly cap)
       - EOD recap → optional quota display

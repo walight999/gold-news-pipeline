@@ -24,6 +24,11 @@ normalize → dedup.cluster → scorer.score → router.decide
         ├─► LINE: breaking / alert / digest(=newsupdate) / eod_recap / health
         │     news_alert.classify_and_rewrite (Claude Haiku → Thai), line_flex, line_client
         │     → LINE_NEWS_TARGET = "U160…(1:1),C7b49469…(group 'News Update')"
+        │     ⚠ Routing since 2026-07-18 (main._group_targets / _private_target):
+        │       news cards (breaking/alert/digest/calendar/weekly) → group C… ONLY;
+        │       1:1 U… carries private/ops only (eod_recap, scorecard, health).
+        │       Reason: free-tier quota bills per recipient; dual-target news
+        │       exhausted the 2026-07 quota mid-month (LINE 429 all pushes).
         │
         └─► social_feed sheet tab: tweet_writer composes a @tradetongkam-voice
               draft → operator types `yes` in `approved` → social_post posts to X
