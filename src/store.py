@@ -369,7 +369,19 @@ class Store:
         if not self._sh:
             log.warning("store.flush called without connect() — skipping")
             return
-        for tab, dirty_keys in self.dirty.items():
+        # Flush the idempotency ledger (sent_log) BEFORE the content tabs it
+        # guards. A push is only recorded in sent_log AFTER delivery is
+        # confirmed; re-sends are gated purely on sent_log. So if a mid-flush
+        # Sheets error (429/5xx) crashes the run, having sent_log already
+        # persisted means the retry run sees "already sent" and does NOT
+        # double-push. Content tabs (event_state/calibration) don't gate
+        # re-sends, so losing them to the crash is harmless — they refill next
+        # run. Any tab not listed keeps SCHEMAS order after the priority ones.
+        _FLUSH_FIRST = ("sent_log",)
+        ordered = ([t for t in _FLUSH_FIRST if self.dirty.get(t)]
+                   + [t for t in self.dirty if t not in _FLUSH_FIRST])
+        for tab in ordered:
+            dirty_keys = self.dirty.get(tab) or set()
             if not dirty_keys:
                 continue
             ws = _ws_worksheet(self._sh, tab)

@@ -549,9 +549,6 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
     # can distinguish "cron stopped" from "cron ran but no news today".
     if mode in ("cron", "event"):
         health.write_heartbeat(store, items_seen=len(items))
-        # External dead-man ping (independent of GitHub Actions + cron-job.org, which the
-        # in-repo watchdog shares a lifeline with). Env-gated; best-effort.
-        health.ping_deadman(os.environ.get("HEALTHCHECK_PING_URL"))
 
     # 8b. Append social-feed rows (best-effort; never blocks the run)
     n_feed = social_feed.flush(store, social_records)
@@ -561,6 +558,17 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
     # 9. Flush state
     store.flush()
     log.info("done. sheets API calls=%d", store.api_calls)
+
+    # 10. External dead-man ping — ONLY after a successful flush. A liveness
+    # signal must mean "a full iteration completed, state persisted"; pinging
+    # before flush (the old order) marked the run healthy even when the Sheets
+    # write crashed, so the external monitor never caught state-write failures.
+    # If flush() raised above, we never reach here → the ping is withheld → the
+    # missed-ping alert fires. This is the escalation path for a flush failure
+    # that works even when the in-repo health log can't be written (it too needs
+    # a flush). Env-gated; best-effort.
+    if mode in ("cron", "event"):
+        health.ping_deadman(os.environ.get("HEALTHCHECK_PING_URL"))
     return 0
 
 
