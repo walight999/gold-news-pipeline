@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-07-19T20:46:00Z",
-      "title": "fed · Rate Policy",
-      "source": "Cnbc",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-19T20:46:00Z",
+      "ts": "2026-07-19T21:51:43Z",
       "title": "mideast · Geopolitics",
-      "source": "Cnbc",
+      "source": "Aljazeera",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-19T20:46:00Z",
+      "ts": "2026-07-19T21:51:43Z",
+      "title": "global · Other",
+      "source": "Aljazeera, Fxstreet",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-19T21:51:43Z",
+      "title": "us · Geopolitics",
+      "source": "Bbc World",
+      "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-19T21:51:43Z",
+      "title": "russia · Geopolitics · risk off",
+      "source": "Bbc World",
+      "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-19T21:51:43Z",
+      "title": "mideast · Geopolitics",
+      "source": "Bbc World",
+      "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-19T21:51:43Z",
+      "title": "israel · Geopolitics · risk off",
+      "source": "Aljazeera",
+      "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-19T21:51:43Z",
+      "title": "israel · Geopolitics",
+      "source": "Aljazeera",
+      "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-19T21:51:43Z",
       "title": "us · Usd Yields",
-      "source": "Cnbc",
+      "source": "Fxstreet",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-19T20:46:00Z",
+      "ts": "2026-07-19T21:51:43Z",
       "title": "global · Other",
-      "source": "Cnbc, Marketwatch",
+      "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-19T20:46:00Z",
+      "ts": "2026-07-19T21:51:43Z",
       "title": "global · Other",
-      "source": "Cnbc, Marketwatch",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-19T20:46:00Z",
-      "title": "global · Other",
-      "source": "Cnbc",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-19T20:46:00Z",
-      "title": "global · Other",
-      "source": "Marketwatch",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-19T20:46:00Z",
-      "title": "global · Other",
-      "source": "Cnbc, Marketwatch",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-19T20:46:00Z",
-      "title": "global · Other",
-      "source": "Marketwatch",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-19T20:46:00Z",
-      "title": "global · Other",
-      "source": "Cnbc",
+      "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-07-19T20:48:37.005314Z"
+  "written_at": "2026-07-19T21:52:52.528013Z"
 }
