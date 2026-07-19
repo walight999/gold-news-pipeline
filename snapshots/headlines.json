@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-07-19T17:02:23Z",
-      "title": "russia · Geopolitics",
-      "source": "X Firstsquawk",
-      "score": 4.0,
-      "xau_relevant": true
-    },
-    {
-      "ts": "2026-07-19T17:02:23Z",
-      "title": "mideast · Geopolitics",
-      "source": "Aljazeera, X Firstsquawk",
-      "score": 1.2,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-19T17:02:23Z",
+      "ts": "2026-07-19T18:25:51Z",
       "title": "fed · Rate Policy",
       "source": "Yahoo Finance",
-      "score": 1.2,
+      "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-19T17:02:23Z",
+      "ts": "2026-07-19T18:25:51Z",
       "title": "global · Other",
-      "source": "X X",
-      "score": 1.0,
+      "source": "Investing General, Yahoo Finance",
+      "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-19T17:02:23Z",
+      "ts": "2026-07-19T18:25:51Z",
       "title": "fed · Inflation",
       "source": "Cnbc",
       "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-19T17:02:23Z",
-      "title": "us · Inflation",
-      "source": "Fxstreet",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-19T17:02:23Z",
+      "ts": "2026-07-19T18:25:51Z",
       "title": "us · Inflation",
       "source": "Investing Commodities",
       "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-19T17:02:23Z",
+      "ts": "2026-07-19T18:25:51Z",
       "title": "us · Geopolitics",
-      "source": "Bbc World, Investing Commodities",
+      "source": "Investing Commodities",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-19T17:02:23Z",
+      "ts": "2026-07-19T18:25:51Z",
       "title": "us · Geopolitics · risk off",
-      "source": "Forexlive, Fxstreet",
+      "source": "Forexlive",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-19T17:02:23Z",
+      "ts": "2026-07-19T18:25:51Z",
       "title": "mideast · Geopolitics · risk off",
-      "source": "Yahoo Finance, X Firstsquawk",
+      "source": "Yahoo Finance",
+      "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-19T18:25:51Z",
+      "title": "mideast · Geopolitics · risk off",
+      "source": "Cnbc",
+      "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-19T18:25:51Z",
+      "title": "fed · Rate Policy",
+      "source": "Cnbc",
+      "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-19T18:25:51Z",
+      "title": "mideast · Geopolitics",
+      "source": "Cnbc",
       "score": 0.4,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-07-19T17:08:01.859593Z"
+  "written_at": "2026-07-19T18:27:08.596736Z"
 }
