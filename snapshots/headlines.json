@@ -2,70 +2,70 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-07-20T16:51:36Z",
+      "ts": "2026-07-20T18:51:29Z",
       "title": "russia · Geopolitics · risk off",
       "source": "Bbc World",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-20T16:51:36Z",
+      "ts": "2026-07-20T18:51:29Z",
       "title": "global · Other",
       "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-20T16:51:36Z",
+      "ts": "2026-07-20T18:51:29Z",
       "title": "global · Other",
       "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-20T16:51:36Z",
+      "ts": "2026-07-20T18:51:29Z",
       "title": "global · Other",
       "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-20T16:51:36Z",
+      "ts": "2026-07-20T18:51:29Z",
       "title": "global · Other",
       "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-20T16:51:36Z",
+      "ts": "2026-07-20T18:51:29Z",
       "title": "global · Other",
       "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-20T16:51:36Z",
+      "ts": "2026-07-20T18:51:29Z",
       "title": "global · Other",
       "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-20T16:51:36Z",
+      "ts": "2026-07-20T18:51:29Z",
       "title": "russia · Geopolitics · risk off",
       "source": "Bbc World",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-20T16:51:36Z",
+      "ts": "2026-07-20T18:51:29Z",
       "title": "global · Other · risk off",
       "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-20T16:51:36Z",
+      "ts": "2026-07-20T18:51:29Z",
       "title": "global · Other",
       "source": "Bbc World",
       "score": 0.1,
@@ -73,5 +73,5 @@
     }
   ],
   "count": 10,
-  "written_at": "2026-07-20T16:55:47.406877Z"
+  "written_at": "2026-07-20T18:53:12.051278Z"
 }
