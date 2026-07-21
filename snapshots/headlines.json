@@ -2,70 +2,70 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-07-21T16:21:03Z",
+      "ts": "2026-07-21T17:50:58Z",
       "title": "global · Other",
       "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-21T16:21:03Z",
+      "ts": "2026-07-21T17:50:58Z",
       "title": "fed · Rate Policy",
       "source": "Bbc World",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-21T16:21:03Z",
+      "ts": "2026-07-21T17:50:58Z",
       "title": "ukraine · Geopolitics · dovish",
       "source": "Bbc World",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-21T16:21:03Z",
+      "ts": "2026-07-21T17:50:58Z",
       "title": "global · Other",
       "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-21T16:21:03Z",
+      "ts": "2026-07-21T17:50:58Z",
       "title": "ukraine · Geopolitics · dovish",
       "source": "Bbc World",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-21T16:21:03Z",
+      "ts": "2026-07-21T17:50:58Z",
       "title": "global · Other",
       "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-21T16:21:03Z",
+      "ts": "2026-07-21T17:50:58Z",
       "title": "russia · Geopolitics · risk off",
       "source": "Bbc World",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-21T16:21:03Z",
+      "ts": "2026-07-21T17:50:58Z",
       "title": "global · Other",
       "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-21T16:21:03Z",
+      "ts": "2026-07-21T17:50:58Z",
       "title": "global · Other",
       "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-21T16:21:03Z",
+      "ts": "2026-07-21T17:50:58Z",
       "title": "mideast · Geopolitics",
       "source": "Bbc World",
       "score": 0.4,
@@ -73,5 +73,5 @@
     }
   ],
   "count": 10,
-  "written_at": "2026-07-21T16:22:51.207267Z"
+  "written_at": "2026-07-21T17:53:24.287727Z"
 }
