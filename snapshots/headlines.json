@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-07-20T22:56:28Z",
-      "title": "russia · Geopolitics · risk off",
-      "source": "Bbc World",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-20T22:56:28Z",
-      "title": "mideast · Geopolitics · risk off",
+      "ts": "2026-07-21T00:56:18Z",
+      "title": "global · Other",
       "source": "Yahoo Finance",
-      "score": 0.4,
+      "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-20T22:56:28Z",
+      "ts": "2026-07-21T00:56:18Z",
       "title": "global · Other",
       "source": "Bbc World, Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-20T22:56:28Z",
+      "ts": "2026-07-21T00:56:18Z",
       "title": "global · Other",
       "source": "Bbc World, Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-20T22:56:28Z",
+      "ts": "2026-07-21T00:56:18Z",
       "title": "global · Other",
       "source": "Cnbc, Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-20T22:56:28Z",
+      "ts": "2026-07-21T00:56:18Z",
       "title": "global · Other",
       "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-20T22:56:28Z",
+      "ts": "2026-07-21T00:56:18Z",
       "title": "global · Other",
       "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-20T22:56:28Z",
-      "title": "global · Other",
-      "source": "Yahoo Finance",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-20T22:56:28Z",
+      "ts": "2026-07-21T00:56:18Z",
       "title": "global · Other",
       "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-20T22:56:28Z",
+      "ts": "2026-07-21T00:56:18Z",
       "title": "global · Other",
       "source": "Bbc World",
       "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-21T00:56:18Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-21T00:56:18Z",
+      "title": "russia · Geopolitics · risk off",
+      "source": "Bbc World",
+      "score": 0.4,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-07-20T23:00:36.121783Z"
+  "written_at": "2026-07-21T00:57:50.299581Z"
 }
