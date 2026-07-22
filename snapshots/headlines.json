@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-07-22T17:25:52Z",
-      "title": "mideast · Geopolitics",
-      "source": "Cnbc",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-22T17:25:52Z",
-      "title": "mideast · Geopolitics · risk off",
-      "source": "Bbc World",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-22T17:25:52Z",
-      "title": "global · Other",
-      "source": "Bbc World",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-22T17:25:52Z",
-      "title": "us · Geopolitics · risk off",
-      "source": "Bbc World",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-22T17:25:52Z",
+      "ts": "2026-07-22T18:36:28Z",
       "title": "global · Other",
       "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-22T17:25:52Z",
+      "ts": "2026-07-22T18:36:28Z",
       "title": "global · Other",
-      "source": "Cnbc, Investing Cb",
+      "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-22T17:25:52Z",
+      "ts": "2026-07-22T18:36:28Z",
       "title": "global · Other",
-      "source": "Cnbc, Yahoo Finance",
+      "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-22T17:25:52Z",
+      "ts": "2026-07-22T18:36:28Z",
       "title": "global · Other",
-      "source": "Cnbc",
+      "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-22T17:25:52Z",
+      "ts": "2026-07-22T18:36:28Z",
       "title": "global · Other",
-      "source": "Investing Cb",
+      "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-22T17:25:52Z",
-      "title": "us · Geopolitics",
-      "source": "Investing Cb",
+      "ts": "2026-07-22T18:36:28Z",
+      "title": "global · Other",
+      "source": "Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-22T18:36:28Z",
+      "title": "wgc · Gold Flow",
+      "source": "Yahoo Finance",
+      "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-22T18:36:28Z",
+      "title": "global · Other",
+      "source": "Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-22T18:36:28Z",
+      "title": "fed · Rate Policy",
+      "source": "Yahoo Finance",
       "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-22T18:36:28Z",
+      "title": "global · Other",
+      "source": "Yahoo Finance",
+      "score": 0.1,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-07-22T17:27:43.317258Z"
+  "written_at": "2026-07-22T18:43:25.054777Z"
 }
