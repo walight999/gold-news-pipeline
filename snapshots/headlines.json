@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-07-22T13:55:58Z",
+      "ts": "2026-07-22T15:55:56Z",
       "title": "global · Other",
       "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-22T13:55:58Z",
+      "ts": "2026-07-22T15:55:56Z",
       "title": "global · Other",
-      "source": "Yahoo Finance",
+      "source": "Ecb",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-22T13:55:58Z",
-      "title": "global · Other",
-      "source": "Yahoo Finance",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-22T13:55:58Z",
+      "ts": "2026-07-22T15:55:56Z",
       "title": "mideast · Geopolitics",
       "source": "Cnbc",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-22T13:55:58Z",
+      "ts": "2026-07-22T15:55:56Z",
       "title": "mideast · Geopolitics · risk off",
       "source": "Bbc World",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-22T13:55:58Z",
+      "ts": "2026-07-22T15:55:56Z",
       "title": "global · Other",
       "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-22T13:55:58Z",
+      "ts": "2026-07-22T15:55:56Z",
+      "title": "ecb · Rate Policy",
+      "source": "Ecb",
+      "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-22T15:55:56Z",
       "title": "us · Geopolitics · risk off",
       "source": "Bbc World",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-22T13:55:58Z",
+      "ts": "2026-07-22T15:55:56Z",
       "title": "global · Other",
-      "source": "Yahoo Finance",
+      "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-22T13:55:58Z",
-      "title": "fed · Rate Policy",
-      "source": "Yahoo Finance",
-      "score": 0.4,
+      "ts": "2026-07-22T15:55:56Z",
+      "title": "global · Other",
+      "source": "Cnbc, Yahoo Finance",
+      "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-22T13:55:58Z",
+      "ts": "2026-07-22T15:55:56Z",
       "title": "global · Other",
-      "source": "Cnbc",
+      "source": "Bbc World, Cnbc, Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-07-22T14:01:21.579515Z"
+  "written_at": "2026-07-22T15:58:52.260971Z"
 }
