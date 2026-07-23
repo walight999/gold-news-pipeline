@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-07-23T16:20:59Z",
-      "title": "global · Other",
-      "source": "Forexlive",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-23T16:20:59Z",
-      "title": "ecb · Rate Policy · hawkish",
-      "source": "Forexlive",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-23T16:20:59Z",
+      "ts": "2026-07-23T17:51:02Z",
       "title": "uk · Inflation · hawkish",
       "source": "Forexlive",
       "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-23T16:20:59Z",
+      "ts": "2026-07-23T17:51:02Z",
       "title": "us · Geopolitics · risk off",
       "source": "Forexlive",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-23T16:20:59Z",
+      "ts": "2026-07-23T17:51:02Z",
       "title": "ecb · Rate Policy",
       "source": "Fxstreet",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-23T16:20:59Z",
+      "ts": "2026-07-23T17:51:02Z",
       "title": "ecb · Rate Policy · hawkish",
       "source": "Forexlive",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-23T16:20:59Z",
+      "ts": "2026-07-23T17:51:02Z",
       "title": "us · Geopolitics · hawkish",
       "source": "Forexlive",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-23T16:20:59Z",
+      "ts": "2026-07-23T17:51:02Z",
       "title": "us · Geopolitics · risk off",
       "source": "Forexlive",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-23T16:20:59Z",
+      "ts": "2026-07-23T17:51:02Z",
       "title": "us · Geopolitics · hawkish",
       "source": "Forexlive",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-23T16:20:59Z",
+      "ts": "2026-07-23T17:51:02Z",
       "title": "global · Other",
       "source": "Forexlive",
       "score": 0.1,
       "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-23T17:51:02Z",
+      "title": "fed · Rate Policy · hawkish",
+      "source": "Forexlive, Fxstreet",
+      "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-23T17:51:02Z",
+      "title": "us · Inflation",
+      "source": "Forexlive",
+      "score": 0.5,
+      "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-07-23T16:26:10.803374Z"
+  "written_at": "2026-07-23T17:55:42.759858Z"
 }
