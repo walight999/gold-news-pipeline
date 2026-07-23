@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-07-23T10:21:32Z",
-      "title": "us · Geopolitics · risk off",
-      "source": "Forexlive",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-23T10:21:32Z",
-      "title": "pboc · Gold Flow",
-      "source": "Forexlive",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-23T10:21:32Z",
-      "title": "pboc · Gold Flow",
-      "source": "Forexlive",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-23T10:21:32Z",
-      "title": "us · Jobs",
-      "source": "Forexlive",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-23T10:21:32Z",
-      "title": "us · Jobs · hawkish",
-      "source": "Forexlive",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-23T10:21:32Z",
-      "title": "us · Jobs · hawkish",
-      "source": "Forexlive",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-23T10:21:32Z",
+      "ts": "2026-07-23T12:05:51Z",
       "title": "global · Other",
-      "source": "Forexlive",
+      "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-23T10:21:32Z",
-      "title": "us · Geopolitics · risk off",
-      "source": "Forexlive",
+      "ts": "2026-07-23T12:05:51Z",
+      "title": "fed · Rate Policy",
+      "source": "Yahoo Finance",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-23T10:21:32Z",
+      "ts": "2026-07-23T12:05:51Z",
       "title": "global · Other",
-      "source": "Forexlive",
+      "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-23T10:21:32Z",
-      "title": "boj · Rate Policy · hawkish",
-      "source": "Forexlive",
-      "score": 0.4,
+      "ts": "2026-07-23T12:05:51Z",
+      "title": "global · Other",
+      "source": "Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-23T12:05:51Z",
+      "title": "global · Other",
+      "source": "Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-23T12:05:51Z",
+      "title": "global · Other",
+      "source": "Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-23T12:05:51Z",
+      "title": "global · Other",
+      "source": "Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-23T12:05:51Z",
+      "title": "global · Other",
+      "source": "Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-23T12:05:51Z",
+      "title": "global · Other",
+      "source": "Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-23T12:05:51Z",
+      "title": "global · Other",
+      "source": "Yahoo Finance",
+      "score": 0.1,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-07-23T10:22:48.134292Z"
+  "written_at": "2026-07-23T12:09:57.651172Z"
 }
