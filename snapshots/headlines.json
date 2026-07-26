@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-07-26T20:06:24Z",
-      "title": "global · Other",
-      "source": "Yahoo Finance",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-26T20:06:24Z",
-      "title": "us · Inflation",
-      "source": "Fxstreet",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-26T20:06:24Z",
-      "title": "us · Geopolitics · risk off",
-      "source": "Fxstreet",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-26T20:06:24Z",
-      "title": "us · Geopolitics",
-      "source": "Investing Cb",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-26T20:06:24Z",
+      "ts": "2026-07-26T21:22:08Z",
       "title": "israel · Geopolitics · risk off",
       "source": "Bbc World",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-26T20:06:24Z",
+      "ts": "2026-07-26T21:22:08Z",
       "title": "russia · Geopolitics · risk off",
       "source": "Bbc World",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-26T20:06:24Z",
+      "ts": "2026-07-26T21:22:08Z",
       "title": "us · Geopolitics · risk off",
       "source": "Bbc World",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-26T20:06:24Z",
+      "ts": "2026-07-26T21:22:08Z",
       "title": "israel · Geopolitics · risk off",
       "source": "Bbc World",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-26T20:06:24Z",
-      "title": "israel · Geopolitics · risk off",
-      "source": "Aljazeera",
+      "ts": "2026-07-26T21:22:08Z",
+      "title": "us · Geopolitics · risk off",
+      "source": "Forexlive",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-26T20:06:24Z",
-      "title": "israel · Geopolitics · risk off",
-      "source": "Aljazeera",
-      "score": 0.4,
+      "ts": "2026-07-26T21:22:08Z",
+      "title": "global · Other",
+      "source": "Forexlive",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-26T21:22:08Z",
+      "title": "global · Other",
+      "source": "Bbc World, Fxstreet",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-26T21:22:08Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-26T21:22:08Z",
+      "title": "global · Other",
+      "source": "Fxstreet",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-26T21:22:08Z",
+      "title": "global · Other",
+      "source": "Fxstreet",
+      "score": 0.1,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-07-26T20:09:44.529403Z"
+  "written_at": "2026-07-26T21:26:46.130929Z"
 }
