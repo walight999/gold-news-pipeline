@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-07-27T11:16:10Z",
-      "title": "mideast · Geopolitics",
-      "source": "Cnbc",
+      "ts": "2026-07-27T13:50:58Z",
+      "title": "global · Other",
+      "source": "Forexlive",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-27T13:50:58Z",
+      "title": "us · Geopolitics · risk off",
+      "source": "Forexlive",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-27T11:16:10Z",
-      "title": "global · Other",
-      "source": "Cnbc",
-      "score": 0.1,
+      "ts": "2026-07-27T13:50:58Z",
+      "title": "us · Inflation · risk off",
+      "source": "Forexlive",
+      "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-27T11:16:10Z",
-      "title": "global · Other",
-      "source": "Yahoo Finance",
-      "score": 0.1,
+      "ts": "2026-07-27T13:50:58Z",
+      "title": "us · Geopolitics · risk on",
+      "source": "Forexlive",
+      "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-27T11:16:10Z",
-      "title": "global · Other",
-      "source": "Cnbc",
-      "score": 0.1,
+      "ts": "2026-07-27T13:50:58Z",
+      "title": "us · Geopolitics",
+      "source": "Forexlive",
+      "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-27T11:16:10Z",
-      "title": "global · Other",
-      "source": "Cnbc",
-      "score": 0.1,
+      "ts": "2026-07-27T13:50:58Z",
+      "title": "wgc · Gold Flow",
+      "source": "Forexlive",
+      "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-27T11:16:10Z",
-      "title": "global · Other",
-      "source": "Cnbc, Yahoo Finance",
-      "score": 0.1,
+      "ts": "2026-07-27T13:50:58Z",
+      "title": "us · Inflation",
+      "source": "Forexlive",
+      "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-27T11:16:10Z",
-      "title": "global · Other",
-      "source": "Cnbc",
-      "score": 0.1,
+      "ts": "2026-07-27T13:50:58Z",
+      "title": "ecb · Rate Policy · risk off",
+      "source": "Forexlive",
+      "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-27T11:16:10Z",
-      "title": "global · Other",
-      "source": "Cnbc",
-      "score": 0.1,
+      "ts": "2026-07-27T13:50:58Z",
+      "title": "fed · Rate Policy",
+      "source": "Forexlive",
+      "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-27T11:16:10Z",
-      "title": "global · Other",
-      "source": "Cnbc",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-27T11:16:10Z",
-      "title": "global · Other",
-      "source": "Yahoo Finance",
-      "score": 0.1,
+      "ts": "2026-07-27T13:50:58Z",
+      "title": "us · Geopolitics · risk off",
+      "source": "Forexlive",
+      "score": 0.4,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-07-27T11:20:59.930411Z"
+  "written_at": "2026-07-27T13:53:38.455258Z"
 }
