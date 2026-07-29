@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-07-29T06:25:49Z",
-      "title": "global · Other",
-      "source": "Yahoo Finance",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-29T06:25:49Z",
-      "title": "global · Other",
-      "source": "Yahoo Finance",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-29T06:25:49Z",
-      "title": "us · Usd Yields",
-      "source": "Yahoo Finance",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-29T06:25:49Z",
-      "title": "us · Geopolitics",
-      "source": "Yahoo Finance",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-29T06:25:49Z",
+      "ts": "2026-07-29T09:35:56Z",
       "title": "global · Other",
       "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-29T06:25:49Z",
+      "ts": "2026-07-29T09:35:56Z",
       "title": "global · Other",
-      "source": "Yahoo Finance",
+      "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-29T06:25:49Z",
-      "title": "us · Inflation · hawkish",
-      "source": "Investing Cb",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-29T06:25:49Z",
-      "title": "us · Jobs",
-      "source": "Investing Cb",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-29T06:25:49Z",
+      "ts": "2026-07-29T09:35:56Z",
       "title": "global · Other",
-      "source": "Cnbc, Investing Cb",
+      "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-29T06:25:49Z",
+      "ts": "2026-07-29T09:35:56Z",
+      "title": "russia · Geopolitics · risk off",
+      "source": "Cnbc",
+      "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-29T09:35:56Z",
       "title": "global · Other",
-      "source": "Cnbc, Investing Cb",
+      "source": "Cnbc",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-29T09:35:56Z",
+      "title": "mideast · Geopolitics",
+      "source": "Cnbc",
+      "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-29T09:35:56Z",
+      "title": "global · Other",
+      "source": "Cnbc",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-29T09:35:56Z",
+      "title": "global · Other",
+      "source": "Cnbc, Forexlive",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-29T09:35:56Z",
+      "title": "global · Other",
+      "source": "Cnbc, Forexlive",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-29T09:35:56Z",
+      "title": "global · Other",
+      "source": "Forexlive",
       "score": 0.1,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-07-29T06:30:54.320122Z"
+  "written_at": "2026-07-29T09:37:16.404360Z"
 }
