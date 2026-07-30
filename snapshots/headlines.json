@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-07-30T15:25:55Z",
-      "title": "global · Other",
-      "source": "Yahoo Finance",
+      "ts": "2026-07-30T17:22:22Z",
+      "title": "global · Other · dovish",
+      "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-30T15:25:55Z",
+      "ts": "2026-07-30T17:22:22Z",
       "title": "global · Other",
-      "source": "Yahoo Finance",
+      "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-30T15:25:55Z",
-      "title": "fed · Inflation",
-      "source": "Cnbc",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-30T15:25:55Z",
+      "ts": "2026-07-30T17:22:22Z",
       "title": "global · Other",
-      "source": "Cnbc",
+      "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-30T15:25:55Z",
+      "ts": "2026-07-30T17:22:22Z",
       "title": "global · Other",
-      "source": "Cnbc",
+      "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-30T15:25:55Z",
-      "title": "global · Other",
-      "source": "Yahoo Finance",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-30T15:25:55Z",
-      "title": "china · Geopolitics · risk off",
-      "source": "Cnbc",
+      "ts": "2026-07-30T17:22:22Z",
+      "title": "mideast · Geopolitics · risk off",
+      "source": "Bbc World",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-30T15:25:55Z",
-      "title": "global · Other · risk on",
-      "source": "Cnbc",
-      "score": 0.1,
+      "ts": "2026-07-30T17:22:22Z",
+      "title": "us · Geopolitics · risk off",
+      "source": "Bbc World",
+      "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-30T15:25:55Z",
+      "ts": "2026-07-30T17:22:22Z",
       "title": "global · Other",
-      "source": "Cnbc",
+      "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-30T15:25:55Z",
-      "title": "ecb · Rate Policy",
-      "source": "Forexlive",
+      "ts": "2026-07-30T17:22:22Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-30T17:22:22Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-07-30T17:22:22Z",
+      "title": "mideast · Geopolitics · risk off",
+      "source": "Bbc World",
       "score": 0.4,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-07-30T15:31:10.607769Z"
+  "written_at": "2026-07-30T17:27:03.102096Z"
 }
