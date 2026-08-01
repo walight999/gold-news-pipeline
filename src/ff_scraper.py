@@ -23,7 +23,7 @@ from __future__ import annotations
 
 import logging
 import re
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any
 from zoneinfo import ZoneInfo
 
@@ -65,9 +65,43 @@ def record_scrape_result(store, items_count: int) -> None:
         "updated_at": ts,
     })
 
-# FF page renders in Eastern Time by default for non-logged-in visitors.
-# zoneinfo handles EDT/EST automatically.
+# FF renders the calendar in the *visitor's geo-IP timezone* for non-logged-in
+# visitors — NOT a fixed Eastern Time. A cloud-runner IP can geo-locate to any
+# US region (or elsewhere), so hardcoding ET silently shifted every scraped time
+# by (runner_offset - ET) hours. In 2026-07 the runner geo-located to a UTC-6
+# (Mountain) region, so the whole Week-Ahead card ran 2h early (CHF 13:30→11:30,
+# USD 21:00→19:00 — user report 2026-08-01). We now DETECT the display offset
+# from FF's own header clock (see _detect_display_offset) and fall back to ET
+# only if detection fails. ET stays the documented fallback / actuals-key anchor.
 ET = ZoneInfo("America/New_York")
+
+
+def _detect_display_offset(html: str, ref_utc: datetime) -> timezone | None:
+    """Derive the fixed UTC offset FF is rendering the page in, by comparing
+    FF's own "current time" header clock (e.g. `9:06am` next to the /timezone
+    link) against the real UTC at fetch time. Snaps to the nearest 15 min (all
+    real IANA offsets are quarter-hour multiples), so a ±1-min clock skew or a
+    seconds-boundary crossing can't misclassify the zone. Returns None if the
+    header clock can't be found — caller then falls back to ET."""
+    m = re.search(r'calendar__header-time[^>]*>\s*(\d{1,2}):(\d{2})\s*(am|pm)',
+                  html, re.I)
+    if not m:
+        m = re.search(r'/timezone"\s+title="Time Options"[^>]*>\s*'
+                      r'(\d{1,2}):(\d{2})\s*(am|pm)', html, re.I)
+    if not m:
+        return None
+    h = int(m.group(1)) % 12 + (12 if m.group(3).lower() == "pm" else 0)
+    disp_min = h * 60 + int(m.group(2))
+    utc_min = ref_utc.hour * 60 + ref_utc.minute
+    diff = disp_min - utc_min
+    # Normalize into the valid offset band (-12:00 .. +14:00) across a midnight
+    # boundary between FF's clock and UTC's clock.
+    while diff > 840:
+        diff -= 1440
+    while diff < -720:
+        diff += 1440
+    diff = int(round(diff / 15.0)) * 15
+    return timezone(timedelta(minutes=diff))
 
 _MONTHS = {"Jan":1,"Feb":2,"Mar":3,"Apr":4,"May":5,"Jun":6,
            "Jul":7,"Aug":8,"Sep":9,"Oct":10,"Nov":11,"Dec":12}
@@ -119,8 +153,11 @@ def _resolve_year(month: int, ref: datetime) -> int:
     return ref.year
 
 
-def _parse_date_header(text: str, ref: datetime) -> datetime | None:
-    """FF day header looks like 'SunMay 24'. Returns ET midnight on that day."""
+def _parse_date_header(text: str, ref: datetime, tz=ET) -> datetime | None:
+    """FF day header looks like 'SunMay 24'. Returns `tz` midnight on that day.
+    `tz` is the page's detected display timezone (see _detect_display_offset);
+    both the date header and the row clock times are rendered in it, so they
+    must be interpreted with the SAME zone for the absolute time to be right."""
     m = re.match(r"[A-Za-z]{3}([A-Za-z]{3})\s+(\d+)", (text or "").strip())
     if not m:
         return None
@@ -130,7 +167,7 @@ def _parse_date_header(text: str, ref: datetime) -> datetime | None:
     day = int(m.group(2))
     year = _resolve_year(mon, ref)
     try:
-        return datetime(year, mon, day, tzinfo=ET)
+        return datetime(year, mon, day, tzinfo=tz)
     except ValueError:
         return None
 
@@ -155,7 +192,7 @@ def _try_fetch(url: str, timeout: float) -> str | None:
     return None
 
 
-def _row_date_et(tr, ref: datetime) -> datetime | None:
+def _row_date_et(tr, ref: datetime, tz=ET) -> datetime | None:
     """The authoritative per-day date: FF stamps the day's date ONLY in the
     `calendar__date` cell of that day's first row (`--new-day`); every
     following row of the day leaves that cell empty and inherits it.
@@ -173,13 +210,14 @@ def _row_date_et(tr, ref: datetime) -> datetime | None:
     txt = date_td.get_text(strip=True)
     if not txt:
         return None
-    return _parse_date_header(txt, ref)
+    return _parse_date_header(txt, ref, tz)
 
 
-def _parse_calendar_table(table, ref_now: datetime) -> list[dict[str, Any]]:
+def _parse_calendar_table(table, ref_now: datetime, disp_tz=ET) -> list[dict[str, Any]]:
     """Pure row-parser over an FF `calendar__table` soup element. Split out
     from the network fetch so the day-shift logic is unit-testable against
-    fixture HTML."""
+    fixture HTML. `disp_tz` is the timezone FF rendered the page in (detected
+    per-fetch by the caller); it defaults to ET for fixtures/back-compat."""
     current_date_et: datetime | None = None
     last_time: tuple[int, int] | None = None
     out: list[dict[str, Any]] = []
@@ -189,7 +227,7 @@ def _parse_calendar_table(table, ref_now: datetime) -> list[dict[str, Any]]:
         # Advance to a new day whenever this row stamps a date. Do this BEFORE
         # the day-breaker check so an unparseable/missing breaker can't strand
         # us on the previous day's date.
-        row_date = _row_date_et(tr, ref_now)
+        row_date = _row_date_et(tr, ref_now, disp_tz)
         if row_date is not None:
             current_date_et = row_date
             last_time = None
@@ -260,7 +298,15 @@ def scrape_ff_html(
         log.warning("FF scrape: no calendar__table in response")
         return []
 
-    out = _parse_calendar_table(table, datetime.now(timezone.utc))
+    ref_now = datetime.now(timezone.utc)
+    disp_tz = _detect_display_offset(html, ref_now)
+    if disp_tz is None:
+        disp_tz = ET
+        log.warning("FF scrape: could not detect page timezone — falling back "
+                    "to ET (times may be wrong if the runner isn't ET)")
+    else:
+        log.info("FF scrape: detected page timezone offset %s", disp_tz)
+    out = _parse_calendar_table(table, ref_now, disp_tz)
     log.info("FF scrape parsed %d events from %s", len(out), url)
     return out
 
@@ -291,13 +337,14 @@ def scrape_current_week_actuals(timeout: float = 25.0) -> dict[str, str]:
         return {}
 
     ref_now = datetime.now(timezone.utc)
+    disp_tz = _detect_display_offset(html, ref_now) or ET
     current_date_et: datetime | None = None
     last_time: tuple[int, int] | None = None
     out: dict[str, str] = {}
 
     for tr in table.find_all("tr"):
         cls = tr.get("class", []) or []
-        row_date = _row_date_et(tr, ref_now)
+        row_date = _row_date_et(tr, ref_now, disp_tz)
         if row_date is not None:
             current_date_et = row_date
             last_time = None
@@ -331,7 +378,11 @@ def scrape_current_week_actuals(timeout: float = 25.0) -> dict[str, str]:
         if not country or not title:
             continue
 
-        out[_make_actual_key(country, title, dt_et.strftime("%Y-%m-%d"))] = actual_s
+        # Anchor the actuals-key date to ET (from the now-correct UTC) so it
+        # matches lookup_actual_for_event, which keys off event.dt_utc→ET —
+        # regardless of which zone FF happened to render the page in.
+        out[_make_actual_key(country, title,
+                             dt_utc.astimezone(ET).strftime("%Y-%m-%d"))] = actual_s
 
     log.info("FF actuals scrape: %d events with actuals", len(out))
     return out
