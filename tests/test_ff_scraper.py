@@ -82,3 +82,66 @@ def test_all_day_row_does_not_inherit_a_clock_time():
     assert "Timed Print" in titles
     assert "Bank Holiday" not in titles
     assert "FDI" not in titles
+
+
+# ---------- geo-IP timezone drift (user report 2026-08-01) ----------
+#
+# FF renders anonymous visitors in their geo-IP timezone, not a fixed Eastern.
+# When the runner geo-located to UTC-6 (Mountain) the Week-Ahead card showed
+# every event 2h early (CHF 13:30→11:30, USD 21:00→19:00). The scraper now
+# self-calibrates the display offset from FF's own header clock.
+
+from datetime import timedelta   # noqa: E402
+from src.calendar import parse_ff_payload   # noqa: E402
+
+
+def test_detect_display_offset_from_header_clock():
+    # FF header shows 03:06 while true UTC is 09:07 → page rendered in UTC-6.
+    ref_utc = datetime(2026, 8, 1, 9, 7, tzinfo=timezone.utc)
+    html = ('<th class="calendar__time">'
+            '<a href="/timezone" title="Time Options" '
+            'class="calendar__header-time">3:06am</a></th>')
+    tz = ff_scraper._detect_display_offset(html, ref_utc)
+    assert tz is not None
+    assert tz.utcoffset(None) == timedelta(hours=-6)
+
+
+def test_detect_display_offset_snaps_and_handles_bangkok():
+    # Bangkok geo-IP: FF shows 4:07pm (16:07) while UTC is 09:06 → +7, and a
+    # 1-min skew must snap cleanly to +07:00.
+    ref_utc = datetime(2026, 8, 1, 9, 6, tzinfo=timezone.utc)
+    html = '<span class="calendar__header-time">4:07pm</span>'
+    tz = ff_scraper._detect_display_offset(html, ref_utc)
+    assert tz.utcoffset(None) == timedelta(hours=7)
+
+
+def test_detect_display_offset_none_when_no_clock():
+    assert ff_scraper._detect_display_offset("<div>no clock here</div>",
+                                             datetime.now(timezone.utc)) is None
+
+
+def test_mountain_runner_does_not_shift_times():
+    """The core regression: a UTC-6 (Mountain) runner scraping a USD 10:00am ET
+    event must still yield 21:00 ICT, not 19:00. We simulate by parsing rows
+    with the Mountain-rendered clock under the detected Mountain offset, then
+    converting through the real pipeline (parse_ff_payload → dt_ict)."""
+    mountain = timezone(timedelta(hours=-6))
+    # A USD event truly at 10:00 ET (=08:00 MDT) renders as "8:00am" on a
+    # Mountain-geo-IP page; a CHF event truly at 08:30 CEST (=00:30 MDT next
+    # anchor) renders here as an explicit clock too. We feed the Mountain clock.
+    html = (
+        _event_row("FriJul 31", "8:00am", "USD", "USD Ten AM ET", new_day=True)
+    )
+    rows = ff_scraper._parse_calendar_table(_table(html), REF, disp_tz=mountain)
+    events = parse_ff_payload(rows)
+    usd = next(e for e in events if e.title == "USD Ten AM ET")
+    # 08:00 MDT = 14:00 UTC = 21:00 ICT  ✅ (the value the user expected)
+    assert usd.hhmm_ict == "21:00"
+
+    # And the OLD buggy behavior (hardcoded ET on a Mountain clock) would have
+    # produced 19:00 — assert the default-ET path still reproduces that, proving
+    # the offset argument is what corrects it.
+    rows_buggy = ff_scraper._parse_calendar_table(_table(html), REF)  # ET default
+    usd_buggy = next(e for e in parse_ff_payload(rows_buggy)
+                     if e.title == "USD Ten AM ET")
+    assert usd_buggy.hhmm_ict == "19:00"
