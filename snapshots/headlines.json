@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-08-02T20:55:22Z",
+      "ts": "2026-08-02T21:55:51Z",
       "title": "global · Other",
       "source": "Marketwatch",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-02T20:55:22Z",
+      "ts": "2026-08-02T21:55:51Z",
       "title": "us · Jobs",
       "source": "Cnbc",
       "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-02T20:55:22Z",
+      "ts": "2026-08-02T21:55:51Z",
       "title": "mideast · Geopolitics · risk off",
       "source": "Cnbc, Marketwatch",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-02T20:55:22Z",
+      "ts": "2026-08-02T21:55:51Z",
       "title": "mideast · Geopolitics · risk off",
       "source": "Cnbc",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-02T20:55:22Z",
+      "ts": "2026-08-02T21:55:51Z",
       "title": "fed · Rate Policy",
       "source": "Marketwatch",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-02T20:55:22Z",
+      "ts": "2026-08-02T21:55:51Z",
+      "title": "us · Geopolitics · risk off",
+      "source": "Fxstreet",
+      "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-02T21:55:51Z",
       "title": "us · Usd Yields",
       "source": "Cnbc",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-02T20:55:22Z",
+      "ts": "2026-08-02T21:55:51Z",
       "title": "global · Other",
       "source": "Cnbc, Marketwatch, Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-02T20:55:22Z",
+      "ts": "2026-08-02T21:55:51Z",
       "title": "global · Other",
       "source": "Cnbc, Marketwatch, Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-02T20:55:22Z",
+      "ts": "2026-08-02T21:55:51Z",
       "title": "global · Other",
-      "source": "Cnbc, Marketwatch",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-02T20:55:22Z",
-      "title": "global · Other",
-      "source": "Cnbc, Marketwatch, Yahoo Finance",
+      "source": "Cnbc, Marketwatch, Forexlive",
       "score": 0.1,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-08-02T20:55:31.300866Z"
+  "written_at": "2026-08-02T21:56:17.840099Z"
 }
