@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-07-31T16:55:53Z",
-      "title": "global · Other",
-      "source": "Yahoo Finance",
-      "score": 0.1,
+      "ts": "2026-08-02T18:01:54Z",
+      "title": "us · Jobs",
+      "source": "Fxstreet",
+      "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-31T16:55:53Z",
-      "title": "global · Other",
-      "source": "Yahoo Finance",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-31T16:55:53Z",
-      "title": "fed · Rate Policy",
-      "source": "Yahoo Finance",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-31T16:55:53Z",
-      "title": "fed · Rate Policy",
-      "source": "Yahoo Finance",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-31T16:55:53Z",
-      "title": "fed · Rate Policy",
-      "source": "Yahoo Finance",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-31T16:55:53Z",
-      "title": "global · Other",
-      "source": "Cnbc",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-31T16:55:53Z",
-      "title": "global · Other",
-      "source": "Cnbc",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-31T16:55:53Z",
-      "title": "global · Other",
-      "source": "Cnbc",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-07-31T16:55:53Z",
-      "title": "us · Usd Yields",
+      "ts": "2026-08-02T18:01:54Z",
+      "title": "fed · Rate Policy · hawkish",
       "source": "Forexlive",
+      "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-02T18:01:54Z",
+      "title": "us · Geopolitics · risk off",
+      "source": "Fxstreet",
+      "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-02T18:01:54Z",
+      "title": "fed · Rate Policy · hawkish",
+      "source": "Fxstreet",
+      "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-02T18:01:54Z",
+      "title": "us · Usd Yields",
+      "source": "Fxstreet",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-07-31T16:55:53Z",
-      "title": "eurozone · Inflation · hawkish",
+      "ts": "2026-08-02T18:01:54Z",
+      "title": "us · Usd Yields",
+      "source": "Fxstreet",
+      "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-02T18:01:54Z",
+      "title": "wgc · Gold Flow",
+      "source": "Fxstreet",
+      "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-02T18:01:54Z",
+      "title": "us · Usd Yields",
+      "source": "Fxstreet",
+      "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-02T18:01:54Z",
+      "title": "global · Other",
       "source": "Forexlive",
-      "score": 0.5,
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-02T18:01:54Z",
+      "title": "global · Other",
+      "source": "Forexlive",
+      "score": 0.1,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-08-02T16:58:26.024168Z"
+  "written_at": "2026-08-02T18:05:15.196229Z"
 }
