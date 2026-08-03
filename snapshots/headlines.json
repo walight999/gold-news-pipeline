@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-08-03T07:55:56Z",
+      "ts": "2026-08-03T11:26:41Z",
       "title": "israel · Geopolitics",
       "source": "Bbc World",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-03T07:55:56Z",
+      "ts": "2026-08-03T11:26:41Z",
       "title": "russia · Geopolitics",
       "source": "Bbc World",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-03T07:55:56Z",
-      "title": "global · Other",
-      "source": "Marketwatch",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-03T07:55:56Z",
+      "ts": "2026-08-03T11:26:41Z",
       "title": "us · Jobs",
       "source": "Cnbc",
       "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-03T07:55:56Z",
+      "ts": "2026-08-03T11:26:41Z",
       "title": "mideast · Geopolitics · risk off",
-      "source": "Cnbc, Marketwatch",
+      "source": "Cnbc",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-03T07:55:56Z",
+      "ts": "2026-08-03T11:26:41Z",
       "title": "mideast · Geopolitics · risk off",
       "source": "Bbc World",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-03T07:55:56Z",
-      "title": "russia · Geopolitics · risk off",
-      "source": "Bbc World",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-03T07:55:56Z",
+      "ts": "2026-08-03T11:26:41Z",
       "title": "israel · Geopolitics · risk off",
       "source": "Bbc World",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-03T07:55:56Z",
+      "ts": "2026-08-03T11:26:41Z",
       "title": "mideast · Geopolitics",
       "source": "Bbc World",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-03T07:55:56Z",
-      "title": "fed · Rate Policy",
-      "source": "Marketwatch",
-      "score": 0.4,
+      "ts": "2026-08-03T11:26:41Z",
+      "title": "us · Usd Yields",
+      "source": "Cnbc",
+      "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-03T11:26:41Z",
+      "title": "global · Other",
+      "source": "Cnbc, Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-03T11:26:41Z",
+      "title": "global · Other",
+      "source": "Cnbc",
+      "score": 0.1,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-08-03T07:56:52.815123Z"
+  "written_at": "2026-08-03T11:28:33.792875Z"
 }
