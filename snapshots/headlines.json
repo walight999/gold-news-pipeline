@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-08-02T22:55:48Z",
+      "ts": "2026-08-03T00:02:02Z",
       "title": "global · Other",
-      "source": "Marketwatch, Investing Commodities",
+      "source": "Forexlive",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-02T22:55:48Z",
-      "title": "us · Jobs",
-      "source": "Cnbc",
-      "score": 0.5,
+      "ts": "2026-08-03T00:02:02Z",
+      "title": "global · Other",
+      "source": "Fxstreet",
+      "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-02T22:55:48Z",
+      "ts": "2026-08-03T00:02:02Z",
+      "title": "global · Other",
+      "source": "Fxstreet",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-03T00:02:02Z",
+      "title": "global · Other",
+      "source": "Forexlive",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-03T00:02:02Z",
+      "title": "global · Other",
+      "source": "Forexlive",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-03T00:02:02Z",
       "title": "mideast · Geopolitics · risk off",
-      "source": "Cnbc, Marketwatch",
+      "source": "Forexlive",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-02T22:55:48Z",
-      "title": "mideast · Geopolitics · risk off",
-      "source": "Cnbc",
+      "ts": "2026-08-03T00:02:02Z",
+      "title": "mideast · Geopolitics · hawkish",
+      "source": "Forexlive",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-02T22:55:48Z",
-      "title": "fed · Rate Policy",
-      "source": "Marketwatch",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-02T22:55:48Z",
+      "ts": "2026-08-03T00:02:02Z",
       "title": "us · Usd Yields",
-      "source": "Cnbc",
+      "source": "Forexlive",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-02T22:55:48Z",
-      "title": "wgc · Gold Flow",
-      "source": "Investing Commodities",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-02T22:55:48Z",
+      "ts": "2026-08-03T00:02:02Z",
       "title": "global · Other",
-      "source": "Cnbc, Marketwatch, Yahoo Finance",
+      "source": "Forexlive, Fxstreet",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-02T22:55:48Z",
-      "title": "global · Other",
-      "source": "Cnbc, Marketwatch",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-02T22:55:48Z",
-      "title": "global · Other",
-      "source": "Cnbc, Marketwatch, Forexlive",
-      "score": 0.1,
+      "ts": "2026-08-03T00:02:02Z",
+      "title": "mideast · Geopolitics · risk off",
+      "source": "Forexlive, Fxstreet",
+      "score": 0.4,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-08-02T22:57:43.543522Z"
+  "written_at": "2026-08-03T00:03:05.684922Z"
 }
