@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-08-03T00:02:02Z",
+      "ts": "2026-08-03T04:01:40Z",
       "title": "global · Other",
       "source": "Forexlive",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-03T00:02:02Z",
-      "title": "global · Other",
-      "source": "Fxstreet",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-03T00:02:02Z",
-      "title": "global · Other",
-      "source": "Fxstreet",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-03T00:02:02Z",
-      "title": "global · Other",
-      "source": "Forexlive",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-03T00:02:02Z",
-      "title": "global · Other",
-      "source": "Forexlive",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-03T00:02:02Z",
-      "title": "mideast · Geopolitics · risk off",
-      "source": "Forexlive",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-03T00:02:02Z",
+      "ts": "2026-08-03T04:01:40Z",
       "title": "mideast · Geopolitics · hawkish",
       "source": "Forexlive",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-03T00:02:02Z",
+      "ts": "2026-08-03T04:01:40Z",
       "title": "us · Usd Yields",
       "source": "Forexlive",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-03T00:02:02Z",
+      "ts": "2026-08-03T04:01:40Z",
       "title": "global · Other",
-      "source": "Forexlive, Fxstreet",
+      "source": "Forexlive",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-03T00:02:02Z",
+      "ts": "2026-08-03T04:01:40Z",
       "title": "mideast · Geopolitics · risk off",
-      "source": "Forexlive, Fxstreet",
+      "source": "Forexlive",
       "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-03T04:01:40Z",
+      "title": "global · Other",
+      "source": "Forexlive",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-03T04:01:40Z",
+      "title": "mideast · Geopolitics · risk off",
+      "source": "Forexlive",
+      "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-03T04:01:40Z",
+      "title": "us · Geopolitics · risk off",
+      "source": "Forexlive",
+      "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-03T04:01:40Z",
+      "title": "boj · Rate Policy",
+      "source": "Forexlive",
+      "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-03T04:01:40Z",
+      "title": "china · Growth",
+      "source": "Forexlive",
+      "score": 0.2,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-08-03T00:03:05.684922Z"
+  "written_at": "2026-08-03T04:06:16.447624Z"
 }
