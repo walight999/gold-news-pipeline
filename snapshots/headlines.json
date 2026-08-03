@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-08-03T04:01:40Z",
-      "title": "global · Other",
-      "source": "Forexlive",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-03T04:01:40Z",
-      "title": "mideast · Geopolitics · hawkish",
-      "source": "Forexlive",
+      "ts": "2026-08-03T07:55:56Z",
+      "title": "israel · Geopolitics",
+      "source": "Bbc World",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-03T04:01:40Z",
-      "title": "us · Usd Yields",
-      "source": "Forexlive",
-      "score": 0.3,
+      "ts": "2026-08-03T07:55:56Z",
+      "title": "russia · Geopolitics",
+      "source": "Bbc World",
+      "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-03T04:01:40Z",
+      "ts": "2026-08-03T07:55:56Z",
       "title": "global · Other",
-      "source": "Forexlive",
+      "source": "Marketwatch",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-03T04:01:40Z",
+      "ts": "2026-08-03T07:55:56Z",
+      "title": "us · Jobs",
+      "source": "Cnbc",
+      "score": 0.5,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-03T07:55:56Z",
       "title": "mideast · Geopolitics · risk off",
-      "source": "Forexlive",
+      "source": "Cnbc, Marketwatch",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-03T04:01:40Z",
-      "title": "global · Other",
-      "source": "Forexlive",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-03T04:01:40Z",
+      "ts": "2026-08-03T07:55:56Z",
       "title": "mideast · Geopolitics · risk off",
-      "source": "Forexlive",
+      "source": "Bbc World",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-03T04:01:40Z",
-      "title": "us · Geopolitics · risk off",
-      "source": "Forexlive",
+      "ts": "2026-08-03T07:55:56Z",
+      "title": "russia · Geopolitics · risk off",
+      "source": "Bbc World",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-03T04:01:40Z",
-      "title": "boj · Rate Policy",
-      "source": "Forexlive",
+      "ts": "2026-08-03T07:55:56Z",
+      "title": "israel · Geopolitics · risk off",
+      "source": "Bbc World",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-03T04:01:40Z",
-      "title": "china · Growth",
-      "source": "Forexlive",
-      "score": 0.2,
+      "ts": "2026-08-03T07:55:56Z",
+      "title": "mideast · Geopolitics",
+      "source": "Bbc World",
+      "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-03T07:55:56Z",
+      "title": "fed · Rate Policy",
+      "source": "Marketwatch",
+      "score": 0.4,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-08-03T04:06:16.447624Z"
+  "written_at": "2026-08-03T07:56:52.815123Z"
 }
