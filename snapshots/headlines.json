@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-08-04T06:26:10Z",
-      "title": "global · Other",
-      "source": "Yahoo Finance",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-04T06:26:10Z",
-      "title": "global · Other",
-      "source": "Yahoo Finance",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-04T06:26:10Z",
-      "title": "global · Other",
-      "source": "Yahoo Finance",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-04T06:26:10Z",
-      "title": "global · Other",
-      "source": "Yahoo Finance",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-04T06:26:10Z",
-      "title": "fed · Rate Policy",
-      "source": "Yahoo Finance",
+      "ts": "2026-08-04T09:21:53Z",
+      "title": "russia · Geopolitics",
+      "source": "Bbc World",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-04T06:26:10Z",
-      "title": "us · Growth",
-      "source": "Investing Cb",
-      "score": 0.2,
+      "ts": "2026-08-04T09:21:53Z",
+      "title": "mideast · Geopolitics · risk off",
+      "source": "Bbc World",
+      "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-04T06:26:10Z",
+      "ts": "2026-08-04T09:21:53Z",
       "title": "global · Other",
-      "source": "Investing Cb",
+      "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-04T06:26:10Z",
-      "title": "uk · Growth",
-      "source": "Investing Cb",
-      "score": 0.2,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-04T06:26:10Z",
+      "ts": "2026-08-04T09:21:53Z",
       "title": "global · Other",
-      "source": "Cnbc, Yahoo Finance",
+      "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-04T06:26:10Z",
-      "title": "us · Jobs",
-      "source": "Investing Cb",
-      "score": 0.5,
+      "ts": "2026-08-04T09:21:53Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-04T09:21:53Z",
+      "title": "mideast · Geopolitics · risk off",
+      "source": "Bbc World",
+      "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-04T09:21:53Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-04T09:21:53Z",
+      "title": "global · Other",
+      "source": "Bbc World, Aljazeera",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-04T09:21:53Z",
+      "title": "global · Other",
+      "source": "Bbc World, Aljazeera",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-04T09:21:53Z",
+      "title": "israel · Geopolitics",
+      "source": "Aljazeera",
+      "score": 0.4,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-08-04T06:27:48.752741Z"
+  "written_at": "2026-08-04T09:22:25.594145Z"
 }
