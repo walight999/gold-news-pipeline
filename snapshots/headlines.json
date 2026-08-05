@@ -2,70 +2,70 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-08-05T14:51:35Z",
-      "title": "us · Jobs · hawkish",
-      "source": "Forexlive",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-05T14:51:35Z",
-      "title": "us · Geopolitics · hawkish",
-      "source": "Forexlive",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-05T14:51:35Z",
+      "ts": "2026-08-05T16:41:03Z",
       "title": "global · Other",
       "source": "Forexlive",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-05T14:51:35Z",
+      "ts": "2026-08-05T16:41:03Z",
       "title": "us · Geopolitics · risk off",
       "source": "Forexlive",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-05T14:51:35Z",
+      "ts": "2026-08-05T16:41:03Z",
       "title": "us · Usd Yields",
       "source": "Forexlive",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-05T14:51:35Z",
+      "ts": "2026-08-05T16:41:03Z",
       "title": "us · Inflation · hawkish",
       "source": "Forexlive",
       "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-05T14:51:35Z",
+      "ts": "2026-08-05T16:41:03Z",
       "title": "us · Geopolitics · risk off",
       "source": "Forexlive",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-05T14:51:35Z",
+      "ts": "2026-08-05T16:41:03Z",
       "title": "global · Other",
       "source": "Forexlive",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-05T14:51:35Z",
+      "ts": "2026-08-05T16:41:03Z",
       "title": "us · Inflation",
       "source": "Forexlive",
       "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-05T14:51:35Z",
+      "ts": "2026-08-05T16:41:03Z",
+      "title": "us · Growth",
+      "source": "Forexlive",
+      "score": 0.2,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-05T16:41:03Z",
+      "title": "us · Growth · dovish",
+      "source": "Forexlive",
+      "score": 0.2,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-05T16:41:03Z",
       "title": "us · Growth",
       "source": "Forexlive",
       "score": 0.2,
@@ -73,5 +73,5 @@
     }
   ],
   "count": 10,
-  "written_at": "2026-08-05T14:55:09.435257Z"
+  "written_at": "2026-08-05T16:42:28.697853Z"
 }
