@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-08-07T14:31:18Z",
-      "title": "pboc · Gold Flow",
-      "source": "Forexlive",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-07T14:31:18Z",
-      "title": "mideast · Geopolitics · risk off",
-      "source": "Forexlive",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-07T14:31:18Z",
+      "ts": "2026-08-07T15:51:08Z",
       "title": "global · Other",
-      "source": "Forexlive",
+      "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-07T14:31:18Z",
-      "title": "us · Geopolitics · risk off",
-      "source": "Forexlive",
+      "ts": "2026-08-07T15:51:08Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-07T15:51:08Z",
+      "title": "russia · Geopolitics · risk off",
+      "source": "Bbc World",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-07T14:31:18Z",
-      "title": "us · Geopolitics",
-      "source": "Forexlive",
+      "ts": "2026-08-07T15:51:08Z",
+      "title": "global · Other · risk off",
+      "source": "Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-07T15:51:08Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-07T15:51:08Z",
+      "title": "israel · Geopolitics",
+      "source": "Bbc World",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-07T14:31:18Z",
-      "title": "fed · Rate Policy · hawkish",
-      "source": "Forexlive",
-      "score": 0.4,
+      "ts": "2026-08-07T15:51:08Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-07T14:31:18Z",
-      "title": "mideast · Geopolitics · risk off",
-      "source": "Forexlive",
-      "score": 0.4,
+      "ts": "2026-08-07T15:51:08Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-07T14:31:18Z",
-      "title": "us · Jobs",
-      "source": "Forexlive",
-      "score": 0.5,
+      "ts": "2026-08-07T15:51:08Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-07T14:31:18Z",
-      "title": "us · Jobs",
-      "source": "Forexlive",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-07T14:31:18Z",
-      "title": "us · Jobs",
-      "source": "Forexlive",
-      "score": 0.5,
+      "ts": "2026-08-07T15:51:08Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-08-07T14:31:52.010787Z"
+  "written_at": "2026-08-07T15:55:37.310410Z"
 }
