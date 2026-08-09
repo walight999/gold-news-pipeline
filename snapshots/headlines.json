@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-08-09T21:25:54Z",
+      "ts": "2026-08-09T22:25:53Z",
       "title": "mideast · Geopolitics",
       "source": "Investing General",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-09T21:25:54Z",
-      "title": "global · Other",
-      "source": "Yahoo Finance",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-09T21:25:54Z",
+      "ts": "2026-08-09T22:25:53Z",
       "title": "us · Inflation",
       "source": "Cnbc, Forexlive",
       "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-09T21:25:54Z",
+      "ts": "2026-08-09T22:25:53Z",
       "title": "us · Inflation · risk off",
       "source": "Forexlive",
       "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-09T21:25:54Z",
+      "ts": "2026-08-09T22:25:53Z",
       "title": "us · Inflation",
       "source": "Investing Cb",
       "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-09T21:25:54Z",
+      "ts": "2026-08-09T22:25:53Z",
       "title": "fed · Rate Policy",
       "source": "Investing General",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-09T21:25:54Z",
+      "ts": "2026-08-09T22:25:53Z",
       "title": "israel · Geopolitics · risk off",
       "source": "Cnbc",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-09T21:25:54Z",
+      "ts": "2026-08-09T22:25:53Z",
       "title": "mideast · Geopolitics · risk off",
       "source": "Cnbc",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-09T21:25:54Z",
+      "ts": "2026-08-09T22:25:53Z",
       "title": "ukraine · Geopolitics · risk off",
       "source": "Cnbc",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-09T21:25:54Z",
+      "ts": "2026-08-09T22:25:53Z",
       "title": "mideast · Geopolitics · risk off",
       "source": "Investing Commodities",
       "score": 0.4,
       "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-09T22:25:53Z",
+      "title": "us · Usd Yields",
+      "source": "Marketwatch",
+      "score": 0.3,
+      "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-08-09T21:31:39.835934Z"
+  "written_at": "2026-08-09T22:30:51.285236Z"
 }
