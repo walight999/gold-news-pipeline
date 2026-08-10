@@ -2,70 +2,70 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-08-10T05:22:06Z",
+      "ts": "2026-08-10T06:51:42Z",
       "title": "us · Inflation",
       "source": "Forexlive",
       "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-10T05:22:06Z",
-      "title": "us · Inflation · risk off",
-      "source": "Forexlive",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-10T05:22:06Z",
+      "ts": "2026-08-10T06:51:42Z",
       "title": "mideast · Geopolitics · risk off",
       "source": "Bbc World",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-10T05:22:06Z",
+      "ts": "2026-08-10T06:51:42Z",
       "title": "israel · Geopolitics",
       "source": "Bbc World",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-10T05:22:06Z",
+      "ts": "2026-08-10T06:51:42Z",
       "title": "mideast · Geopolitics · risk off",
       "source": "Bbc World",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-10T05:22:06Z",
+      "ts": "2026-08-10T06:51:42Z",
       "title": "russia · Geopolitics · risk off",
       "source": "Bbc World",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-10T05:22:06Z",
-      "title": "israel · Geopolitics",
-      "source": "Aljazeera",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-10T05:22:06Z",
+      "ts": "2026-08-10T06:51:42Z",
       "title": "global · Other",
       "source": "Bbc World, Aljazeera",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-10T05:22:06Z",
+      "ts": "2026-08-10T06:51:42Z",
       "title": "global · Other",
       "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-10T05:22:06Z",
+      "ts": "2026-08-10T06:51:42Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-10T06:51:42Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-10T06:51:42Z",
       "title": "global · Other",
       "source": "Bbc World",
       "score": 0.1,
@@ -73,5 +73,5 @@
     }
   ],
   "count": 10,
-  "written_at": "2026-08-10T05:26:36.851320Z"
+  "written_at": "2026-08-10T06:51:59.414906Z"
 }
