@@ -2,70 +2,70 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-08-10T08:21:11Z",
+      "ts": "2026-08-10T09:56:23Z",
       "title": "us · Inflation",
       "source": "Cnbc",
       "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-10T08:21:11Z",
+      "ts": "2026-08-10T09:56:23Z",
+      "title": "us · Inflation",
+      "source": "Investing Cb",
+      "score": 0.5,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-10T09:56:23Z",
+      "title": "mideast · Geopolitics · risk off",
+      "source": "Bbc World",
+      "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-10T09:56:23Z",
+      "title": "israel · Geopolitics",
+      "source": "Bbc World",
+      "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-10T09:56:23Z",
+      "title": "mideast · Geopolitics · risk off",
+      "source": "Bbc World",
+      "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-10T09:56:23Z",
       "title": "israel · Geopolitics · risk off",
       "source": "Cnbc",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-10T08:21:11Z",
+      "ts": "2026-08-10T09:56:23Z",
       "title": "mideast · Geopolitics · risk off",
       "source": "Cnbc",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-10T08:21:11Z",
+      "ts": "2026-08-10T09:56:23Z",
       "title": "ukraine · Geopolitics · risk off",
       "source": "Cnbc",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-10T08:21:11Z",
-      "title": "us · Usd Yields",
-      "source": "Marketwatch",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-10T08:21:11Z",
+      "ts": "2026-08-10T09:56:23Z",
       "title": "global · Other",
-      "source": "Marketwatch",
+      "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-10T08:21:11Z",
-      "title": "global · Other",
-      "source": "Marketwatch",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-10T08:21:11Z",
-      "title": "global · Other",
-      "source": "Cnbc, Marketwatch",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-10T08:21:11Z",
-      "title": "global · Other",
-      "source": "Cnbc, Marketwatch",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-10T08:21:11Z",
+      "ts": "2026-08-10T09:56:23Z",
       "title": "global · Other",
       "source": "Cnbc",
       "score": 0.1,
@@ -73,5 +73,5 @@
     }
   ],
   "count": 10,
-  "written_at": "2026-08-10T08:26:23.261249Z"
+  "written_at": "2026-08-10T09:58:16.418272Z"
 }
