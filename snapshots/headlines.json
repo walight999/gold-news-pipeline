@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-08-10T14:56:29Z",
-      "title": "mideast · Geopolitics · risk off",
-      "source": "Bbc World",
+      "ts": "2026-08-10T16:02:02Z",
+      "title": "china · Geopolitics · risk off",
+      "source": "Forexlive",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-10T14:56:29Z",
-      "title": "israel · Geopolitics · risk off",
-      "source": "Cnbc",
+      "ts": "2026-08-10T16:02:02Z",
+      "title": "us · Inflation · dovish",
+      "source": "Forexlive",
+      "score": 0.5,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-10T16:02:02Z",
+      "title": "us · Jobs · hawkish",
+      "source": "Forexlive",
+      "score": 0.5,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-10T16:02:02Z",
+      "title": "us · Geopolitics · risk off",
+      "source": "Forexlive",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-10T14:56:29Z",
-      "title": "ukraine · Geopolitics · risk off",
-      "source": "Cnbc",
+      "ts": "2026-08-10T16:02:02Z",
+      "title": "china · Geopolitics · hawkish",
+      "source": "Forexlive",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-10T14:56:29Z",
-      "title": "global · Other",
-      "source": "Cnbc",
-      "score": 0.1,
+      "ts": "2026-08-10T16:02:02Z",
+      "title": "us · Jobs",
+      "source": "Forexlive",
+      "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-10T14:56:29Z",
-      "title": "global · Other",
-      "source": "Bbc World, Cnbc",
-      "score": 0.1,
+      "ts": "2026-08-10T16:02:02Z",
+      "title": "us · Jobs",
+      "source": "Forexlive",
+      "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-10T14:56:29Z",
-      "title": "global · Other",
-      "source": "Bbc World",
-      "score": 0.1,
+      "ts": "2026-08-10T16:02:02Z",
+      "title": "us · Inflation",
+      "source": "Forexlive",
+      "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-10T14:56:29Z",
-      "title": "global · Other",
-      "source": "Bbc World, Cnbc",
-      "score": 0.1,
+      "ts": "2026-08-10T16:02:02Z",
+      "title": "fed · Rate Policy",
+      "source": "Forexlive",
+      "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-10T14:56:29Z",
-      "title": "global · Other",
-      "source": "Bbc World",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-10T14:56:29Z",
-      "title": "global · Other",
-      "source": "Bbc World",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-10T14:56:29Z",
-      "title": "global · Other",
-      "source": "Bbc World",
-      "score": 0.1,
+      "ts": "2026-08-10T16:02:02Z",
+      "title": "us · Jobs · hawkish",
+      "source": "Forexlive",
+      "score": 0.5,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-08-10T14:58:03.477343Z"
+  "written_at": "2026-08-10T16:04:01.795176Z"
 }
