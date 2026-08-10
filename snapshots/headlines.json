@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-08-10T09:56:23Z",
-      "title": "us · Inflation",
-      "source": "Cnbc",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-10T09:56:23Z",
-      "title": "us · Inflation",
-      "source": "Investing Cb",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-10T09:56:23Z",
+      "ts": "2026-08-10T11:11:25Z",
       "title": "mideast · Geopolitics · risk off",
       "source": "Bbc World",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-10T09:56:23Z",
+      "ts": "2026-08-10T11:11:25Z",
       "title": "israel · Geopolitics",
       "source": "Bbc World",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-10T09:56:23Z",
+      "ts": "2026-08-10T11:11:25Z",
       "title": "mideast · Geopolitics · risk off",
       "source": "Bbc World",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-10T09:56:23Z",
-      "title": "israel · Geopolitics · risk off",
-      "source": "Cnbc",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-10T09:56:23Z",
-      "title": "mideast · Geopolitics · risk off",
-      "source": "Cnbc",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-10T09:56:23Z",
-      "title": "ukraine · Geopolitics · risk off",
-      "source": "Cnbc",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-10T09:56:23Z",
+      "ts": "2026-08-10T11:11:25Z",
       "title": "global · Other",
       "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-10T09:56:23Z",
+      "ts": "2026-08-10T11:11:25Z",
       "title": "global · Other",
-      "source": "Cnbc",
+      "source": "Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-10T11:11:25Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-10T11:11:25Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-10T11:11:25Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-10T11:11:25Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-10T11:11:25Z",
+      "title": "global · Other",
+      "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-08-10T09:58:16.418272Z"
+  "written_at": "2026-08-10T11:14:18.417472Z"
 }
