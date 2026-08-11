@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-08-11T14:31:51Z",
+      "ts": "2026-08-11T15:56:39Z",
       "title": "global · Other",
-      "source": "Forexlive",
+      "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-11T14:31:51Z",
-      "title": "boj · Rate Policy · hawkish",
-      "source": "Forexlive",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-11T14:31:51Z",
-      "title": "mideast · Geopolitics · risk off",
-      "source": "Forexlive",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-11T14:31:51Z",
-      "title": "pboc · Gold Flow",
-      "source": "Forexlive",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-11T14:31:51Z",
+      "ts": "2026-08-11T15:56:39Z",
       "title": "global · Other",
-      "source": "Forexlive",
+      "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-11T14:31:51Z",
-      "title": "us · Inflation",
-      "source": "Forexlive",
-      "score": 0.5,
+      "ts": "2026-08-11T15:56:39Z",
+      "title": "global · Other",
+      "source": "Yahoo Finance",
+      "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-11T14:31:51Z",
+      "ts": "2026-08-11T15:56:39Z",
+      "title": "global · Other",
+      "source": "Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-11T15:56:39Z",
       "title": "fed · Rate Policy · hawkish",
-      "source": "Forexlive",
+      "source": "Cnbc",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-11T14:31:51Z",
+      "ts": "2026-08-11T15:56:39Z",
       "title": "global · Other",
-      "source": "Forexlive",
+      "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-11T14:31:51Z",
-      "title": "us · Inflation",
-      "source": "Forexlive",
-      "score": 0.5,
+      "ts": "2026-08-11T15:56:39Z",
+      "title": "global · Other",
+      "source": "Cnbc, Yahoo Finance",
+      "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-11T14:31:51Z",
+      "ts": "2026-08-11T15:56:39Z",
+      "title": "global · Other · dovish",
+      "source": "Cnbc",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-11T15:56:39Z",
       "title": "global · Other",
-      "source": "Forexlive",
+      "source": "Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-11T15:56:39Z",
+      "title": "global · Other",
+      "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-08-11T14:35:36.190348Z"
+  "written_at": "2026-08-11T16:00:35.096867Z"
 }
