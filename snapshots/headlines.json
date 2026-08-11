@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-08-11T03:41:41Z",
+      "ts": "2026-08-11T05:05:49Z",
       "title": "global · Other",
-      "source": "Fxstreet",
+      "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-11T03:41:41Z",
+      "ts": "2026-08-11T05:05:49Z",
+      "title": "global · Other",
+      "source": "Cnbc, Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-11T05:05:49Z",
+      "title": "global · Other",
+      "source": "Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-11T05:05:49Z",
+      "title": "global · Other",
+      "source": "Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-11T05:05:49Z",
+      "title": "global · Other",
+      "source": "Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-11T05:05:49Z",
       "title": "us · Inflation",
-      "source": "Fxstreet",
+      "source": "Yahoo Finance",
       "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-11T03:41:41Z",
-      "title": "fed · Rate Policy · hawkish",
-      "source": "Fxstreet",
-      "score": 0.4,
+      "ts": "2026-08-11T05:05:49Z",
+      "title": "global · Other · risk on",
+      "source": "Yahoo Finance",
+      "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-11T03:41:41Z",
-      "title": "us · Geopolitics",
-      "source": "Fxstreet",
-      "score": 0.4,
+      "ts": "2026-08-11T05:05:49Z",
+      "title": "global · Other",
+      "source": "Yahoo Finance",
+      "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-11T03:41:41Z",
-      "title": "us · Growth",
-      "source": "Fxstreet",
-      "score": 0.2,
+      "ts": "2026-08-11T05:05:49Z",
+      "title": "global · Other · risk on",
+      "source": "Yahoo Finance",
+      "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-11T03:41:41Z",
+      "ts": "2026-08-11T05:05:49Z",
       "title": "wgc · Gold Flow",
-      "source": "Fxstreet",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-11T03:41:41Z",
-      "title": "global · Other",
-      "source": "Fxstreet",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-11T03:41:41Z",
-      "title": "us · Inflation",
-      "source": "Fxstreet",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-11T03:41:41Z",
-      "title": "us · Jobs",
-      "source": "Fxstreet",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-11T03:41:41Z",
-      "title": "us · Usd Yields · dovish",
-      "source": "Fxstreet",
+      "source": "Yahoo Finance",
       "score": 0.3,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-08-11T03:44:10.223082Z"
+  "written_at": "2026-08-11T05:08:10.026836Z"
 }
