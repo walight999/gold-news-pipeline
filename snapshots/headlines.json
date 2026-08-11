@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-08-11T05:05:49Z",
+      "ts": "2026-08-11T06:26:28Z",
       "title": "global · Other",
       "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-11T05:05:49Z",
-      "title": "global · Other",
-      "source": "Cnbc, Yahoo Finance",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-11T05:05:49Z",
-      "title": "global · Other",
-      "source": "Yahoo Finance",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-11T05:05:49Z",
-      "title": "global · Other",
-      "source": "Yahoo Finance",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-11T05:05:49Z",
-      "title": "global · Other",
-      "source": "Yahoo Finance",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-11T05:05:49Z",
-      "title": "us · Inflation",
-      "source": "Yahoo Finance",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-11T05:05:49Z",
+      "ts": "2026-08-11T06:26:28Z",
       "title": "global · Other · risk on",
       "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-11T05:05:49Z",
+      "ts": "2026-08-11T06:26:28Z",
       "title": "global · Other",
       "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-11T05:05:49Z",
-      "title": "global · Other · risk on",
-      "source": "Yahoo Finance",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-11T05:05:49Z",
+      "ts": "2026-08-11T06:26:28Z",
       "title": "wgc · Gold Flow",
       "source": "Yahoo Finance",
       "score": 0.3,
       "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-11T06:26:28Z",
+      "title": "global · Other",
+      "source": "Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-11T06:26:28Z",
+      "title": "global · Other · risk on",
+      "source": "Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-11T06:26:28Z",
+      "title": "global · Other",
+      "source": "Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-11T06:26:28Z",
+      "title": "us · Inflation · dovish",
+      "source": "Investing Cb",
+      "score": 0.5,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-11T06:26:28Z",
+      "title": "global · Other",
+      "source": "Investing Cb",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-11T06:26:28Z",
+      "title": "global · Other",
+      "source": "Investing Cb",
+      "score": 0.1,
+      "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-08-11T05:08:10.026836Z"
+  "written_at": "2026-08-11T06:27:49.491082Z"
 }
