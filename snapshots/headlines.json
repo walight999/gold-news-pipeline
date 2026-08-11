@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-08-11T15:56:39Z",
+      "ts": "2026-08-11T17:06:02Z",
       "title": "global · Other",
       "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-11T15:56:39Z",
+      "ts": "2026-08-11T17:06:02Z",
       "title": "global · Other",
       "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-11T15:56:39Z",
+      "ts": "2026-08-11T17:06:02Z",
+      "title": "global · Other",
+      "source": "Bbc World, Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-11T17:06:02Z",
       "title": "global · Other",
       "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-11T15:56:39Z",
+      "ts": "2026-08-11T17:06:02Z",
       "title": "global · Other",
-      "source": "Yahoo Finance",
+      "source": "Bbc World, Cnbc, Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-11T15:56:39Z",
-      "title": "fed · Rate Policy · hawkish",
-      "source": "Cnbc",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-11T15:56:39Z",
-      "title": "global · Other",
-      "source": "Yahoo Finance",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-11T15:56:39Z",
-      "title": "global · Other",
-      "source": "Cnbc, Yahoo Finance",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-11T15:56:39Z",
+      "ts": "2026-08-11T17:06:02Z",
       "title": "global · Other · dovish",
       "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-11T15:56:39Z",
+      "ts": "2026-08-11T17:06:02Z",
       "title": "global · Other",
       "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-11T15:56:39Z",
+      "ts": "2026-08-11T17:06:02Z",
       "title": "global · Other",
-      "source": "Cnbc",
+      "source": "Bbc World, Cnbc",
       "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-11T17:06:02Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-11T17:06:02Z",
+      "title": "fed · Rate Policy",
+      "source": "Cnbc",
+      "score": 0.4,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-08-11T16:00:35.096867Z"
+  "written_at": "2026-08-11T17:07:41.274062Z"
 }
