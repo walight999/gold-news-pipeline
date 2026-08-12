@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-08-12T16:21:52Z",
+      "ts": "2026-08-12T17:26:35Z",
+      "title": "us · Usd Yields",
+      "source": "Cnbc",
+      "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-12T17:26:35Z",
+      "title": "us · Inflation",
+      "source": "Yahoo Finance",
+      "score": 0.5,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-12T17:26:35Z",
       "title": "global · Other",
-      "source": "Bbc World",
+      "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-12T16:21:52Z",
-      "title": "mideast · Geopolitics",
-      "source": "Bbc World",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-12T16:21:52Z",
-      "title": "us · Geopolitics",
-      "source": "Bbc World",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-12T16:21:52Z",
+      "ts": "2026-08-12T17:26:35Z",
       "title": "global · Other",
-      "source": "Bbc World",
+      "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-12T16:21:52Z",
+      "ts": "2026-08-12T17:26:35Z",
       "title": "global · Other",
-      "source": "Bbc World",
+      "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-12T16:21:52Z",
+      "ts": "2026-08-12T17:26:35Z",
       "title": "global · Other",
-      "source": "Bbc World",
+      "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-12T16:21:52Z",
+      "ts": "2026-08-12T17:26:35Z",
+      "title": "us · Inflation",
+      "source": "Forexlive",
+      "score": 0.5,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-12T17:26:35Z",
       "title": "global · Other",
-      "source": "Bbc World",
+      "source": "Cnbc, Forexlive",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-12T16:21:52Z",
-      "title": "mideast · Geopolitics",
-      "source": "Bbc World",
-      "score": 0.4,
+      "ts": "2026-08-12T17:26:35Z",
+      "title": "us · Inflation · hawkish",
+      "source": "Forexlive",
+      "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-12T16:21:52Z",
-      "title": "us · Geopolitics · risk off",
-      "source": "Bbc World",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-12T16:21:52Z",
+      "ts": "2026-08-12T17:26:35Z",
       "title": "global · Other",
-      "source": "Bbc World",
+      "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-08-12T16:25:21.632768Z"
+  "written_at": "2026-08-12T17:28:59.066872Z"
 }
