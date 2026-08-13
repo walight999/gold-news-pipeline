@@ -72,7 +72,10 @@ throttle on the T-15 window; cron-job.org now drives `calendar_check` every
 `social_post` (post approved drafts to X, cron */20) · `social_seed` (append one
 test draft) · `calendar_daily` (one card/day, 04:40 ICT) · `calendar_check` (**pre- T-15 + post Released News**) ·
 `scorecard` (EOD directional-accuracy of calendar verdicts → **1:1 only**, 23:45 ICT) ·
-`macro` (compute + POST the multi-factor macro state to the CHUM alert-bot worker, every 6h).
+`macro` (compute + POST the multi-factor macro state to the CHUM alert-bot worker, every 6h) ·
+`content_review` (**weekly self-review → 1:1 only**, Sat 10:30 ICT: reads
+content_log fb_* + sent_log + calibration_log, rule-generated "สิ่งที่อยากให้แก้"
+list — every suggestion cites its evidence; idempotent per ISO week).
 
 ## Macro push — feeding the CHUM alert-bot (Pillar C, 2026-06-28)
 

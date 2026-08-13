@@ -1,0 +1,36 @@
+name: content-review
+on:
+  schedule:
+    # 03:30 UTC Sat = 10:30 ICT Saturday — market closed, reviews the trading
+    # week just ended. Weekly self-review card to the 1:1 chat ONLY (private
+    # introspection, like the scorecard — never the group). Native cron is
+    # throttled; idempotency is per ISO week so a late fire is harmless. For
+    # exact-time delivery add a Sat 03:30 UTC job to cron-job.org
+    # (see docs/DISPATCHER-CRON.md).
+    - cron: "30 3 * * 6"
+  workflow_dispatch: {}
+
+concurrency:
+  # WRITES sent_log via store.flush() — serialise against the other writers.
+  group: gold-news
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    env:
+      LINE_CHANNEL_TOKEN: ${{ secrets.LINE_CHANNEL_TOKEN }}
+      LINE_NEWS_TARGET:   ${{ secrets.LINE_NEWS_TARGET }}
+      GSHEET_ID:          ${{ secrets.GSHEET_ID }}
+      GSHEET_CREDS:       ${{ secrets.GSHEET_CREDS }}
+      PYTHONUNBUFFERED:   "1"
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: python -m src.main --mode content_review
