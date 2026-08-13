@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-08-13T18:26:21Z",
-      "title": "global · Other",
-      "source": "Bbc World",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-13T18:26:21Z",
-      "title": "mideast · Geopolitics",
-      "source": "Bbc World",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-13T18:26:21Z",
-      "title": "global · Other",
-      "source": "Bbc World",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-13T18:26:21Z",
-      "title": "global · Other",
-      "source": "Yahoo Finance",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-13T18:26:21Z",
-      "title": "mideast · Geopolitics",
-      "source": "Yahoo Finance",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-13T18:26:21Z",
-      "title": "us · Inflation",
-      "source": "Yahoo Finance",
+      "ts": "2026-08-13T19:31:55Z",
+      "title": "eurozone · Inflation",
+      "source": "Forexlive",
       "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-13T18:26:21Z",
-      "title": "global · Other",
-      "source": "Yahoo Finance",
-      "score": 0.1,
+      "ts": "2026-08-13T19:31:55Z",
+      "title": "us · Inflation",
+      "source": "Forexlive",
+      "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-13T18:26:21Z",
-      "title": "us · Usd Yields",
-      "source": "Yahoo Finance",
+      "ts": "2026-08-13T19:31:55Z",
+      "title": "us · Inflation",
+      "source": "Forexlive",
+      "score": 0.5,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-13T19:31:55Z",
+      "title": "us · Usd Yields · risk on",
+      "source": "Forexlive",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-13T18:26:21Z",
-      "title": "mideast · Geopolitics · risk off",
-      "source": "Yahoo Finance",
+      "ts": "2026-08-13T19:31:55Z",
+      "title": "us · Growth",
+      "source": "Forexlive",
+      "score": 0.2,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-13T19:31:55Z",
+      "title": "ecb · Rate Policy · hawkish",
+      "source": "Forexlive",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-13T18:26:21Z",
-      "title": "global · Other",
-      "source": "Yahoo Finance",
-      "score": 0.1,
+      "ts": "2026-08-13T19:31:55Z",
+      "title": "us · Inflation",
+      "source": "Forexlive",
+      "score": 0.5,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-13T19:31:55Z",
+      "title": "us · Inflation",
+      "source": "Forexlive",
+      "score": 0.5,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-13T19:31:55Z",
+      "title": "japan · Inflation",
+      "source": "Forexlive",
+      "score": 0.5,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-13T19:31:55Z",
+      "title": "us · Jobs",
+      "source": "Forexlive",
+      "score": 0.5,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-08-13T18:27:01.337325Z"
+  "written_at": "2026-08-13T19:35:07.217768Z"
 }
