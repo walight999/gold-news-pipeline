@@ -149,6 +149,83 @@ def get_intraday_price_at(ticker: str, ref_dt: datetime, lookback_min: int = 60)
     return _with_yf_retry(_get_intraday_once, ticker, ref_dt)
 
 
+def fetch_intraday_series(ticker: str = "GC=F", period: str = "5d",
+                          interval: str = "5m") -> list[tuple[datetime, float]] | None:
+    """Fetch an intraday close series ONCE as [(bar_open_utc, close), ...].
+
+    Exists so a batch job (the calibration backfill) can price hundreds of
+    releases from a SINGLE yfinance call instead of one call per row. The old
+    per-row fetch pulled the same 5-day series over and over, which is why the
+    backfill needed an 80-row/run cap — and that cap was below the ~120 rows/day
+    inflow, so rows aged out of the 5-day window unpriced, permanently.
+
+    Returns None on failure (caller degrades to "no price data").
+    """
+    def _go() -> list[tuple[datetime, float]] | None:
+        yf = _yf()
+        h = yf.Ticker(ticker).history(period=period, interval=interval)
+        if h.empty:
+            return None
+        out: list[tuple[datetime, float]] = []
+        for ts, close in zip(h.index, h["Close"].tolist()):
+            py = ts.to_pydatetime()
+            py = py.replace(tzinfo=timezone.utc) if py.tzinfo is None else py.astimezone(timezone.utc)
+            out.append((py, float(close)))
+        return out or None
+
+    return _with_yf_retry(_go)
+
+
+def base_and_returns_from_series(
+    series: list[tuple[datetime, float]] | None,
+    release_dt_utc: datetime,
+    offsets_min: tuple[int, ...] = (5, 15, 30),
+    now: datetime | None = None,
+) -> tuple[float | None, dict[int, float | None]]:
+    """Pure: compute (base_price, {offset: pct}) for one release from an
+    already-fetched series. No network. See `fetch_intraday_series`."""
+    out: dict[int, float | None] = {m: None for m in offsets_min}
+    if not series:
+        return None, out
+    idx_utc = [t for t, _ in series]
+    closes = [c for _, c in series]
+
+    def _close_at(target: datetime) -> float | None:
+        best = -1
+        for i, ts in enumerate(idx_utc):
+            if ts <= target:
+                best = i
+            else:
+                break
+        return closes[best] if best >= 0 else None
+
+    def _close_before(target: datetime) -> float | None:
+        """Price JUST BEFORE `target`, excluding the bar `target` falls
+        inside. yfinance 5-min bars are stamped by OPEN time, so the bar
+        opened at T covers [T, T+5m) and its close already reflects the
+        post-print reaction. For the release BASE we want the prior bar
+        (opened ≤ target-5m) so the measured move starts from the pre-print
+        price — using _close_at here put the base ~5 min into the spike and
+        systematically damped / sign-flipped the reaction the scorecard grades."""
+        return _close_at(target - timedelta(minutes=5))
+
+    ref = (release_dt_utc.astimezone(timezone.utc) if release_dt_utc.tzinfo
+           else release_dt_utc.replace(tzinfo=timezone.utc))
+    base = _close_before(ref)
+    if not base:
+        return None, out
+    now = now or datetime.now(timezone.utc)
+    res = dict(out)
+    for m in offsets_min:
+        later = ref + timedelta(minutes=m)
+        if later > now:
+            continue
+        p = _close_at(later)
+        if p:
+            res[m] = (p - base) / base * 100
+    return base, res
+
+
 def xau_base_and_returns_from_release(
     release_dt_utc: datetime, offsets_min: tuple[int, ...] = (5, 15, 30),
 ) -> tuple[float | None, dict[int, float | None]]:
@@ -156,66 +233,13 @@ def xau_base_and_returns_from_release(
     release) so callers can convert a %-move to an exact $-move without a second
     fetch. Returns (base_price_or_None, {offset: pct_or_None}). Base is None when
     the whole intraday series is missing (off-hours / event outside the ~5-day
-    window) — in that case every offset is None too."""
-    out: dict[int, float | None] = {m: None for m in offsets_min}
+    window) — in that case every offset is None too.
 
-    def _go() -> tuple[float | None, dict[int, float | None]]:
-        yf = _yf()
-        t = yf.Ticker("GC=F")
-        period = "1d" if (datetime.now(timezone.utc) - release_dt_utc) < timedelta(hours=20) else "5d"
-        h = t.history(period=period, interval="5m")
-        if h.empty:
-            return None, dict(out)
-        idx_utc: list[datetime] = []
-        for ts in h.index:
-            py = ts.to_pydatetime()
-            py = py.replace(tzinfo=timezone.utc) if py.tzinfo is None else py.astimezone(timezone.utc)
-            idx_utc.append(py)
-        closes = [float(c) for c in h["Close"].tolist()]
-
-        def _close_at(target: datetime) -> float | None:
-            best = -1
-            for i, ts in enumerate(idx_utc):
-                if ts <= target:
-                    best = i
-                else:
-                    break
-            return closes[best] if best >= 0 else None
-
-        def _close_before(target: datetime) -> float | None:
-            """Price JUST BEFORE `target`, excluding the bar `target` falls
-            inside. yfinance 5-min bars are stamped by OPEN time, so the bar
-            opened at T covers [T, T+5m) and its close already reflects the
-            post-print reaction. For the release BASE we want the prior bar
-            (opened ≤ target-5m) so the measured move starts from the pre-print
-            price — using _close_at here put the base ~5 min into the spike and
-            systematically damped / sign-flipped the reaction the scorecard grades."""
-            cutoff = target - timedelta(minutes=5)
-            best = -1
-            for i, ts in enumerate(idx_utc):
-                if ts <= cutoff:
-                    best = i
-                else:
-                    break
-            return closes[best] if best >= 0 else None
-
-        ref = release_dt_utc.astimezone(timezone.utc) if release_dt_utc.tzinfo else release_dt_utc.replace(tzinfo=timezone.utc)
-        base = _close_before(ref)
-        if not base:
-            return None, dict(out)
-        now = datetime.now(timezone.utc)
-        res = dict(out)
-        for m in offsets_min:
-            later = ref + timedelta(minutes=m)
-            if later > now:
-                continue
-            p = _close_at(later)
-            if p:
-                res[m] = (p - base) / base * 100
-        return base, res
-
-    got = _with_yf_retry(_go)
-    return got if got is not None else (None, dict(out))
+    Single-release convenience wrapper — one fetch per call. Batch callers
+    should use fetch_intraday_series + base_and_returns_from_series instead."""
+    period = "1d" if (datetime.now(timezone.utc) - release_dt_utc) < timedelta(hours=20) else "5d"
+    series = fetch_intraday_series("GC=F", period=period)
+    return base_and_returns_from_series(series, release_dt_utc, offsets_min)
 
 
 def xau_returns_from_release(

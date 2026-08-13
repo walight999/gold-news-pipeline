@@ -964,34 +964,64 @@ def _backfill_due(row: dict[str, Any], now: datetime) -> bool:
     return 35.0 <= age_min <= 5 * 24 * 60.0
 
 
-def _backfill_xau_on_store(store: "Store", now: datetime, max_rows: int = 80) -> tuple[int, int]:
+def _backfill_xau_on_store(store: "Store", now: datetime,
+                           max_rows: int | None = None) -> tuple[int, int]:
     """Fill xau_return_5m/15m/30m for due rows on an already-loaded store.
-    Caps yfinance calls (one per row) at max_rows/run. Returns (attempted,
-    filled). Does NOT flush — the caller owns that."""
+
+    ONE yfinance fetch per run, shared by every due row — `_backfill_due` only
+    admits rows inside the 5-day intraday window, so a single 5-day 5-min series
+    prices all of them. The old code fetched that same series once PER ROW,
+    which forced an 80-row/run cap; with ~120 new rows/day and one maintain run
+    a day the backlog could never drain, and rows aged past 5 days unpriced —
+    permanently, since yfinance won't serve 5-min bars that old. Uncapped now
+    (`max_rows` kept for tests). Returns (attempted, filled). Does NOT flush —
+    the caller owns that.
+    """
     from . import price_feed
     from .utils_time import parse_iso
-    attempted = 0
-    filled = 0
+
+    due: list[tuple[dict[str, Any], datetime]] = []
     for r in store.all_rows("calibration_log"):
-        if attempted >= max_rows:
+        if max_rows is not None and len(due) >= max_rows:
             break
         if not _backfill_due(r, now):
             continue
         ts = parse_iso(r.get("first_seen_ts"))
         if ts is None:
             continue
+        due.append((r, ts))
+    if not due:
+        return 0, 0
+
+    series = price_feed.fetch_intraday_series("GC=F", period="5d")
+    if not series:
+        # yfinance down / rate-limited. Rows stay due and retry next run.
+        log.warning("backfill: no intraday series, %d rows deferred", len(due))
+        return len(due), 0
+
+    attempted = 0
+    filled = 0
+    for r, ts in due:
         attempted += 1
-        base, rets = price_feed.xau_base_and_returns_from_release(ts, (5, 15, 30))
+        base, rets = price_feed.base_and_returns_from_series(series, ts, (5, 15, 30), now=now)
         if all(v is None for v in rets.values()):
-            continue   # off-hours / holiday / flake — leave empty, retry while <=5d
-        r["xau_return_5m"] = round(rets[5], 4) if rets[5] is not None else ""
-        r["xau_return_15m"] = round(rets[15], 4) if rets[15] is not None else ""
-        r["xau_return_30m"] = round(rets[30], 4) if rets[30] is not None else ""
+            continue   # off-hours / holiday / gap — leave empty, retry while <=5d
+        # COPY before mutating. `r` is the live dict inside store.data (all_rows
+        # hands out references), and upsert's no-op guard compares the incoming
+        # row against that same object — mutating in place makes them identical,
+        # so the row is never dirtied and flush() skips the whole tab. That is
+        # the silent 2026-07-15→08-13 outage: logs said "backfilled=80/80" while
+        # the sheet stayed empty for a month. Write to a copy so the guard sees
+        # a real difference.
+        upd = dict(r)
+        upd["xau_return_5m"] = round(rets[5], 4) if rets[5] is not None else ""
+        upd["xau_return_15m"] = round(rets[15], 4) if rets[15] is not None else ""
+        upd["xau_return_30m"] = round(rets[30], 4) if rets[30] is not None else ""
         # Base price (XAU at release) → lets the scorecard convert %→$ exactly.
         # Only stamp it when not already set, so a re-backfill doesn't churn it.
-        if base is not None and not str(r.get("xau_base_price") or "").strip():
-            r["xau_base_price"] = round(base, 2)
-        store.upsert("calibration_log", r)
+        if base is not None and not str(upd.get("xau_base_price") or "").strip():
+            upd["xau_base_price"] = round(base, 2)
+        store.upsert("calibration_log", upd)
         filled += 1
     return attempted, filled
 
