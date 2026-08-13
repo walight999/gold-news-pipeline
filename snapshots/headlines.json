@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-08-13T15:57:17Z",
+      "ts": "2026-08-13T16:57:23Z",
       "title": "global · Other",
       "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-13T15:57:17Z",
+      "ts": "2026-08-13T16:57:23Z",
       "title": "mideast · Geopolitics",
       "source": "Bbc World",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-13T15:57:17Z",
+      "ts": "2026-08-13T16:57:23Z",
       "title": "global · Other",
       "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-13T15:57:17Z",
+      "ts": "2026-08-13T16:57:23Z",
+      "title": "us · Inflation",
+      "source": "Yahoo Finance",
+      "score": 0.5,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-13T16:57:23Z",
+      "title": "global · Other",
+      "source": "Bbc World, Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-13T16:57:23Z",
+      "title": "us · Inflation",
+      "source": "Yahoo Finance",
+      "score": 0.5,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-13T16:57:23Z",
+      "title": "global · Other",
+      "source": "Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-13T16:57:23Z",
       "title": "global · Other",
       "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-13T15:57:17Z",
+      "ts": "2026-08-13T16:57:23Z",
       "title": "global · Other",
-      "source": "Bbc World",
+      "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-13T15:57:17Z",
-      "title": "global · Other",
-      "source": "Bbc World",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-13T15:57:17Z",
-      "title": "global · Other",
-      "source": "Bbc World",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-13T15:57:17Z",
+      "ts": "2026-08-13T16:57:23Z",
       "title": "israel · Geopolitics",
       "source": "Bbc World",
       "score": 0.4,
       "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-13T15:57:17Z",
-      "title": "global · Other",
-      "source": "Cnbc",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-13T15:57:17Z",
-      "title": "global · Other",
-      "source": "Bbc World, Cnbc",
-      "score": 0.1,
-      "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-08-13T15:58:48.347108Z"
+  "written_at": "2026-08-13T17:04:35.165558Z"
 }
