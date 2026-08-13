@@ -161,6 +161,15 @@ SCHEMAS: dict[str, list[str]] = {
         "date_ict", "n_correct", "n_wrong", "n_flat", "n_pending", "n_graded",
         "accuracy_pct", "sum_up_usd", "sum_down_usd", "updated_at",
     ],
+    # One row per ICT day — what the channel actually DELIVERED, rolled up from
+    # sent_log by maintain before its 30-day purge drops the detail. sent_log is
+    # an idempotency ledger, so without this the answer to "how much did we send
+    # in June, and how much of it landed?" simply expires. `by_route` is a JSON
+    # blob so a new route_type never needs a schema migration on a tab that
+    # already carries history. ~365 rows/year.
+    "delivery_daily": [
+        "date_ict", "n_sent", "n_failed", "by_route", "updated_at",
+    ],
     "health_log": [
         "source_id", "warning_type", "warning_ts", "resolved_ts", "updated_at",
     ],
@@ -181,6 +190,7 @@ PRIMARY_KEYS: dict[str, tuple[str, ...]] = {
     "health_log": ("source_id", "warning_type", "warning_ts"),
     "translation_cache": ("cache_key",),
     "scorecard_daily": ("date_ict",),
+    "delivery_daily": ("date_ict",),
 }
 
 
