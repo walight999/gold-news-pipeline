@@ -441,6 +441,12 @@ CRITICAL_WORKFLOWS: set[str] = {
     "news_cron.yml", "calendar_check.yml", "calendar_daily.yml",
     "weekly_preview.yml", "eod_recap.yml", "scorecard.yml",
     "watchdog.yml", "social_post.yml", "macro_push.yml",
+    # maintain was MISSING from this list (caught in the 2026-08-13 audit):
+    # if it sits disabled, retention purges stop AND the daily XAU backfill +
+    # delivery_daily archive silently stop — the exact silent-starvation class
+    # PR #78 fixed. content_review is only the weekend-card backup (the primary
+    # path rides news_cron), but a disabled backup should still be visible.
+    "maintain.yml", "content_review.yml",
 }
 
 
