@@ -58,13 +58,28 @@ def _parse_dt(v: Any) -> datetime | None:
         return None
 
 
-def _tweet_handle(t: dict[str, Any]) -> str:
+def _tweet_handle(t: dict[str, Any]) -> str | None:
+    """The tweet's author handle, or None when the record carries no author.
+
+    None is meaningful: the actor's billing-notice record has no author, and
+    that is how we tell it apart from a real tweet. Callers must not paper over
+    it with a placeholder — see `_tweet_to_entry`."""
     author = _pick(t, ["author", "user"]) or {}
     if isinstance(author, dict):
         h = _pick(author, ["userName", "screen_name", "username"])
         if h:
             return str(h)
-    return str(_pick(t, ["username", "screenName"]) or "x")
+    h = _pick(t, ["username", "screenName"])
+    return str(h) if h else None
+
+
+def _looks_like_real_tweet_id(tid: Any) -> bool:
+    """Snowflake ids are large positive integers. The actor stamps its notice
+    record with -1."""
+    try:
+        return int(str(tid).strip()) > 0
+    except (TypeError, ValueError):
+        return False
 
 
 def _tweet_to_entry(t: dict[str, Any], tier: int = 2) -> dict[str, Any] | None:
@@ -75,10 +90,20 @@ def _tweet_to_entry(t: dict[str, Any], tier: int = 2) -> dict[str, Any] | None:
     text = " ".join(str(text).split())
     if not text:
         return None
+    # The kaitoeasyapi actor bills a minimum charge per call even when the query
+    # matches nothing, and signals that by returning a NOTICE record rather than
+    # an empty list ("...we returned N pieces of mock data"). It has no author
+    # and a tweet id of -1, so it used to land as source_id `x_x` with url
+    # .../status/-1. That put 119 junk rows into event_state in 8 days, each one
+    # paying for a Claude classification, and made `other` the largest topic
+    # bucket in the stats. Filter on STRUCTURE (no author / non-snowflake id),
+    # not on the notice wording, which the actor is free to reword.
     handle = _tweet_handle(t)
+    tid = _pick(t, ["id", "id_str", "tweetId"])
+    if handle is None or (tid is not None and not _looks_like_real_tweet_id(tid)):
+        return None
     url = _pick(t, ["url", "twitterUrl", "tweetUrl"])
     if not url:
-        tid = _pick(t, ["id", "id_str", "tweetId"])
         if tid:
             url = f"https://x.com/{handle}/status/{tid}"
     if not url:
@@ -130,10 +155,15 @@ def fetch_tweets(token: str, handles: list[str], since_minutes: int = 20,
         log.warning("apify fetch failed: %s", msg)
         return []
     entries: list[dict[str, Any]] = []
-    for t in items if isinstance(items, list) else []:
+    raw = items if isinstance(items, list) else []
+    for t in raw:
         if isinstance(t, dict):
             e = _tweet_to_entry(t, tier=tier)
             if e:
                 entries.append(e)
-    log.info("apify: %d tweet entries from %d handles", len(entries), len(handles))
+    # Log the drop count. A call that returns records but yields zero entries is
+    # the billing-notice case: we paid the minimum charge and got no news. Worth
+    # seeing in the logs — silently swallowing it is how it ran for 8 days.
+    log.info("apify: %d tweet entries from %d handles (%d records dropped)",
+             len(entries), len(handles), len(raw) - len(entries))
     return entries
