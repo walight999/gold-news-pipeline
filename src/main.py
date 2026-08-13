@@ -249,12 +249,25 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
         # calibration log: every event with score >= 2
         if d.score >= 2.0:
             cal = dedup.serialize_event_for_store(ev, d.score, d.route.value)
+            # Carry measured columns forward instead of blanking them.
+            # A live cluster keeps the SAME event_id for as long as new items
+            # land in its 60-min bucket (dedup.cluster_key_for), so this line
+            # re-runs on every 5-min cron for hours — and store.upsert REPLACES
+            # the whole row (it rebuilds from SCHEMAS; absent keys become "").
+            # Writing "" into xau_return_* would erase a backfill that had
+            # already measured the move, which is exactly the data PR #78 just
+            # got flowing again. Measured empirically before changing it: 1851
+            # rows were re-upserted >35 min after first_seen and 1704 still
+            # held a 30m return, so this has cost little historically — but the
+            # loss is silent and permanent past the 5-day yfinance window, so
+            # it's not worth leaving to timing luck.
+            prev = store.get("calibration_log", (ev.event_id,)) or {}
             store.upsert("calibration_log", {
                 **cal,
                 "routed_as": d.route.value,
-                "xau_return_5m": "",
-                "xau_return_15m": "",
-                "xau_return_30m": "",
+                **{c: prev.get(c, "") for c in
+                   ("xau_return_5m", "xau_return_15m", "xau_return_30m",
+                    "xau_base_price")},
             })
         if d.route in (Route.BREAKING, Route.ALERT) and line and news_target:
             # idempotency
