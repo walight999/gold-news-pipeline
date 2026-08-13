@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-08-13T11:41:01Z",
-      "title": "us · Geopolitics",
-      "source": "Bbc World",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-13T11:41:01Z",
+      "ts": "2026-08-13T13:06:21Z",
       "title": "global · Other",
-      "source": "Bbc World",
+      "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-13T11:41:01Z",
-      "title": "mideast · Geopolitics",
-      "source": "Bbc World",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-13T11:41:01Z",
+      "ts": "2026-08-13T13:06:21Z",
       "title": "global · Other",
-      "source": "Bbc World",
+      "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-13T11:41:01Z",
+      "ts": "2026-08-13T13:06:21Z",
       "title": "global · Other",
-      "source": "Bbc World",
+      "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-13T11:41:01Z",
+      "ts": "2026-08-13T13:06:21Z",
       "title": "global · Other",
-      "source": "Bbc World",
+      "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-13T11:41:01Z",
+      "ts": "2026-08-13T13:06:21Z",
       "title": "global · Other",
-      "source": "Bbc World",
+      "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-13T11:41:01Z",
+      "ts": "2026-08-13T13:06:21Z",
+      "title": "us · Inflation",
+      "source": "Yahoo Finance",
+      "score": 0.5,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-13T13:06:21Z",
       "title": "global · Other",
-      "source": "Bbc World",
+      "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-13T11:41:01Z",
+      "ts": "2026-08-13T13:06:21Z",
+      "title": "us · Inflation",
+      "source": "Yahoo Finance",
+      "score": 0.5,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-13T13:06:21Z",
       "title": "global · Other",
-      "source": "Bbc World",
+      "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-13T11:41:01Z",
-      "title": "israel · Geopolitics",
-      "source": "Bbc World",
-      "score": 0.4,
+      "ts": "2026-08-13T13:06:21Z",
+      "title": "us · Inflation",
+      "source": "Cnbc",
+      "score": 0.5,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-08-13T11:45:52.614115Z"
+  "written_at": "2026-08-13T13:09:25.664326Z"
 }
