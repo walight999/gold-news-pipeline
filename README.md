@@ -84,12 +84,18 @@ Contributing: [CONTRIBUTING.md](CONTRIBUTING.md).
 | 1 | `investing_general` | Macro | ✅ enabled |
 | 1 | `investing_cb` | Central banks | ✅ enabled |
 | 1 | `investing_commodities` | Commodities | ✅ enabled |
-| 1 | `benzinga` | Fast newsflow | ✅ enabled |
+| 2 | `benzinga` | Fast newsflow | ❌ Cloudflare 403 since 2026-06-19 |
 | 2 | `forexlive` | Trader-macro | ✅ enabled |
 | 2 | `fxstreet` | Gold-bias commentary | ✅ enabled |
 | 3 | `kitco` | Gold context | ❌ Kitco discontinued free RSS |
 
 Edit `config/sources.yaml` to flip `enabled: true/false`.
+
+A source that keeps failing is polled less often, not forever at its configured
+cadence: after 5 consecutive errors `fetcher.effective_poll_min` doubles the
+interval per additional 5-error streak, capped at 6h. The streak resets to 0 on
+the first success, so a source recovering from a transient outage returns to
+full cadence on its own.
 
 ## Phase 1 invariants (locked)
 
