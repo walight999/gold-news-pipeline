@@ -36,8 +36,34 @@ class FetchPlan:
     skipped_polled_recently: list[str] = field(default_factory=list)
 
 
+ERROR_BACKOFF_AFTER = 5      # consecutive errors before backing off at all
+ERROR_BACKOFF_CAP_MIN = 360  # never wait longer than 6h — a fixed source must recover
+
+
+def effective_poll_min(poll_min: int, consecutive_errors: int) -> int:
+    """Poll interval widened by a source's consecutive-error streak.
+
+    A source that 403s forever otherwise gets polled at its configured cadence
+    indefinitely. Benzinga went behind Cloudflare on 2026-06-19 and was still
+    being hit every 5 min 55 days and 1149 failures later — ~16,000 pointless
+    requests, because the only escape hatch was a human editing sources.yaml.
+
+    Doubles the interval per additional `ERROR_BACKOFF_AFTER`-error streak,
+    capped at 6h (benzinga: 5 min → 6h, a 98% cut). Deliberately a backoff and
+    not a hard disable: `consecutive_errors` resets to 0 on the first success,
+    so a source recovering from a transient outage returns to full cadence by
+    itself within one cycle. Health alerting is unaffected — the streak counter
+    and last_success_ts staleness checks in health.py still fire.
+    """
+    if consecutive_errors < ERROR_BACKOFF_AFTER:
+        return poll_min
+    factor = 2 ** min(consecutive_errors // ERROR_BACKOFF_AFTER, 10)
+    return min(poll_min * factor, ERROR_BACKOFF_CAP_MIN)
+
+
 def plan_fetch(sources: list[dict[str, Any]], store: Store, force: bool = False) -> FetchPlan:
-    """Filter sources: enabled, and last_attempt older than poll_min."""
+    """Filter sources: enabled, and last_attempt older than poll_min (widened by
+    the source's error streak — see `effective_poll_min`)."""
     plan = FetchPlan(sources=[])
     now = now_utc()
     for s in sources:
@@ -47,7 +73,8 @@ def plan_fetch(sources: list[dict[str, Any]], store: Store, force: bool = False)
             continue
         state = store.get("source_state", (sid,)) or {}
         last_attempt = parse_iso(state.get("last_attempt_ts"))
-        poll_min = int(s.get("poll_min", 15))
+        poll_min = effective_poll_min(
+            int(s.get("poll_min", 15)), int(state.get("consecutive_errors") or 0))
         if not force and last_attempt and (now - last_attempt) < timedelta(minutes=poll_min - 1):
             # -1 minute slack so a 5-min cron doesn't slip past a 5-min poll.
             plan.skipped_polled_recently.append(sid)

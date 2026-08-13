@@ -47,7 +47,7 @@ sources:
   - {id: investing_cb,          tier: 1, source_class: aggregator, organization: investing,     role: rate_policy,  url: "https://www.investing.com/rss/news_95.rss",  poll_min: 10, enabled: true}
   - {id: investing_commodities, tier: 1, source_class: aggregator, organization: investing,     role: gold_context, url: "https://www.investing.com/rss/news_11.rss",  poll_min: 10, enabled: true}
   - {id: investing_general,     tier: 1, source_class: aggregator, organization: investing,     role: macro,        url: "https://www.investing.com/rss/news.rss",     poll_min: 10, enabled: true}
-  - {id: benzinga,              tier: 2, source_class: wire,       organization: benzinga,      role: trader_macro, url: "https://www.benzinga.com/markets/feed",      poll_min: 5,  enabled: true,  note: "/markets/feed (macro), not /feed (crypto)"}
+  - {id: benzinga,              tier: 2, source_class: wire,       organization: benzinga,      role: trader_macro, url: "https://www.benzinga.com/markets/feed",      poll_min: 5,  enabled: false, note: "DISABLED 2026-08-13 — Cloudflare 403 on every endpoint (/markets/feed, /feed, feeds.benzinga.com) since 2026-06-19; 1149 consecutive errors, last item 06-19. Re-probed 08-13, still 403 with a browser UA. Flip enabled:true if Benzinga reopens the feed."}
   - {id: yahoo_finance,         tier: 1, source_class: aggregator, organization: yahoo,         role: macro,        url: "https://finance.yahoo.com/news/rssindex",    poll_min: 10, enabled: true,  note: "Reuters/AP syndication"}
   # Reuters has no free public RSS (killed years ago) — pull its gold-macro coverage
   # via Google News RSS, filtered to reuters.com + macro keywords. feedparser/httpx
