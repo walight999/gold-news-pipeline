@@ -1449,6 +1449,71 @@ async def run_scorecard() -> int:
     return 0
 
 
+async def run_content_review() -> int:
+    """Weekly self-review → 1:1 chat ONLY (never the group).
+
+    Reads content_log (what was said + operator fb_* annotations), sent_log
+    (delivery volume/failures) and calibration_log (did the tape care about
+    what we rejected?), then pushes one card: the week's numbers, the feedback
+    received, and a rule-generated "สิ่งที่อยากให้แก้" list. Same private
+    introspection posture as the scorecard. Idempotent per ISO week."""
+    from . import content_review
+    from .line_flex import content_review_bubble
+
+    store = Store.from_env()
+    store.connect()
+    store.load_all()
+
+    ict = now_ict()
+    iso = ict.isocalendar()
+    week_key = f"{iso[0]}-W{iso[1]:02d}"
+    sent_key = f"content_review:{week_key}"
+    if store.get("sent_log", (sent_key, "content_review")):
+        log.info("content_review already sent for %s — skipping", week_key)
+        store.flush()
+        return 0
+
+    _, feed_rows = store.read_feed(content_log.CONTENT_TAB)
+    summary = content_review.analyze(
+        feed_rows, store.all_rows("sent_log"), store.all_rows("calibration_log"),
+        now=now_utc())
+    log.info("content_review %s: cards=%d reviewed=%d issues=%s suggestions=%d",
+             week_key, summary["n_cards"], summary["n_reviewed"],
+             summary["issues_by_type"], len(summary["suggestions"]))
+
+    target = _private_target()
+    if not target:
+        log.warning("no 1:1 (U...) target in LINE_NEWS_TARGET — self-review logged only")
+        store.flush()
+        return 0
+
+    from datetime import timedelta as _td
+    start = (ict - _td(days=6)).strftime("%d/%m")
+    week_label = f"{start}-{ict.strftime('%d/%m')}"
+    bubble = content_review_bubble(summary, week_label)
+    alt = (f"🪞 รีวิวตัวเองประจำสัปดาห์ {week_label}: "
+           f"{len(summary['suggestions'])} ข้อเสนอ")
+    line = LineClient.from_env()
+    ok, reason = quota_allows(store, PRIORITY_CORE)
+    if not ok:
+        # Private card; nothing to mirror elsewhere. Leaving the slot unmarked
+        # lets next week's run retry if quota recovers — better than losing it.
+        log.info("quota gate — skipping content_review LINE push: %s", reason)
+    else:
+        resp = line.push_flex(target, alt, bubble)
+        record_line_outcome(store, resp)
+        if resp.get("status") == 200:
+            store.upsert("sent_log", {
+                "event_id": sent_key, "route_type": "content_review",
+                "sent_ts": iso_utc(now_utc()), "line_status": 200,
+            })
+        else:
+            log.warning("content_review push failed status=%s body=%s",
+                        resp.get("status"), str(resp.get("body"))[:200])
+    store.flush()
+    return 0
+
+
 def _cap_translation_cache(store: Store, max_rows: int) -> int:
     """Drop oldest rows from translation_cache when over max_rows. Sorts
     by updated_at DESC — most recent kept, oldest evicted (LRU)."""
@@ -2124,6 +2189,7 @@ def main(argv: list[str] | None = None) -> int:
         "weekly_preview", "eod_recap", "verify_sources", "maintain",
         "watchdog", "social_post", "social_seed",
         "backfill_xau", "precision_report", "scorecard", "macro",
+        "content_review",
     ), default="cron")
     p.add_argument("--event-duration-min", type=int, default=30)
     p.add_argument("--event-sleep-sec", type=int, default=60)
@@ -2156,6 +2222,8 @@ def main(argv: list[str] | None = None) -> int:
         return asyncio.run(run_scorecard())
     if args.mode == "macro":
         return asyncio.run(run_macro_push())
+    if args.mode == "content_review":
+        return asyncio.run(run_content_review())
     return asyncio.run(run_once(mode=args.mode))
 
 

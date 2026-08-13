@@ -796,6 +796,72 @@ def _to_float_or_none(v: Any) -> float | None:
         return None
 
 
+def content_review_bubble(s: dict[str, Any], week_label: str) -> dict[str, Any]:
+    """Weekly self-review card for the 1:1 chat — the system's own feedback on
+    its week. `s` is the dict from `content_review.analyze`. Private operator
+    card like the scorecard: volume, feedback received, and the rule-generated
+    'สิ่งที่อยากให้แก้' list. Never for the group."""
+    br = s.get("by_route") or {}
+    rows: list[dict[str, Any]] = []
+
+    rows.append({"type": "box", "layout": "horizontal", "contents": [
+        {"type": "text", "size": "sm", "color": "#374151", "flex": 1,
+         "text": f"⚡ Breaking {br.get('breaking', 0)}"},
+        {"type": "text", "size": "sm", "color": "#374151", "flex": 1,
+         "align": "center", "text": f"🔔 Alert {br.get('alert', 0)}"},
+        {"type": "text", "size": "sm", "color": "#374151", "flex": 1,
+         "align": "end", "text": f"📰 Digest {br.get('digest', 0)}"},
+    ]})
+    if s.get("n_failed"):
+        rows.append({"type": "text", "size": "xs", "color": "#DC2626",
+                     "margin": "xs", "text": f"ส่งไม่สำเร็จ {s['n_failed']} ครั้ง"})
+
+    rows.append({"type": "separator", "margin": "lg"})
+    rows.append({"type": "text", "text": "Feedback ที่ได้รับ", "size": "xs",
+                 "color": "#9CA3AF", "weight": "bold", "margin": "md"})
+    n_rev = int(s.get("n_reviewed", 0))
+    if n_rev:
+        rows.append({"type": "text", "size": "sm", "color": "#374151", "wrap": True,
+                     "text": (f"รีวิวแล้ว {n_rev} แถว · 👍 {s.get('n_fb_ok', 0)}"
+                              f" · ติ {s.get('n_fb_issue', 0)}")})
+        issues = s.get("issues_by_type") or {}
+        if issues:
+            parts = ", ".join(f"{k} {v}" for k, v in
+                              sorted(issues.items(), key=lambda kv: -kv[1]))
+            rows.append({"type": "text", "size": "xs", "color": "#6B7280",
+                         "wrap": True, "text": parts})
+    else:
+        rows.append({"type": "text", "size": "sm", "color": "#9CA3AF", "wrap": True,
+                     "text": (f"ยังไม่มีรีวิวในชีต (ledger บันทึกไว้ "
+                              f"{s.get('n_logged_sent', 0)} ส่ง / "
+                              f"{s.get('n_logged_rejected', 0)} ตัด)")})
+
+    rows.append({"type": "separator", "margin": "lg"})
+    rows.append({"type": "text", "text": "🔧 สิ่งที่อยากให้แก้", "size": "xs",
+                 "color": "#B45309", "weight": "bold", "margin": "md"})
+    suggestions = s.get("suggestions") or []
+    if suggestions:
+        for sg in suggestions:
+            rows.append({"type": "text", "text": f"• {sg}", "size": "sm",
+                         "color": "#374151", "wrap": True, "margin": "sm"})
+    else:
+        rows.append({"type": "text", "size": "sm", "color": "#059669", "wrap": True,
+                     "margin": "sm",
+                     "text": "ไม่มีประเด็นเร่งจากข้อมูลสัปดาห์นี้ ระบบทำงานปกติ"})
+
+    rows.append({"type": "separator", "margin": "lg"})
+    rows.append({"type": "text", "margin": "md", "size": "xs", "color": "#9CA3AF",
+                 "wrap": True,
+                 "text": "ข้อมูลจาก content_log · ติเพิ่มได้ที่คอลัมน์ fb_* ในชีต"})
+
+    return {
+        "type": "bubble", "size": "giga",
+        "header": _header(f"🪞 รีวิวตัวเอง · {week_label}", "", "#1F2937"),
+        "body": {"type": "box", "layout": "vertical", "spacing": "sm",
+                 "paddingAll": "16px", "contents": rows},
+    }
+
+
 def health_recovered_bubble(recoveries: list[tuple[str, str]]) -> dict[str, Any]:
     """Compact green bubble: one line per recovered feed."""
     lines: list[dict[str, Any]] = []
