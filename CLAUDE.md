@@ -131,6 +131,15 @@ with no 15m bar show as ⏳ pending, not wrong.
   `post_pending` (posts via tweepy when `approved`=yes & `posted` empty).
 - `store.py` — Google Sheets state. `flush()` clears+rewrites whole tabs (so the
   social feed uses `append_feed`/`set_feed_cell` instead, never clobbered).
+  ⚠ `upsert()` **replaces** the row (rebuilt from `SCHEMAS`; absent keys become
+  `""`) — to keep a column you didn't compute, read the stored row and carry it
+  forward. It also has a **no-op guard**: an upsert identical to the loaded row
+  doesn't dirty the tab, and `all_rows()` hands out **live references** into
+  `store.data`, so mutating a row in place makes the guard see no change and
+  `flush()` skips the whole tab (the silent 2026-07-15→08-13 backfill outage).
+- `delivery_stats.py` — rolls `sent_log` up into the `delivery_daily` tab (one
+  row per ICT day: sent / failed / per-route JSON) during `maintain`, **before**
+  the 30-day purge, so delivery history doesn't expire with the ledger.
 - `router.py` — ≥4.5 breaking, ≥3.5 alert (if official or ≥2 orgs), ≥2.5 digest.
 
 ## Config

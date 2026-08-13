@@ -59,10 +59,17 @@ reliable cron, drive `news-cron` from a Google Apps Script trigger via
 
 - `source_state` — per-source fetch timestamps + ETags + pipeline heartbeat + FF scraper health
 - `event_state` — clustered news events with scores
-- `sent_log` — idempotency for LINE pushes
+- `sent_log` — idempotency for LINE pushes (30-day retention)
+- `delivery_daily` — one row per ICT day: cards sent, cards that failed to land,
+  and the per-route split. Rolled up from `sent_log` by `--mode maintain`
+  **before** the purge, so the delivery history outlives the 30-day ledger
+  (~365 rows/year). `by_route` is a JSON blob, so a new route type never needs a
+  schema migration on a tab that already carries history.
 - `calibration_log` — every score ≥ 2 event (kept forever for Phase 3 backfill)
 - `health_log` — per-(source, warning_type) warning records, incl. watchdog
-- `translation_cache` — SHA-keyed Thai translation cache (TTL 24h, 2000-row cap)
+- `translation_cache` — SHA-keyed Thai translation cache (TTL 24h, 2000-row cap).
+  The `hits` column counts **writes**, not reads — the cache hit *rate* is in the
+  `classifier cache N/M hits` line each run logs, not in this tab.
 
 Detailed setup: [docs/SETUP_SHEETS.md](docs/SETUP_SHEETS.md).
 LINE channel setup: [docs/SETUP_LINE.md](docs/SETUP_LINE.md).

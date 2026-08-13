@@ -22,7 +22,7 @@ from typing import Any
 import yaml
 
 from . import calendar as cal
-from . import dedup, digest, fred, health, macro_push, news_alert, ops_alert, price_feed, scorecard, scorer, social_feed, telegram_news, translator
+from . import dedup, delivery_stats, digest, fred, health, macro_push, news_alert, ops_alert, price_feed, scorecard, scorer, social_feed, telegram_news, translator
 from .fetcher import fetch_all, plan_fetch
 from .line_client import (
     PRIORITY_BRIEFING,
@@ -935,6 +935,21 @@ async def run_maintain() -> int:
     store.load_all()
 
     removed_es = store.purge_older_than("event_state", days_event_state, ts_col="last_seen_ts")
+
+    # Archive BEFORE the purge. sent_log is an idempotency ledger on a 30-day
+    # retention, so "how much did we send in June, and how much of it landed?"
+    # used to simply expire — the single most useful thing the months of
+    # accumulated delivery data could have told us. calibration_log survives 180
+    # days but records the ROUTING DECISION, not the delivery: a card the quota
+    # gate shed still reads `alert` there. Rolls up to ~365 rows/year.
+    from datetime import timedelta as _td
+    n_arch = 0
+    for row in delivery_stats.aggregate(
+            store.all_rows("sent_log"),
+            cutoff=now_utc() - _td(days=days_sent_log)):
+        store.upsert("delivery_daily", row)
+        n_arch += 1
+
     removed_sl = store.purge_older_than("sent_log",    days_sent_log,    ts_col="sent_ts")
     # Bound the two formerly-unbounded tabs. calibration_log keeps ~6 months
     # (precision report needs the history); health_log keeps 90 days.
@@ -970,9 +985,10 @@ async def run_maintain() -> int:
     log.info(
         "maintain done: event_state purged=%d, sent_log purged=%d, "
         "calibration_log purged=%d, health_log purged=%d, "
-        "translation_cache TTL purged=%d + capped=%d, xau backfilled=%d/%d, api_calls=%d",
+        "translation_cache TTL purged=%d + capped=%d, delivery_daily archived=%d, "
+        "xau backfilled=%d/%d, api_calls=%d",
         removed_es, removed_sl, removed_cl, removed_hl,
-        removed_tc, removed_tc_cap, bf_filled, bf_attempted, store.api_calls,
+        removed_tc, removed_tc_cap, n_arch, bf_filled, bf_attempted, store.api_calls,
     )
     return 0
 
