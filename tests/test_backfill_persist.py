@@ -44,21 +44,43 @@ def _cal_row(event_id: str, minutes_ago: int = 60) -> dict:
     }
 
 
-def _patch_prices(monkeypatch, base=3400.0, rets=(0.11, 0.22, 0.33)) -> list[int]:
+def _patch_prices(monkeypatch, base=3400.0,
+                  rets=(0.11, 0.22, 0.33, 0.44)) -> list[int]:
     """Patch the batch price path. Returns a 1-element list counting how many
-    times the network fetch fired, so tests can assert it stays at 1 per run."""
+    times the network fetch fired, so tests can assert it stays at 1 per run.
+
+    The fake honours the real function's future-guard: an offset whose bar
+    would close after `now` returns None (a 40-min-old release has no 60m bar
+    yet) — that timing is what the two-stage backfill is built around."""
     calls = [0]
+    by_offset = dict(zip((5, 15, 30, 60), rets))
 
     def fake_fetch(ticker="GC=F", period="5d", interval="5m"):
         calls[0] += 1
         return [(NOW, 3400.0)]      # non-empty sentinel; maths is patched below
 
-    def fake_compute(series, release_dt, offsets_min=(5, 15, 30), now=None):
-        return base, {5: rets[0], 15: rets[1], 30: rets[2]}
+    def fake_compute(series, release_dt, offsets_min=(5, 15, 30, 60), now=None):
+        ref = now or NOW
+        return base, {
+            m: (None if release_dt + timedelta(minutes=m) > ref else by_offset.get(m))
+            for m in offsets_min
+        }
 
     monkeypatch.setattr(price_feed, "fetch_intraday_series", fake_fetch)
     monkeypatch.setattr(price_feed, "base_and_returns_from_series", fake_compute)
     return calls
+
+
+def test_release_reaction_columns_are_appended_after_updated_at():
+    """The 2026-08 columns MUST sit at the END of the schema. _ensure_tab
+    rewrites the header in place while existing data rows keep their physical
+    cells — inserting a column mid-schema shifts every old row's trailing
+    values under the wrong names (2826 rows got an ISO timestamp in `title`
+    that way in the 2026-06-26 migration). Appending keeps old rows aligned."""
+    cols = store_mod.SCHEMAS["calibration_log"]
+
+    tail = cols[cols.index("updated_at") + 1:]
+    assert tail == ["actual", "forecast", "surprise", "xau_return_60m"]
 
 
 def test_backfill_marks_rows_dirty_so_flush_writes_them(monkeypatch):
@@ -153,6 +175,66 @@ def test_backfill_defers_all_rows_when_the_fetch_fails(monkeypatch):
 
     assert (attempted, filled) == (2, 0)
     assert s.dirty["calibration_log"] == set()
+
+
+def test_stage2_fills_60m_without_touching_the_earlier_measurements(monkeypatch):
+    """A row priced by stage 1 (5/15/30) comes back due once ≥65 min old, and
+    the second visit adds ONLY xau_return_60m — the earlier values are never
+    recomputed (yfinance revises bars slightly; rewriting near-identical
+    numbers would churn the whole tab on every stage-2 pass)."""
+    _patch_prices(monkeypatch, rets=(9.9, 9.9, 9.9, 0.44))
+    s = _store_with_rows([_cal_row("cal:a", minutes_ago=70)])
+    row = s.data["calibration_log"]["cal:a"]
+    row.update({"xau_return_5m": "0.11", "xau_return_15m": "0.22",
+                "xau_return_30m": "0.33", "xau_base_price": "3333.0"})
+
+    attempted, filled = main_mod._backfill_xau_on_store(s, NOW)
+
+    assert (attempted, filled) == (1, 1)
+    saved = s.data["calibration_log"]["cal:a"]
+    assert saved["xau_return_60m"] == 0.44
+    assert saved["xau_return_5m"] == "0.11"      # untouched, not 9.9
+    assert saved["xau_return_30m"] == "0.33"
+    assert saved["xau_base_price"] == "3333.0"
+
+
+def test_a_40min_old_row_gets_5_15_30_but_not_a_future_60m(monkeypatch):
+    _patch_prices(monkeypatch)
+    s = _store_with_rows([_cal_row("cal:a", minutes_ago=40)])
+
+    attempted, filled = main_mod._backfill_xau_on_store(s, NOW)
+
+    assert (attempted, filled) == (1, 1)
+    saved = s.data["calibration_log"]["cal:a"]
+    assert saved["xau_return_30m"] == 0.33
+    assert saved["xau_return_60m"] == ""         # bar not closed yet
+
+
+def test_a_stage1_complete_row_is_not_due_again_until_65min(monkeypatch):
+    """Between 35 and 65 min a fully stage-1-filled row must NOT be re-attempted
+    — there is nothing new to measure and re-visits would churn."""
+    calls = _patch_prices(monkeypatch)
+    s = _store_with_rows([_cal_row("cal:a", minutes_ago=50)])
+    s.data["calibration_log"]["cal:a"].update(
+        {"xau_return_5m": "0.11", "xau_return_15m": "0.22", "xau_return_30m": "0.33"})
+
+    attempted, filled = main_mod._backfill_xau_on_store(s, NOW)
+
+    assert (attempted, filled) == (0, 0)
+    assert calls[0] == 0                          # not even a fetch
+
+
+def test_fully_filled_row_is_never_due(monkeypatch):
+    calls = _patch_prices(monkeypatch)
+    s = _store_with_rows([_cal_row("cal:a", minutes_ago=120)])
+    s.data["calibration_log"]["cal:a"].update(
+        {"xau_return_5m": "0.11", "xau_return_15m": "0.22",
+         "xau_return_30m": "0.33", "xau_return_60m": "0.44"})
+
+    attempted, filled = main_mod._backfill_xau_on_store(s, NOW)
+
+    assert (attempted, filled) == (0, 0)
+    assert calls[0] == 0
 
 
 def test_backfill_skips_rows_outside_the_intraday_window(monkeypatch):

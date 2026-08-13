@@ -36,13 +36,14 @@ def _persist(store, row):
         **row,
         **{c: prev.get(c, "") for c in
            ("xau_return_5m", "xau_return_15m", "xau_return_30m",
-            "xau_base_price")},
+            "xau_return_60m", "xau_base_price")},
     })
 
 
 def test_reupsert_preserves_a_backfilled_return():
     store = _store_with(_row(xau_return_5m="0.11", xau_return_15m="0.22",
-                             xau_return_30m="0.33", xau_base_price="3400.5"))
+                             xau_return_30m="0.33", xau_return_60m="0.44",
+                             xau_base_price="3400.5"))
 
     # Same event, one more source has since confirmed it.
     _persist(store, _row(source_count="3", score="4.8"))
@@ -51,6 +52,7 @@ def test_reupsert_preserves_a_backfilled_return():
     assert saved["xau_return_5m"] == "0.11"
     assert saved["xau_return_15m"] == "0.22"
     assert saved["xau_return_30m"] == "0.33"
+    assert saved["xau_return_60m"] == "0.44"
     assert saved["xau_base_price"] == "3400.5"
     # ...while the fields that legitimately move DID update.
     assert saved["source_count"] == "3"

@@ -65,7 +65,12 @@ reliable cron, drive `news-cron` from a Google Apps Script trigger via
   **before** the purge, so the delivery history outlives the 30-day ledger
   (~365 rows/year). `by_route` is a JSON blob, so a new route type never needs a
   schema migration on a tab that already carries history.
-- `calibration_log` — every score ≥ 2 event (kept forever for Phase 3 backfill)
+- `calibration_log` — every score ≥ 2 event + every calendar verdict (180-day
+  retention). Per release: XAU base price (pre-print bar), returns at +5m /
+  +15m / +30m / **+1h**, and — for calendar rows — `actual` vs `forecast` with
+  the `surprise` label (beat / miss / in-line), so reactions can be sliced by
+  surprise class. Returns are backfilled in two stages (5/15/30m at ≥35 min,
+  60m at ≥65 min) and never recomputed once measured.
 - `health_log` — per-(source, warning_type) warning records, incl. watchdog
 - `translation_cache` — SHA-keyed Thai translation cache (TTL 24h, 2000-row cap).
   The `hits` column counts **writes**, not reads — the cache hit *rate* is in the

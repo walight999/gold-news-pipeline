@@ -99,9 +99,14 @@ whether macro-aligned signals grade better.
 
 Each Released-News card publishes a verdict (🟢 Bullish / 🔴 Bearish / ⚪ Neutral
 for gold). `run_calendar_check` now persists that call to `calibration_log`
-(`predicted_dir`, `predicted_verdict_th`, `title`, `country`; key `cal:{id}`,
-`first_seen_ts` = release time). The daily backfill fills `xau_return_15m` +
-`xau_base_price` (XAU at release, for exact %→$). `--mode scorecard` (`scorecard.py`
+(`predicted_dir`, `predicted_verdict_th`, `title`, `country`, and — since
+2026-08-13 — `actual`/`forecast`/`surprise` (beat/miss/in-line); key `cal:{id}`,
+`first_seen_ts` = release time). The backfill fills `xau_base_price` (pre-print
+bar) + returns at 5/15/30/60m in TWO stages (`_backfill_due`): 5/15/30m once
+≥35 min old, 60m once ≥65 min; measured values are never recomputed
+(fill-only-empty). ⚠ New calibration_log columns must be APPENDED at the END
+of SCHEMAS (after `updated_at`) — inserting mid-schema shifts old rows'
+trailing cells under the wrong header (the 2026-06-26 title-shift, 2826 rows). `--mode scorecard` (`scorecard.py`
 pure logic) grades each call vs the actual 15m move (flat band 0.10%), writes the
 daily aggregate to the `scorecard_daily` tab, and pushes a summary Flex to the
 **1:1 chat only** (never the group — it's private model introspection). Accuracy =

@@ -153,6 +153,17 @@ SCHEMAS: dict[str, list[str]] = {
         # by backfill) makes the %→$ conversion exact instead of price-guessed.
         "title", "country", "predicted_dir", "predicted_verdict_th", "xau_base_price",
         "updated_at",
+        # Release-reaction dataset (2026-08-13, White): the full "what happened
+        # around the print" record — actual vs forecast + the surprise label
+        # (beat / miss / in-line, written at calendar-release send) and the
+        # 1-hour return (filled by the backfill's second pass once the row is
+        # ≥65 min old). Appended AFTER updated_at ON PURPOSE: _ensure_tab
+        # rewrites the header in place while existing data rows keep their
+        # physical cells, so INSERTING a column mid-schema shifts every old
+        # row's trailing values under the wrong names — that's how 2826 rows
+        # got an ISO timestamp in `title` in the 2026-06-26 migration.
+        # Appending at the end leaves old rows aligned; they just read "".
+        "actual", "forecast", "surprise", "xau_return_60m",
     ],
     # One row per ICT day — the directional-accuracy scoreboard for calendar
     # verdicts. Source of truth for the rolling-accuracy trend; the EOD 1:1 card

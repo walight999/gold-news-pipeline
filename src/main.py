@@ -270,7 +270,7 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
                 "routed_as": d.route.value,
                 **{c: prev.get(c, "") for c in
                    ("xau_return_5m", "xau_return_15m", "xau_return_30m",
-                    "xau_base_price")},
+                    "xau_return_60m", "xau_base_price")},
             })
         if d.route in (Route.BREAKING, Route.ALERT) and line and news_target:
             # idempotency
@@ -1073,17 +1073,23 @@ async def run_maintain() -> int:
 # ---------- calibration feedback loop (xau_return backfill + precision) ----------
 
 def _backfill_due(row: dict[str, Any], now: datetime) -> bool:
-    """True if a calibration_log row should be attempted for xau_return backfill:
-    not already filled, parseable timestamp, and 35min-5day old (30-min window
-    closed AND still inside the yfinance 5-min intraday window)."""
+    """True if a calibration_log row should be attempted for xau_return backfill.
+
+    Two-stage (2026-08-13): stage 1 fills 5/15/30m once the row is ≥35 min old
+    (30-min bar closed); stage 2 fills the 60m return once ≥65 min old. A row
+    filled by stage 1 on one run comes back due for stage 2 on a later run.
+    Either way the row must still be inside the yfinance 5-min intraday window
+    (~5 days) or the bars are gone permanently."""
     from .utils_time import parse_iso
-    if str(row.get("xau_return_30m") or "").strip():
-        return False
     ts = parse_iso(row.get("first_seen_ts"))
     if ts is None:
         return False
     age_min = (now - ts).total_seconds() / 60.0
-    return 35.0 <= age_min <= 5 * 24 * 60.0
+    if age_min > 5 * 24 * 60.0:
+        return False
+    if not str(row.get("xau_return_30m") or "").strip() and age_min >= 35.0:
+        return True
+    return not str(row.get("xau_return_60m") or "").strip() and age_min >= 65.0
 
 
 def _backfill_xau_on_store(store: "Store", now: datetime,
@@ -1125,9 +1131,7 @@ def _backfill_xau_on_store(store: "Store", now: datetime,
     filled = 0
     for r, ts in due:
         attempted += 1
-        base, rets = price_feed.base_and_returns_from_series(series, ts, (5, 15, 30), now=now)
-        if all(v is None for v in rets.values()):
-            continue   # off-hours / holiday / gap — leave empty, retry while <=5d
+        base, rets = price_feed.base_and_returns_from_series(series, ts, (5, 15, 30, 60), now=now)
         # COPY before mutating. `r` is the live dict inside store.data (all_rows
         # hands out references), and upsert's no-op guard compares the incoming
         # row against that same object — mutating in place makes them identical,
@@ -1136,13 +1140,26 @@ def _backfill_xau_on_store(store: "Store", now: datetime,
         # the sheet stayed empty for a month. Write to a copy so the guard sees
         # a real difference.
         upd = dict(r)
-        upd["xau_return_5m"] = round(rets[5], 4) if rets[5] is not None else ""
-        upd["xau_return_15m"] = round(rets[15], 4) if rets[15] is not None else ""
-        upd["xau_return_30m"] = round(rets[30], 4) if rets[30] is not None else ""
+        wrote = False
+        for m, col in ((5, "xau_return_5m"), (15, "xau_return_15m"),
+                       (30, "xau_return_30m"), (60, "xau_return_60m")):
+            # Fill-only-empty: a value measured on an earlier pass is never
+            # recomputed — yfinance revises bars slightly between fetches and
+            # rewriting near-identical numbers would churn the whole tab every
+            # stage-2 (60m) visit. Empty + unavailable (off-hours gap / offset
+            # still in the future) stays empty and retries while <=5d old.
+            if str(upd.get(col) or "").strip():
+                continue
+            if rets.get(m) is not None:
+                upd[col] = round(rets[m], 4)
+                wrote = True
         # Base price (XAU at release) → lets the scorecard convert %→$ exactly.
         # Only stamp it when not already set, so a re-backfill doesn't churn it.
         if base is not None and not str(upd.get("xau_base_price") or "").strip():
             upd["xau_base_price"] = round(base, 2)
+            wrote = True
+        if not wrote:
+            continue   # nothing new measurable this pass — leave undirtied
         store.upsert("calibration_log", upd)
         filled += 1
     return attempted, filled
@@ -1924,6 +1941,16 @@ async def run_calendar_check() -> int:
                         "predicted_verdict_th": verdict or "",
                         "xau_return_5m": "", "xau_return_15m": "", "xau_return_30m": "",
                         "xau_base_price": "",
+                        # Release-reaction dataset: what printed vs what was
+                        # expected, and how it surprised (beat/miss/in-line).
+                        # Was computed for the card and thrown away — persisting
+                        # it lets the future evaluation slice returns BY surprise
+                        # class ("does a CPI beat actually move gold, and for
+                        # how long?"), which the verdict alone can't answer.
+                        "actual": actual_text or "",
+                        "forecast": ev.forecast or "",
+                        "surprise": surprise or "",
+                        "xau_return_60m": "",
                     })
             # Telegram is independent of LINE — push regardless of the LINE result.
             # detail_th (Thai LINE rewrite) is omitted; the worker renders English.
