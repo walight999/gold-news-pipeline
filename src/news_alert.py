@@ -363,6 +363,37 @@ def _cache_write(store: "Store | None", key: str, src_title: str, alert: MarketA
     })
 
 
+# Per-process classifier cache counters.
+#
+# The `hits` COLUMN in translation_cache counts WRITES, not reads: _cache_write
+# increments it and _cache_lookup deliberately does not (bumping it would dirty
+# a ~2-3 MB tab that flush() rewrites whole, every run, for a vanity metric).
+# Consequence: every row in the live tab reads `hits: 1` and the cache hit RATE
+# was simply not measurable — which is why the "is the 1-day TTL right?" question
+# had no data behind it. These in-process counters cost nothing (no sheet write,
+# no API call) and put the real ratio in the Actions log, which is what any
+# future TTL / cap change has to be argued from.
+_RUN_STATS = {"hits": 0, "misses": 0, "fallbacks": 0}
+
+
+def run_cache_stats() -> dict[str, int]:
+    """Snapshot of this process's classifier cache counters.
+
+    `hit_pct` is -1 when no classify call happened at all, so an idle run reads
+    as "no data" instead of a misleading 0%."""
+    hits = _RUN_STATS["hits"]
+    misses = _RUN_STATS["misses"]
+    total = hits + misses
+    return {**_RUN_STATS, "total": total,
+            "hit_pct": round(100.0 * hits / total) if total else -1}
+
+
+def reset_cache_stats() -> None:
+    """Zero the counters. Only tests need this — a cron process is one run."""
+    for k in _RUN_STATS:
+        _RUN_STATS[k] = 0
+
+
 def _month_tokens_over_cap(store: "Store | None") -> bool:
     """True when this month's classifier token spend has crossed the hard cap —
     the caller then skips Claude and drops to Gemini (free) / literal fallback.
@@ -432,10 +463,17 @@ def classify_and_rewrite(
     if cached is not None and not (high_quality and cached.action == "keep"):
         # Do NOT _cache_write on a hit — bumping the `hits` counter dirties the
         # translation_cache tab, which flush() rewrites WHOLE (~2-3 MB) every run
-        # for a vanity metric. The hit itself is the only work needed.
+        # for a vanity metric. The hit itself is the only work needed; the free
+        # in-process counter below is how the hit RATE gets measured instead.
+        _RUN_STATS["hits"] += 1
         _record_classifier_outcome(store, source_id, cached,
                                     used_fallback=False, cache_hit=True)
         return cached
+
+    # A high_quality refresh of a cached KEEP lands here too, and counts as a
+    # miss on purpose: the metric that matters is "how many provider calls did
+    # the cache actually save", and a refresh costs a call like any other.
+    _RUN_STATS["misses"] += 1
 
     age_h_str = f"{age_hours:.1f}" if age_hours is not None else "unknown"
     # Provider chain: Claude (primary) → Gemini (secondary, e.g. when the
@@ -458,6 +496,7 @@ def classify_and_rewrite(
     if result is None:
         result = _fallback_alert(title, summary or "", store=store)
         used_fallback = True
+        _RUN_STATS["fallbacks"] += 1
 
     # NEVER cache the fallback — it's a permissive Google-translate accept used
     # only during a Claude outage. Caching it poisoned the digest: a single

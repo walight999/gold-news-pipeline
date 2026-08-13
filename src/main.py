@@ -575,7 +575,10 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
 
     # 9. Flush state
     store.flush()
-    log.info("done. sheets API calls=%d", store.api_calls)
+    cs = news_alert.run_cache_stats()
+    log.info("done. sheets API calls=%d | classifier cache %d/%d hits (%s%%), "
+             "%d fallback", store.api_calls, cs["hits"], cs["total"],
+             cs["hit_pct"] if cs["hit_pct"] >= 0 else "n/a", cs["fallbacks"])
 
     # 10. External dead-man ping — ONLY after a successful flush. A liveness
     # signal must mean "a full iteration completed, state persisted"; pinging
@@ -928,6 +931,19 @@ async def run_maintain() -> int:
     # Translation cache — TTL 1 day + hard cap 2000 most-recent rows.
     # TTL keeps stale RSS titles from bloating Claude lookup; cap keeps
     # the Sheet small enough that load_all stays fast.
+    #
+    # 1 day is deliberate, re-checked 2026-08-13. Only two paths ever re-read a
+    # cached row, and neither can be older than a day:
+    #   - `a3…` classifier keys (title+summary): re-read when the digest
+    #     re-classifies a stored event, and the digest window is 4h.
+    #   - `cl…` calendar-explain keys: hashed over `event_id + actual`, so a
+    #     monthly CPI print produces a NEW key every release — they never recur.
+    #     Their only re-read is a same-day retry after a failed LINE push.
+    # So a longer TTL would buy zero extra hits and only cost load_all time. The
+    # tab is ~123 rows against a 2000 cap, so the cap isn't binding either.
+    # If this is ever revisited, argue it from the `classifier cache N/M hits`
+    # line that run_once now logs — NOT from the `hits` column, which counts
+    # writes (see news_alert._cache_write) and therefore reads 1 on every row.
     removed_tc = store.purge_older_than("translation_cache", 1, ts_col="updated_at")
     removed_tc_cap = _cap_translation_cache(store, max_rows=2000)
 
