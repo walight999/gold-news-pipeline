@@ -22,6 +22,7 @@ def _content(days_ago=1.0, decision="sent", fb_ok="", fb_type="", fb_fix="",
         "route": "digest", "decision": decision, "event_id": f"e-{days_ago}-{decision}-{fb_type}",
         "topic_bucket": "inflation", "score": "1.5",
         "headline_th": headline_th, "en_title": en_title,
+        "body_th": "ประเด็นหลักของข่าว", "impact_th": "ผลต่อทองจำกัด",
         "flags": flags, "fb_ok": fb_ok, "fb_type": fb_type, "fb_fix": fb_fix,
         "fb_note": "",
     }

@@ -51,6 +51,15 @@ digest:
   # degraded card. Set FALSE to restore strict quality-first (silent on outage).
   allow_fallback_when_ai_down: true
 
+social:
+  # Which routes get a tweet draft appended to the social_feed tab
+  # (2026-08-13). Measured: 867 drafts ever written, 2 ever approved — the
+  # Claude tweet_writer call was ~100% waste, and digest cards (~20-24/day)
+  # were the bulk of the volume. Restricting drafts to breaking/alert keeps
+  # the high-value fast-news drafts (the ones worth posting to X) at ~1/3 of
+  # the cost. Add "digest" back to restore the old firehose.
+  draft_routes: ["breaking", "alert"]
+
 session:
   # Active-session gate (ICT). London open → NY close.
   active_start_ict: "14:00"
