@@ -148,18 +148,34 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
             store.connect()
             store.load_all()
             health.write_heartbeat(store, items_seen=0)
+            # Weekly self-review rides the weekend heartbeat run: the review
+            # window is Sat ≥10:00 ICT (+ Sunday catch-up), which is exactly
+            # when this branch — not the main pipeline below — is what runs.
+            # The dispatcher still fires the cron every 5 min on weekends, so
+            # the card lands on time with no extra scheduler entry. Idempotent
+            # per ISO week; the content_review workflow remains the backup.
+            if mode == "cron":
+                wk = _weekly_self_review_due(store)
+                if wk:
+                    _content_review_send(store, wk)
             store.flush()
         except Exception as e:
-            log.warning("weekend heartbeat write failed: %s", e)
+            log.warning("weekend heartbeat/self-review write failed: %s", e)
         return 0
 
     store = Store.from_env()
     store.connect()
     store.load_all()
 
-    # Social-feed records collected during this run (breaking/alert/digest) and
-    # appended once before flush. Best-effort: never blocks the LINE push.
+    # Social-feed records collected during this run and appended once before
+    # flush. Best-effort: never blocks the LINE push. Which routes get a draft
+    # comes from schedule.yaml::social.draft_routes — shipped as breaking/alert
+    # only (867 drafts / 2 approvals measured 2026-08-13; digest was the bulk
+    # of the waste). The tweet_writer Claude call only fires for drafted rows.
     social_records: list[dict[str, Any]] = []
+    draft_routes = {str(r).strip() for r in
+                    (sched_cfg.get("social", {}) or {}).get(
+                        "draft_routes", ["breaking", "alert", "digest"])}
     # Content-quality ledger rows (sent cards + classifier rejects) — appended
     # once at step 8b alongside the social feed. Best-effort by design.
     content_records: list[dict[str, Any]] = []
@@ -326,19 +342,20 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
                     "line_status": resp["status"],
                 })
                 try:
-                    social_records.append(social_feed.record_news_event(
-                        route=d.route.value,
-                        category=alert_obj.category,
-                        tone=alert_obj.tone,
-                        impact_level=score_to_impact(d.score)[0],
-                        headline_th=alert_obj.headline_th,
-                        body_th=alert_obj.body_th,
-                        impact_th=alert_obj.impact_th,
-                        source=_source_label(ev.source_list),
-                        url=_pick_article_url(ev.items),
-                        en_title=ev.representative_title,
-                        en_summary=ev.representative_summary,
-                    ))
+                    if d.route.value in draft_routes:
+                        social_records.append(social_feed.record_news_event(
+                            route=d.route.value,
+                            category=alert_obj.category,
+                            tone=alert_obj.tone,
+                            impact_level=score_to_impact(d.score)[0],
+                            headline_th=alert_obj.headline_th,
+                            body_th=alert_obj.body_th,
+                            impact_th=alert_obj.impact_th,
+                            source=_source_label(ev.source_list),
+                            url=_pick_article_url(ev.items),
+                            en_title=ev.representative_title,
+                            en_summary=ev.representative_summary,
+                        ))
                 except Exception:
                     log.exception("social_feed record (breaking/alert) failed event=%s", ev.event_id)
                 try:
@@ -593,20 +610,21 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
                             "line_status": resp["status"],
                         })
                         try:
-                            a = card["alert"]
-                            social_records.append(social_feed.record_news_event(
-                                route="digest",
-                                category=a.category,
-                                tone=a.tone,
-                                impact_level=score_to_impact(card["score"])[0],
-                                headline_th=a.headline_th,
-                                body_th=a.body_th,
-                                impact_th=a.impact_th,
-                                source=_source_label(card["source_list"]),
-                                url=card["url"],
-                                en_title=str(row.get("title") or ""),
-                                en_summary=str(row.get("summary") or ""),
-                            ))
+                            if "digest" in draft_routes:
+                                a = card["alert"]
+                                social_records.append(social_feed.record_news_event(
+                                    route="digest",
+                                    category=a.category,
+                                    tone=a.tone,
+                                    impact_level=score_to_impact(card["score"])[0],
+                                    headline_th=a.headline_th,
+                                    body_th=a.body_th,
+                                    impact_th=a.impact_th,
+                                    source=_source_label(card["source_list"]),
+                                    url=card["url"],
+                                    en_title=str(row.get("title") or ""),
+                                    en_summary=str(row.get("summary") or ""),
+                                ))
                         except Exception:
                             log.exception("social_feed record (digest) failed event=%s", row.get("event_id"))
                         try:
@@ -1466,30 +1484,34 @@ async def run_scorecard() -> int:
     return 0
 
 
-async def run_content_review() -> int:
-    """Weekly self-review → 1:1 chat ONLY (never the group).
+def _weekly_self_review_due(store: "Store") -> str | None:
+    """The ISO-week key when the weekly self-review should fire NOW, else None.
 
-    Reads content_log (what was said + operator fb_* annotations), sent_log
-    (delivery volume/failures) and calibration_log (did the tape care about
-    what we rejected?), then pushes one card: the week's numbers, the feedback
-    received, and a rule-generated "สิ่งที่อยากให้แก้" list. Same private
-    introspection posture as the scorecard. Idempotent per ISO week."""
+    Fires from Saturday 10:00 ICT and catches up through Sunday (same ISO week
+    — ISO weeks start Monday), gated by the sent_log idempotency key. This is
+    what lets the ordinary news cron deliver the card on time WITHOUT a
+    dedicated cron-job.org entry: the dispatcher already drives run_once every
+    5 min, so the first Saturday run after 10:00 sends it. The content_review
+    workflow (Sat 03:30 UTC native cron + workflow_dispatch) stays as backup."""
+    ict = now_ict()
+    if ict.weekday() not in (5, 6):            # Sat / Sun only
+        return None
+    if ict.weekday() == 5 and ict.hour < 10:
+        return None
+    iso = ict.isocalendar()
+    week_key = f"{iso[0]}-W{iso[1]:02d}"
+    if store.get("sent_log", (f"content_review:{week_key}", "content_review")):
+        return None
+    return week_key
+
+
+def _content_review_send(store: "Store", week_key: str) -> None:
+    """Build + push the weekly self-review card on an already-loaded store.
+    Assumes the caller checked idempotency. Does NOT flush — caller owns it."""
     from . import content_review
     from .line_flex import content_review_bubble
 
-    store = Store.from_env()
-    store.connect()
-    store.load_all()
-
-    ict = now_ict()
-    iso = ict.isocalendar()
-    week_key = f"{iso[0]}-W{iso[1]:02d}"
     sent_key = f"content_review:{week_key}"
-    if store.get("sent_log", (sent_key, "content_review")):
-        log.info("content_review already sent for %s — skipping", week_key)
-        store.flush()
-        return 0
-
     _, feed_rows = store.read_feed(content_log.CONTENT_TAB)
     summary = content_review.analyze(
         feed_rows, store.all_rows("sent_log"), store.all_rows("calibration_log"),
@@ -1501,10 +1523,10 @@ async def run_content_review() -> int:
     target = _private_target()
     if not target:
         log.warning("no 1:1 (U...) target in LINE_NEWS_TARGET — self-review logged only")
-        store.flush()
-        return 0
+        return
 
     from datetime import timedelta as _td
+    ict = now_ict()
     start = (ict - _td(days=6)).strftime("%d/%m")
     week_label = f"{start}-{ict.strftime('%d/%m')}"
     bubble = content_review_bubble(summary, week_label)
@@ -1514,19 +1536,37 @@ async def run_content_review() -> int:
     ok, reason = quota_allows(store, PRIORITY_CORE)
     if not ok:
         # Private card; nothing to mirror elsewhere. Leaving the slot unmarked
-        # lets next week's run retry if quota recovers — better than losing it.
+        # lets a later run retry if quota recovers — better than losing it.
         log.info("quota gate — skipping content_review LINE push: %s", reason)
+        return
+    resp = line.push_flex(target, alt, bubble)
+    record_line_outcome(store, resp)
+    if resp.get("status") == 200:
+        store.upsert("sent_log", {
+            "event_id": sent_key, "route_type": "content_review",
+            "sent_ts": iso_utc(now_utc()), "line_status": 200,
+        })
     else:
-        resp = line.push_flex(target, alt, bubble)
-        record_line_outcome(store, resp)
-        if resp.get("status") == 200:
-            store.upsert("sent_log", {
-                "event_id": sent_key, "route_type": "content_review",
-                "sent_ts": iso_utc(now_utc()), "line_status": 200,
-            })
-        else:
-            log.warning("content_review push failed status=%s body=%s",
-                        resp.get("status"), str(resp.get("body"))[:200])
+        log.warning("content_review push failed status=%s body=%s",
+                    resp.get("status"), str(resp.get("body"))[:200])
+
+
+async def run_content_review() -> int:
+    """Weekly self-review → 1:1 chat ONLY (never the group). BACKUP path —
+    the primary on-time path is the Saturday piggyback inside run_once (see
+    _weekly_self_review_due); this mode covers manual dispatch + the native
+    Sat cron. Idempotent per ISO week either way."""
+    store = Store.from_env()
+    store.connect()
+    store.load_all()
+
+    iso = now_ict().isocalendar()
+    week_key = f"{iso[0]}-W{iso[1]:02d}"
+    if store.get("sent_log", (f"content_review:{week_key}", "content_review")):
+        log.info("content_review already sent for %s — skipping", week_key)
+        store.flush()
+        return 0
+    _content_review_send(store, week_key)
     store.flush()
     return 0
 

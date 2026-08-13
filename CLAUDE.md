@@ -73,9 +73,15 @@ throttle on the T-15 window; cron-job.org now drives `calendar_check` every
 test draft) · `calendar_daily` (one card/day, 04:40 ICT) · `calendar_check` (**pre- T-15 + post Released News**) ·
 `scorecard` (EOD directional-accuracy of calendar verdicts → **1:1 only**, 23:45 ICT) ·
 `macro` (compute + POST the multi-factor macro state to the CHUM alert-bot worker, every 6h) ·
-`content_review` (**weekly self-review → 1:1 only**, Sat 10:30 ICT: reads
-content_log fb_* + sent_log + calibration_log, rule-generated "สิ่งที่อยากให้แก้"
-list — every suggestion cites its evidence; idempotent per ISO week).
+`content_review` (**weekly self-review → 1:1 only**: reads content_log fb_* +
+sent_log + calibration_log, rule-generated "สิ่งที่อยากให้แก้" — every
+suggestion cites its evidence; plus zero-cost **auto-QC** over the week's sent
+Thai copy (untranslated headline / CJK leak / raw glossary name / em-dash /
+wire-caps / empty body) so the card has findings even with zero human
+feedback. **Primary delivery = Saturday ≥10:00 ICT piggyback inside run_once's
+weekend-heartbeat branch** (the dispatcher already fires cron every 5 min on
+weekends — no cron-job.org entry needed); the content_review workflow (Sat
+03:30 UTC + dispatch) is the backup. Idempotent per ISO week).
 
 ## Macro push — feeding the CHUM alert-bot (Pillar C, 2026-06-28)
 
@@ -208,6 +214,10 @@ News → draft lands in `social_feed` (tweet_text, @tradetongkam voice) → oper
 reviews, types `yes` in `approved` for the ones to publish → `social-post` cron
 (~20 min) posts to X at $0.015 and writes the tweet URL into `posted`. Nothing
 posts without an explicit per-row `yes`. Docs: `docs/SOCIAL-FEED.md`.
+⚠ Since 2026-08-13 drafts are **breaking/alert only**
+(`schedule.yaml::social.draft_routes`) — 867 drafts / 2 approvals measured;
+digest drafts were the bulk of the tweet_writer waste. Add `"digest"` back to
+the list to restore the firehose.
 
 ## State as of 2026-06-11
 

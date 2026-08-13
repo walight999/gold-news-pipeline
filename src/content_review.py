@@ -18,6 +18,7 @@ be traced back to sheet rows and, when White disagrees, refuted from them.
 """
 from __future__ import annotations
 
+import re
 from collections import Counter
 from datetime import datetime, timedelta
 from typing import Any
@@ -75,6 +76,86 @@ def _reject_reason(flags: str) -> str:
     return "unknown"
 
 
+# ---------------------------------------------------------------------------
+# Automatic QC — deterministic checks over the week's SENT Thai copy, so the
+# self-review finds content problems even in a week where the operator never
+# opens the sheet. Zero cost (no LLM, no network): these are exactly the
+# defects a human reviewer keeps catching by eye, encoded once.
+# ---------------------------------------------------------------------------
+
+# CJK scripts that must never appear in Thai output (the translate-time
+# validator forces a fallback on leaks, but the fallback path itself and the
+# Gemini tier have leaked before — this is the after-the-fact audit).
+_CJK_RE = re.compile(r"[一-鿿぀-ヿ가-힯]")
+
+# Names the translator glossary maps to canonical Thai. Seeing the raw EN form
+# in shipped Thai copy means the glossary was bypassed (fallback path) or the
+# model ignored it. Word-boundary match, case-sensitive on the capitalised form.
+_GLOSSARY_NAMES = (
+    "Powell", "Trump", "Putin", "Zelensky", "Netanyahu", "Lagarde",
+    "Yellen", "Biden", "Xi Jinping", "Ueda", "Bailey",
+)
+
+_QC_LABELS_TH = {
+    "untranslated": "หัวข่าวยังเป็นอังกฤษ (ไม่ถูกแปล)",
+    "cjk_leak": "มีอักษรจีน/ญี่ปุ่น/เกาหลีหลุด",
+    "raw_name": "ชื่อบุคคลไม่ถูกแปลงเป็นไทย",
+    "em_dash": "มี em-dash (ผิดกติกา no-ai-slop)",
+    "wire_caps": "หัวข่าวเป็นตัวพิมพ์ใหญ่แบบ wire ดิบ",
+    "empty_body": "การ์ดไม่มีเนื้อ (body ว่าง)",
+}
+
+
+def _ascii_ratio(text: str) -> float:
+    letters = [c for c in text if c.isalpha()]
+    if not letters:
+        return 0.0
+    return sum(1 for c in letters if c.isascii()) / len(letters)
+
+
+def auto_qc(sent_rows: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    """Run every check over the week's sent rows. Returns
+    {check: {"count": n, "examples": [headline, ...]}} for checks that hit."""
+    hits: dict[str, dict[str, Any]] = {}
+
+    def _hit(check: str, example: str) -> None:
+        d = hits.setdefault(check, {"count": 0, "examples": []})
+        d["count"] += 1
+        if example and len(d["examples"]) < 2:
+            d["examples"].append(example[:60])
+
+    for r in sent_rows:
+        head = str(r.get("headline_th") or "").strip()
+        body = str(r.get("body_th") or "").strip()
+        impact = str(r.get("impact_th") or "").strip()
+        blob = " ".join((head, body, impact))
+        if not blob.strip():
+            continue
+
+        # Thai chars are alphabetic too, so a mostly-ASCII headline of real
+        # length means the rewrite shipped in English. Fallback cards are the
+        # usual culprit; either way the reader got the wrong language.
+        if head and len(head) > 12 and _ascii_ratio(head) > 0.8:
+            _hit("untranslated", head)
+        if _CJK_RE.search(blob):
+            _hit("cjk_leak", head)
+        for name in _GLOSSARY_NAMES:
+            if re.search(rf"\b{re.escape(name)}\b", blob):
+                _hit("raw_name", f"{name}: {head}")
+                break
+        if "—" in blob:
+            _hit("em_dash", head)
+        # Wire-format leftover: EXPEDIA GROUP Q2 EPS $4.14 style — mostly
+        # uppercase ASCII survived into the "Thai" headline.
+        ascii_letters = [c for c in head if c.isalpha() and c.isascii()]
+        if (len(ascii_letters) > 10
+                and sum(1 for c in ascii_letters if c.isupper()) / len(ascii_letters) > 0.7):
+            _hit("wire_caps", head)
+        if head and not body:
+            _hit("empty_body", head)
+    return hits
+
+
 def analyze(content_rows: list[dict[str, Any]],
             sent_rows: list[dict[str, Any]],
             calib_rows: list[dict[str, Any]],
@@ -108,6 +189,7 @@ def analyze(content_rows: list[dict[str, Any]],
     fixes: list[dict[str, Any]] = []
     n_fallback = n_degraded = 0
     rejected_ids: list[str] = []
+    sent_in_window: list[dict[str, Any]] = []
 
     for r in content_rows:
         ts = parse_ts_ict(r.get("ts_ict"))
@@ -120,6 +202,7 @@ def analyze(content_rows: list[dict[str, Any]],
 
         if decision == "sent":
             n_logged_sent += 1
+            sent_in_window.append(r)
             if "fallback" in flags:
                 n_fallback += 1
             if "degraded" in flags:
@@ -178,6 +261,9 @@ def analyze(content_rows: list[dict[str, Any]],
         "n_degraded": n_degraded,
         "reject_reasons": dict(reject_reasons),
         "high_move_rejects": high_move_rejects[:3],
+        # Deterministic self-inspection of the week's shipped copy — the loop
+        # produces findings even when the operator gave zero manual feedback.
+        "auto_qc": auto_qc(sent_in_window),
     }
     summary["suggestions"] = build_suggestions(summary)
     return summary
@@ -232,9 +318,19 @@ def build_suggestions(s: dict[str, Any]) -> list[str]:
         out.append(f"LINE ส่งไม่สำเร็จ {s['n_failed']} ครั้งในสัปดาห์ "
                    "— ดู delivery_daily ว่ากระจุกวันไหน")
 
-    # 8. No feedback at all → the loop can't learn without input.
+    # 8. Automatic QC findings — self-caught, no human feedback needed. Ranked
+    # by count so the most frequent defect surfaces first when the cap bites.
+    qc = s.get("auto_qc") or {}
+    for check, d in sorted(qc.items(), key=lambda kv: -kv[1]["count"]):
+        label = _QC_LABELS_TH.get(check, check)
+        ex = f' เช่น "{d["examples"][0]}"' if d.get("examples") else ""
+        out.append(f"QC อัตโนมัติ: {label} {d['count']} ใบ{ex}")
+
+    # 9. No feedback at all → gentle nudge. Auto-QC softens this from
+    # "the loop is blind" to "the loop only sees what rules can see" — human
+    # judgement on tone / impact quality still needs the fb_* columns.
     if not s.get("n_reviewed") and (s.get("n_logged_sent") or s.get("n_logged_rejected")):
-        out.append("ยังไม่มี feedback ใน content_log สัปดาห์นี้ — ติสัก 4-5 แถว "
-                   "(โดยเฉพาะแถว rejected) ระบบจะมีข้อมูลเรียนรู้")
+        out.append("ยังไม่มี feedback คนใน content_log สัปดาห์นี้ (QC อัตโนมัติ"
+                   "ทำงานแทนบางส่วนแล้ว) — ติเรื่อง tone/impact เพิ่มได้ถ้ามีเวลา")
 
     return out[:MAX_SUGGESTIONS]
