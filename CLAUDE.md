@@ -143,6 +143,12 @@ with no 15m bar show as ⏳ pending, not wrong.
 - `delivery_stats.py` — rolls `sent_log` up into the `delivery_daily` tab (one
   row per ICT day: sent / failed / per-route JSON) during `maintain`, **before**
   the 30-day purge, so delivery history doesn't expire with the ledger.
+- `content_log.py` — append-only `content_log` tab (2026-08-13): every sent
+  news card's full Thai copy + every classifier-rejected digest candidate
+  (reason in `flags`), with operator feedback columns `fb_ok`/`fb_type`/
+  `fb_fix`/`fb_note` (`fb_type=missed` = wrongly rejected). Uses `append_feed`
+  like social_feed so `flush()` never clobbers the operator's edits. Impact
+  outcome joins `event_id` → calibration_log; don't duplicate numbers here.
 - `router.py` — ≥4.5 breaking, ≥3.5 alert (if official or ≥2 orgs), ≥2.5 digest.
 
 ## Config

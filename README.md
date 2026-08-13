@@ -70,6 +70,13 @@ reliable cron, drive `news-cron` from a Google Apps Script trigger via
 - `translation_cache` — SHA-keyed Thai translation cache (TTL 24h, 2000-row cap).
   The `hits` column counts **writes**, not reads — the cache hit *rate* is in the
   `classifier cache N/M hits` line each run logs, not in this tab.
+- `content_log` — **append-only** quality ledger: one row per news card sent
+  (full Thai copy) *and* per digest candidate the classifier rejected (with the
+  reason in `flags`). The operator reviews rows and fills the `fb_*` columns —
+  `fb_ok` y/n, `fb_type` (typo / translation / tone / display / impact /
+  irrelevant / **missed** for wrongly-rejected), `fb_fix`, `fb_note`. Never
+  touched by `flush()`, so feedback is never clobbered. Impact outcome lives in
+  `calibration_log` (join on `event_id`), not here.
 
 Detailed setup: [docs/SETUP_SHEETS.md](docs/SETUP_SHEETS.md).
 LINE channel setup: [docs/SETUP_LINE.md](docs/SETUP_LINE.md).

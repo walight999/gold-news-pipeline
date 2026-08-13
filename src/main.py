@@ -22,7 +22,7 @@ from typing import Any
 import yaml
 
 from . import calendar as cal
-from . import dedup, delivery_stats, digest, fred, health, macro_push, news_alert, ops_alert, price_feed, scorecard, scorer, social_feed, telegram_news, translator
+from . import content_log, dedup, delivery_stats, digest, fred, health, macro_push, news_alert, ops_alert, price_feed, scorecard, scorer, social_feed, telegram_news, translator
 from .fetcher import fetch_all, plan_fetch
 from .line_client import (
     PRIORITY_BRIEFING,
@@ -160,6 +160,9 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
     # Social-feed records collected during this run (breaking/alert/digest) and
     # appended once before flush. Best-effort: never blocks the LINE push.
     social_records: list[dict[str, Any]] = []
+    # Content-quality ledger rows (sent cards + classifier rejects) — appended
+    # once at step 8b alongside the social feed. Best-effort by design.
+    content_records: list[dict[str, Any]] = []
 
     sources = src_cfg["sources"]
     if tier_filter is not None:
@@ -293,6 +296,20 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
             if not alert_obj.should_send:
                 log.info("breaking/alert classifier rejected event_id=%s reason=%s",
                          ev.event_id, alert_obj.reason)
+                # Ledger the reject so the filter is auditable from the sheet —
+                # a high-score story that never appeared should be findable by
+                # the operator, not only in Actions logs.
+                try:
+                    content_records.append(content_log.record_card(
+                        route=d.route.value, decision="rejected",
+                        event_id=ev.event_id, topic_bucket=ev.topic_bucket,
+                        score=round(d.score, 2),
+                        en_title=ev.representative_title,
+                        source=_source_label(ev.source_list),
+                        flags=f"rejected:{alert_obj.reason or 'unknown'}",
+                    ))
+                except Exception:
+                    log.exception("content_log record (reject) failed event=%s", ev.event_id)
                 continue
             if d.route == Route.BREAKING:
                 bubble = breaking_bubble(ev, d.score, kw_cfg, alert=alert_obj)
@@ -324,6 +341,22 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
                     ))
                 except Exception:
                     log.exception("social_feed record (breaking/alert) failed event=%s", ev.event_id)
+                try:
+                    content_records.append(content_log.record_card(
+                        route=d.route.value, decision="sent",
+                        event_id=ev.event_id, topic_bucket=ev.topic_bucket,
+                        score=round(d.score, 2),
+                        category=alert_obj.category, tone=alert_obj.tone,
+                        impact_level=score_to_impact(d.score)[0],
+                        headline_th=alert_obj.headline_th,
+                        body_th=alert_obj.body_th,
+                        impact_th=alert_obj.impact_th,
+                        en_title=ev.representative_title,
+                        source=_source_label(ev.source_list),
+                        flags="fallback" if alert_obj.is_fallback else "",
+                    ))
+                except Exception:
+                    log.exception("content_log record (sent) failed event=%s", ev.event_id)
             else:
                 log.warning("LINE push failed event=%s status=%s — not marking sent", ev.event_id, resp["status"])
             # CHUM News Bot (Telegram) is an INDEPENDENT channel — push regardless of
@@ -487,6 +520,25 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
                 else:
                     log.info("news round dropped event_id=%s reason=%s relevance=%s fallback=%s",
                              row.get("event_id"), a.reason, a.relevance_to_gold, a.is_fallback)
+                    # Ledger the drop. The classify call was already paid for;
+                    # one sheet row makes the relevance gate auditable — the
+                    # operator marks fb_type=missed on anything that SHOULD
+                    # have gone out, and that list drives the next tuning pass.
+                    try:
+                        content_records.append(content_log.record_card(
+                            route="digest", decision="rejected",
+                            event_id=str(row.get("event_id") or ""),
+                            topic_bucket=card["topic_bucket"],
+                            score=round(score_val, 2),
+                            headline_th=a.headline_th,
+                            en_title=title,
+                            source=_source_label(src_list),
+                            flags=("rejected:%s relevance=%s%s" % (
+                                a.reason or "unknown", a.relevance_to_gold,
+                                " fallback" if a.is_fallback else "")),
+                        ))
+                    except Exception:
+                        log.exception("content_log record (digest reject) failed event=%s", row.get("event_id"))
             degraded_mode = False
             if not cards and degraded_pool:
                 # Full classifier outage: both Claude and Gemini were unavailable
@@ -557,6 +609,24 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
                             ))
                         except Exception:
                             log.exception("social_feed record (digest) failed event=%s", row.get("event_id"))
+                        try:
+                            a = card["alert"]
+                            content_records.append(content_log.record_card(
+                                route="digest", decision="sent",
+                                event_id=ev_id,
+                                topic_bucket=card["topic_bucket"],
+                                score=round(card["score"], 2),
+                                category=a.category, tone=a.tone,
+                                impact_level=score_to_impact(card["score"])[0],
+                                headline_th=a.headline_th,
+                                body_th=a.body_th,
+                                impact_th=a.impact_th,
+                                en_title=str(row.get("title") or ""),
+                                source=_source_label(card["source_list"]),
+                                flags="degraded" if card.get("degraded") else "",
+                            ))
+                        except Exception:
+                            log.exception("content_log record (digest) failed event=%s", row.get("event_id"))
                 # CHUM News Bot (Telegram) is INDEPENDENT of LINE — push every card
                 # regardless of the LINE result (worker dedups on event_id+route).
                 if tg_news:
@@ -585,10 +655,13 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
     if mode in ("cron", "event"):
         health.write_heartbeat(store, items_seen=len(items))
 
-    # 8b. Append social-feed rows (best-effort; never blocks the run)
+    # 8b. Append social-feed + content-ledger rows (best-effort; never blocks)
     n_feed = social_feed.flush(store, social_records)
     if n_feed:
         log.info("social_feed: appended %d row(s)", n_feed)
+    n_content = content_log.flush(store, content_records)
+    if n_content:
+        log.info("content_log: appended %d row(s)", n_content)
 
     # 9. Flush state
     store.flush()
