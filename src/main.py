@@ -427,10 +427,14 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
             max_events = int(sched_cfg["digest"].get("max_events", 12))
             max_cards = int(sched_cfg["digest"].get("max_cards", 4))
             window_hours = float(sched_cfg["digest"].get("window_hours", 4))
+            # Buckets that never enter the pool. Default matches the shipped
+            # config; see the schedule.yaml comment for the measurement behind it.
+            excl = sched_cfg["digest"].get("exclude_buckets", ["other"])
             # Candidate pool from the full 4h window (event_state), score-ranked,
             # excluding anything already pushed (breaking/alert/prior round).
             candidates = digest.collect_window_events(
-                store, now_utc(), window_hours, digest_floor, max_candidates=max_events)
+                store, now_utc(), window_hours, digest_floor, max_candidates=max_events,
+                exclude_buckets={str(b).strip() for b in (excl or [])})
             # Classify down the ranked list until we have max_cards keepers.
             # Re-classifying a stored event is a translation_cache hit (keyed on
             # title+summary), so this is mostly free for events already seen.

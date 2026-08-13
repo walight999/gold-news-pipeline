@@ -23,6 +23,18 @@ digest:
   max_cards: 4
   max_events: 12    # classify pool ceiling: rank window candidates by score,
                     # classify down the list until max_cards keepers are found.
+  # Topic buckets that never enter the digest pool (2026-08-13). Measured over
+  # the live sheet: `other` was 1611 of 3366 stored events and 560 of the 1326
+  # digest-eligible rows (42% of the pool) — and across 342 digest sends, ZERO
+  # `other` events were ever published. The classifier's relevance gate rejected
+  # every one, after the call was paid for and after it had already pushed a real
+  # candidate out of the top-12 ranking. Mostly wire-formatted single-stock
+  # earnings off the X sources (EXPEDIA / COSTCO / FARADAY FUTURE), which score
+  # ~1.0 for being tier-2 and fresh, not for mattering to gold.
+  # Only narrows the DIGEST pool — breaking/alert route on score and are
+  # classified individually, so a real story landing in `other` still reaches
+  # LINE that way. Set to [] to restore the old behaviour.
+  exclude_buckets: ["other"]
   # Lower than spec §4.5's 2.5 — see main.run_once digest section for why.
   # Most RSS items have published_ts that's hours old by the time we
   # fetch, so freshness_factor drops to 0.1 and even base-5 inflation

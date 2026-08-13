@@ -43,6 +43,7 @@ def collect_window_events(
     window_hours: float,
     min_score: float,
     max_candidates: int = 30,
+    exclude_buckets: "set[str] | None" = None,
 ) -> list[dict[str, Any]]:
     """Gather the digest candidate pool for one window round, straight from
     event_state — so a round covers EVERY gold-relevant event first seen in
@@ -50,6 +51,7 @@ def collect_window_events(
 
     A row qualifies when ALL hold:
       - status is not breaking / alert (those were pushed individually)
+      - topic_bucket is not in `exclude_buckets`
       - score >= min_score
       - it carries a title (needed to render + re-classify)
       - first_seen_ts is within the window
@@ -63,10 +65,25 @@ def collect_window_events(
 
     from .utils_time import parse_iso
 
+    excluded = exclude_buckets or set()
     cutoff = now - timedelta(hours=window_hours)
     out: list[tuple[float, float, dict[str, Any]]] = []
     for row in store.all_rows("event_state"):
         if str(row.get("status") or "").strip() in _PUSHED_STATUSES:
+            continue
+        # Bucket exclusion (config: digest.exclude_buckets, default ["other"]).
+        # Measured 2026-08-13: `other` was 1611 of 3366 stored events and 560 of
+        # 1326 digest-eligible rows (42% of the pool) — and across 342 digest
+        # sends, EXACTLY ZERO of them was ever published. The classifier's
+        # relevance gate rejected every single one, after paying for the call
+        # and after it had already displaced a real candidate from the top-N
+        # ranking. Wire-formatted single-stock earnings from the X sources are
+        # the bulk of it (EXPEDIA/COSTCO/FARADAY FUTURE lines score ~1.0 because
+        # they're tier-2 and fresh, not because they matter to gold).
+        # This only narrows the DIGEST pool. breaking/alert route on score and
+        # are classified individually, so a genuinely important story with novel
+        # vocabulary that lands in `other` still reaches LINE by that path.
+        if str(row.get("topic_bucket") or "").strip() in excluded:
             continue
         title = str(row.get("title") or "").strip()
         if not title:
