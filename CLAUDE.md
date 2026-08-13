@@ -125,6 +125,9 @@ with no 15m bar show as ⏳ pending, not wrong.
   gained `title`/`summary`/`url` columns so a stored event renders without a
   re-fetch; re-classifying it is a translation_cache hit. `sent_log` digest
   rows dedup an event across rounds + against breaking/alert.
+  `schedule.yaml::digest.exclude_buckets` (2026-08-13) keeps whole topic
+  buckets out of the pool — ships as `["other"]`, which was 42% of the eligible
+  rows and 0 of 342 digest sends. Digest pool only; breaking/alert unaffected.
 - `tweet_writer.py` — separate Claude call composing the @tradetongkam-voice
   tweet (no emoji, analytical, `#ทองวันนี้ #ข่าวทอง #เทรดทอง #ทองคำ`).
 - `social_feed.py` — append-only `social_feed` sheet writer + the approval-gated
