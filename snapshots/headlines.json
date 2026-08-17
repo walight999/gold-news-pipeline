@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-08-17T04:35:58Z",
-      "title": "global · Other",
-      "source": "Cnbc, Marketwatch",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-17T04:35:58Z",
-      "title": "us · Inflation",
-      "source": "Marketwatch",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-17T04:35:58Z",
-      "title": "us · Geopolitics · risk off",
-      "source": "Bbc World",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-17T04:35:58Z",
-      "title": "russia · Geopolitics · risk off",
-      "source": "Bbc World",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-17T04:35:58Z",
-      "title": "mideast · Geopolitics",
-      "source": "Cnbc",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-17T04:35:58Z",
-      "title": "russia · Geopolitics",
-      "source": "Cnbc",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-17T04:35:58Z",
-      "title": "global · Other",
-      "source": "Bbc World, Cnbc, Marketwatch",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-17T04:35:58Z",
+      "ts": "2026-08-17T05:31:20Z",
       "title": "global · Other",
       "source": "Forexlive",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-17T04:35:58Z",
+      "ts": "2026-08-17T05:31:20Z",
       "title": "global · Other",
-      "source": "Marketwatch",
+      "source": "Forexlive",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-17T04:35:58Z",
+      "ts": "2026-08-17T05:31:20Z",
       "title": "global · Other",
-      "source": "Cnbc",
+      "source": "Forexlive",
       "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-17T05:31:20Z",
+      "title": "mideast · Geopolitics · risk off",
+      "source": "Forexlive",
+      "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-17T05:31:20Z",
+      "title": "fed · Inflation · dovish",
+      "source": "Forexlive",
+      "score": 0.5,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-17T05:31:20Z",
+      "title": "global · Other",
+      "source": "Forexlive",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-17T05:31:20Z",
+      "title": "us · Geopolitics · risk off",
+      "source": "Forexlive",
+      "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-17T05:31:20Z",
+      "title": "us · Growth",
+      "source": "Forexlive",
+      "score": 0.2,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-17T05:31:20Z",
+      "title": "mideast · Geopolitics · risk off",
+      "source": "Forexlive",
+      "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-17T05:31:20Z",
+      "title": "china · Geopolitics",
+      "source": "Forexlive",
+      "score": 0.4,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-08-17T04:41:13.236790Z"
+  "written_at": "2026-08-17T05:34:38.856290Z"
 }
