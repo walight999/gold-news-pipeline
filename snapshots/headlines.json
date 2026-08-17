@@ -2,70 +2,70 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-08-16T23:41:03Z",
+      "ts": "2026-08-17T01:11:02Z",
       "title": "wgc · Gold Flow",
       "source": "Fxstreet",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-16T23:41:03Z",
+      "ts": "2026-08-17T01:11:02Z",
       "title": "global · Other",
       "source": "Forexlive",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-16T23:41:03Z",
+      "ts": "2026-08-17T01:11:02Z",
       "title": "global · Other",
       "source": "Forexlive",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-16T23:41:03Z",
+      "ts": "2026-08-17T01:11:02Z",
       "title": "global · Other",
       "source": "Forexlive",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-16T23:41:03Z",
+      "ts": "2026-08-17T01:11:02Z",
       "title": "mideast · Geopolitics · risk off",
       "source": "Forexlive",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-16T23:41:03Z",
+      "ts": "2026-08-17T01:11:02Z",
       "title": "fed · Inflation · dovish",
       "source": "Forexlive",
       "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-16T23:41:03Z",
+      "ts": "2026-08-17T01:11:02Z",
       "title": "global · Other",
       "source": "Forexlive",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-16T23:41:03Z",
+      "ts": "2026-08-17T01:11:02Z",
       "title": "us · Geopolitics · risk off",
       "source": "Forexlive",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-16T23:41:03Z",
+      "ts": "2026-08-17T01:11:02Z",
       "title": "us · Growth",
       "source": "Forexlive",
       "score": 0.2,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-16T23:41:03Z",
+      "ts": "2026-08-17T01:11:02Z",
       "title": "mideast · Geopolitics · risk off",
       "source": "Forexlive",
       "score": 0.4,
@@ -73,5 +73,5 @@
     }
   ],
   "count": 10,
-  "written_at": "2026-08-16T23:44:43.440214Z"
+  "written_at": "2026-08-17T01:14:09.637383Z"
 }
