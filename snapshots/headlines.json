@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-08-17T01:11:02Z",
-      "title": "wgc · Gold Flow",
-      "source": "Fxstreet",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-17T01:11:02Z",
+      "ts": "2026-08-17T02:35:51Z",
       "title": "global · Other",
-      "source": "Forexlive",
+      "source": "Aljazeera, Cnbc, Marketwatch",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-17T01:11:02Z",
-      "title": "global · Other",
-      "source": "Forexlive",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-17T01:11:02Z",
-      "title": "global · Other",
-      "source": "Forexlive",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-17T01:11:02Z",
-      "title": "mideast · Geopolitics · risk off",
-      "source": "Forexlive",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-17T01:11:02Z",
-      "title": "fed · Inflation · dovish",
-      "source": "Forexlive",
+      "ts": "2026-08-17T02:35:51Z",
+      "title": "us · Inflation",
+      "source": "Marketwatch",
       "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-17T01:11:02Z",
-      "title": "global · Other",
-      "source": "Forexlive",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-17T01:11:02Z",
+      "ts": "2026-08-17T02:35:51Z",
       "title": "us · Geopolitics · risk off",
-      "source": "Forexlive",
+      "source": "Bbc World",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-17T01:11:02Z",
-      "title": "us · Growth",
-      "source": "Forexlive",
-      "score": 0.2,
+      "ts": "2026-08-17T02:35:51Z",
+      "title": "israel · Geopolitics · risk off",
+      "source": "Bbc World",
+      "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-17T01:11:02Z",
-      "title": "mideast · Geopolitics · risk off",
-      "source": "Forexlive",
+      "ts": "2026-08-17T02:35:51Z",
+      "title": "russia · Geopolitics · risk off",
+      "source": "Bbc World",
       "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-17T02:35:51Z",
+      "title": "mideast · Geopolitics",
+      "source": "Cnbc",
+      "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-17T02:35:51Z",
+      "title": "russia · Geopolitics",
+      "source": "Cnbc",
+      "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-17T02:35:51Z",
+      "title": "mideast · Geopolitics",
+      "source": "Investing Commodities",
+      "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-17T02:35:51Z",
+      "title": "russia · Geopolitics",
+      "source": "Investing Commodities",
+      "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-17T02:35:51Z",
+      "title": "global · Other",
+      "source": "Bbc World, Cnbc, Marketwatch",
+      "score": 0.1,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-08-17T01:14:09.637383Z"
+  "written_at": "2026-08-17T02:41:35.173071Z"
 }
