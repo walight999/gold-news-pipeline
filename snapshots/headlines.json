@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-08-17T13:35:49Z",
+      "ts": "2026-08-17T14:26:24Z",
       "title": "global · Other",
       "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-17T13:35:49Z",
+      "ts": "2026-08-17T14:26:24Z",
+      "title": "russia · Geopolitics · risk off",
+      "source": "Bbc World",
+      "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-17T14:26:24Z",
+      "title": "global · Other",
+      "source": "Bbc World, Cnbc",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-17T14:26:24Z",
       "title": "global · Other",
       "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-17T13:35:49Z",
+      "ts": "2026-08-17T14:26:24Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-17T14:26:24Z",
+      "title": "global · Other",
+      "source": "Bbc World, Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-17T14:26:24Z",
       "title": "global · Other",
       "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-17T13:35:49Z",
+      "ts": "2026-08-17T14:26:24Z",
       "title": "global · Other",
-      "source": "Yahoo Finance",
+      "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-17T13:35:49Z",
+      "ts": "2026-08-17T14:26:24Z",
       "title": "global · Other",
       "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-17T13:35:49Z",
+      "ts": "2026-08-17T14:26:24Z",
       "title": "global · Other",
       "source": "Cnbc",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-17T13:35:49Z",
-      "title": "global · Other",
-      "source": "Cnbc",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-17T13:35:49Z",
-      "title": "global · Other",
-      "source": "Yahoo Finance",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-17T13:35:49Z",
-      "title": "global · Other",
-      "source": "Forexlive",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-17T13:35:49Z",
-      "title": "global · Other",
-      "source": "Forexlive",
       "score": 0.1,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-08-17T13:38:45.513680Z"
+  "written_at": "2026-08-17T14:27:28.857084Z"
 }
