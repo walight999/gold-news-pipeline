@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-08-18T20:15:59Z",
-      "title": "fed · Rate Policy",
-      "source": "Yahoo Finance",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-18T20:15:59Z",
+      "ts": "2026-08-18T20:45:58Z",
       "title": "global · Other",
-      "source": "Yahoo Finance",
+      "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-18T20:15:59Z",
+      "ts": "2026-08-18T20:45:58Z",
       "title": "global · Other",
-      "source": "Yahoo Finance",
+      "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-18T20:15:59Z",
+      "ts": "2026-08-18T20:45:58Z",
       "title": "us · Usd Yields",
-      "source": "Yahoo Finance",
+      "source": "Forexlive",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-18T20:15:59Z",
+      "ts": "2026-08-18T20:45:58Z",
+      "title": "mideast · Geopolitics · risk off",
+      "source": "Cnbc",
+      "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-18T20:45:58Z",
+      "title": "uk · Jobs",
+      "source": "Forexlive",
+      "score": 0.5,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-18T20:45:58Z",
+      "title": "us · Growth",
+      "source": "Forexlive",
+      "score": 0.2,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-18T20:45:58Z",
+      "title": "global · Other",
+      "source": "Cnbc, Forexlive",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-18T20:45:58Z",
+      "title": "fed · Rate Policy · hawkish",
+      "source": "Forexlive",
+      "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-18T20:45:58Z",
       "title": "global · Other",
       "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-18T20:15:59Z",
-      "title": "global · Other",
-      "source": "Yahoo Finance",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-18T20:15:59Z",
-      "title": "global · Other",
-      "source": "Yahoo Finance",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-18T20:15:59Z",
-      "title": "global · Other",
-      "source": "Yahoo Finance",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-18T20:15:59Z",
-      "title": "global · Other",
-      "source": "Cnbc",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-18T20:15:59Z",
-      "title": "china · Geopolitics · risk on",
+      "ts": "2026-08-18T20:45:58Z",
+      "title": "us · Geopolitics · risk off",
       "source": "Forexlive",
       "score": 0.4,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-08-18T20:23:25.753207Z"
+  "written_at": "2026-08-18T20:50:09.108613Z"
 }
