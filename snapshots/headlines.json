@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-08-18T13:35:59Z",
-      "title": "global · Other",
-      "source": "Cnbc",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-18T13:35:59Z",
-      "title": "global · Other",
-      "source": "Cnbc",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-18T13:35:59Z",
-      "title": "global · Other",
-      "source": "Cnbc",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-18T13:35:59Z",
-      "title": "global · Other",
-      "source": "Cnbc",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-18T13:35:59Z",
-      "title": "global · Other",
-      "source": "Cnbc",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-18T13:35:59Z",
-      "title": "global · Other",
-      "source": "Cnbc",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-18T13:35:59Z",
-      "title": "fed · Rate Policy · hawkish",
-      "source": "Forexlive",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-18T13:35:59Z",
+      "ts": "2026-08-18T14:31:27Z",
       "title": "pboc · Gold Flow",
       "source": "Forexlive",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-18T13:35:59Z",
+      "ts": "2026-08-18T14:31:27Z",
       "title": "us · Growth",
       "source": "Forexlive",
       "score": 0.2,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-18T13:35:59Z",
+      "ts": "2026-08-18T14:31:27Z",
       "title": "us · Usd Yields · hawkish",
       "source": "Forexlive",
       "score": 0.3,
       "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-18T14:31:27Z",
+      "title": "us · Usd Yields · risk on",
+      "source": "Forexlive",
+      "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-18T14:31:27Z",
+      "title": "global · Other",
+      "source": "Forexlive",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-18T14:31:27Z",
+      "title": "fed · Rate Policy · risk on",
+      "source": "Forexlive",
+      "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-18T14:31:27Z",
+      "title": "fed · Rate Policy · dovish",
+      "source": "Forexlive",
+      "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-18T14:31:27Z",
+      "title": "mideast · Geopolitics · risk off",
+      "source": "Forexlive",
+      "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-18T14:31:27Z",
+      "title": "global · Other · risk on",
+      "source": "Forexlive",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-18T14:31:27Z",
+      "title": "china · Geopolitics · risk on",
+      "source": "Forexlive",
+      "score": 0.4,
+      "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-08-18T13:41:54.477417Z"
+  "written_at": "2026-08-18T14:33:30.841043Z"
 }
