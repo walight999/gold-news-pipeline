@@ -2,70 +2,70 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-08-18T05:26:23Z",
+      "ts": "2026-08-18T05:56:20Z",
       "title": "global · Other",
       "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-18T05:26:23Z",
+      "ts": "2026-08-18T05:56:20Z",
       "title": "russia · Geopolitics · risk off",
       "source": "Bbc World",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-18T05:26:23Z",
+      "ts": "2026-08-18T05:56:20Z",
       "title": "global · Other",
       "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-18T05:26:23Z",
+      "ts": "2026-08-18T05:56:20Z",
       "title": "global · Other",
       "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-18T05:26:23Z",
+      "ts": "2026-08-18T05:56:20Z",
       "title": "us · Usd Yields",
       "source": "Yahoo Finance",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-18T05:26:23Z",
+      "ts": "2026-08-18T05:56:20Z",
       "title": "global · Other",
       "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-18T05:26:23Z",
+      "ts": "2026-08-18T05:56:20Z",
       "title": "fed · Rate Policy",
       "source": "Yahoo Finance",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-18T05:26:23Z",
+      "ts": "2026-08-18T05:56:20Z",
       "title": "mideast · Geopolitics · risk off",
       "source": "Yahoo Finance",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-18T05:26:23Z",
-      "title": "global · Other",
+      "ts": "2026-08-18T05:56:20Z",
+      "title": "us · Usd Yields",
       "source": "Yahoo Finance",
-      "score": 0.1,
+      "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-18T05:26:23Z",
+      "ts": "2026-08-18T05:56:20Z",
       "title": "global · Other",
       "source": "Yahoo Finance",
       "score": 0.1,
@@ -73,5 +73,5 @@
     }
   ],
   "count": 10,
-  "written_at": "2026-08-18T05:29:20.256039Z"
+  "written_at": "2026-08-18T05:57:36.184522Z"
 }
