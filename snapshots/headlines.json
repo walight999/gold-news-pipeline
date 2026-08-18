@@ -2,70 +2,70 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-08-18T23:16:03Z",
+      "ts": "2026-08-18T23:46:04Z",
       "title": "global · Other",
       "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-18T23:16:03Z",
+      "ts": "2026-08-18T23:46:04Z",
       "title": "global · Other",
       "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-18T23:16:03Z",
+      "ts": "2026-08-18T23:46:04Z",
+      "title": "us · Inflation",
+      "source": "Yahoo Finance",
+      "score": 0.5,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-18T23:46:04Z",
+      "title": "global · Other",
+      "source": "Cnbc, Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-18T23:46:04Z",
       "title": "global · Other · risk on",
       "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-18T23:16:03Z",
+      "ts": "2026-08-18T23:46:04Z",
       "title": "global · Other",
       "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-18T23:16:03Z",
-      "title": "us · Usd Yields",
+      "ts": "2026-08-18T23:46:04Z",
+      "title": "global · Other",
       "source": "Yahoo Finance",
-      "score": 0.3,
+      "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-18T23:16:03Z",
-      "title": "fed · Rate Policy",
+      "ts": "2026-08-18T23:46:04Z",
+      "title": "global · Other",
       "source": "Yahoo Finance",
-      "score": 0.4,
+      "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-18T23:16:03Z",
+      "ts": "2026-08-18T23:46:04Z",
       "title": "global · Other",
       "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-18T23:16:03Z",
-      "title": "global · Other",
-      "source": "Yahoo Finance",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-18T23:16:03Z",
-      "title": "global · Other",
-      "source": "Yahoo Finance",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-18T23:16:03Z",
+      "ts": "2026-08-18T23:46:04Z",
       "title": "global · Other",
       "source": "Yahoo Finance",
       "score": 0.1,
@@ -73,5 +73,5 @@
     }
   ],
   "count": 10,
-  "written_at": "2026-08-18T23:21:01.978926Z"
+  "written_at": "2026-08-18T23:47:42.647793Z"
 }
