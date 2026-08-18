@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-08-18T09:32:05Z",
-      "title": "global · Other",
-      "source": "Forexlive",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-18T09:32:05Z",
-      "title": "fed · Inflation · hawkish",
-      "source": "Forexlive",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-18T09:32:05Z",
-      "title": "global · Other",
-      "source": "Forexlive",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-18T09:32:05Z",
-      "title": "us · Usd Yields",
-      "source": "Forexlive",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-18T09:32:05Z",
-      "title": "us · Usd Yields",
-      "source": "Forexlive",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-18T09:32:05Z",
-      "title": "china · Geopolitics · hawkish",
-      "source": "Forexlive",
+      "ts": "2026-08-18T10:26:28Z",
+      "title": "russia · Geopolitics · risk off",
+      "source": "Bbc World",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-18T09:32:05Z",
+      "ts": "2026-08-18T10:26:28Z",
       "title": "global · Other",
-      "source": "Forexlive",
+      "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-18T09:32:05Z",
-      "title": "pboc · Gold Flow",
-      "source": "Forexlive",
-      "score": 0.3,
+      "ts": "2026-08-18T10:26:28Z",
+      "title": "global · Other",
+      "source": "Cnbc",
+      "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-18T09:32:05Z",
-      "title": "fed · Rate Policy · hawkish",
-      "source": "Forexlive",
+      "ts": "2026-08-18T10:26:28Z",
+      "title": "russia · Geopolitics · risk off",
+      "source": "Cnbc",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-18T09:32:05Z",
-      "title": "pboc · Gold Flow",
-      "source": "Forexlive",
+      "ts": "2026-08-18T10:26:28Z",
+      "title": "global · Other",
+      "source": "Cnbc, Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-18T10:26:28Z",
+      "title": "global · Other",
+      "source": "Bbc World, Cnbc",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-18T10:26:28Z",
+      "title": "global · Other",
+      "source": "Cnbc, Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-18T10:26:28Z",
+      "title": "wgc · Gold Flow",
+      "source": "Yahoo Finance",
       "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-18T10:26:28Z",
+      "title": "global · Other",
+      "source": "Cnbc",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-18T10:26:28Z",
+      "title": "russia · Geopolitics · risk off",
+      "source": "Bbc World",
+      "score": 0.4,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-08-18T09:33:01.460015Z"
+  "written_at": "2026-08-18T10:27:29.742720Z"
 }
