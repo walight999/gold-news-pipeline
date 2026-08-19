@@ -2,70 +2,70 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-08-19T10:26:37Z",
+      "ts": "2026-08-19T10:56:18Z",
       "title": "global · Other",
       "source": "Bbc World, Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-19T10:26:37Z",
+      "ts": "2026-08-19T10:56:18Z",
       "title": "global · Other",
       "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-19T10:26:37Z",
+      "ts": "2026-08-19T10:56:18Z",
       "title": "global · Other",
       "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-19T10:26:37Z",
-      "title": "us · Usd Yields",
-      "source": "Yahoo Finance",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-19T10:26:37Z",
+      "ts": "2026-08-19T10:56:18Z",
       "title": "global · Other",
       "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-19T10:26:37Z",
+      "ts": "2026-08-19T10:56:18Z",
       "title": "us · Geopolitics",
       "source": "Bbc World",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-19T10:26:37Z",
+      "ts": "2026-08-19T10:56:18Z",
       "title": "global · Other",
       "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-19T10:26:37Z",
+      "ts": "2026-08-19T10:56:18Z",
       "title": "global · Other",
       "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-19T10:26:37Z",
+      "ts": "2026-08-19T10:56:18Z",
       "title": "global · Other",
       "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-19T10:26:37Z",
+      "ts": "2026-08-19T10:56:18Z",
+      "title": "global · Other",
+      "source": "Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-19T10:56:18Z",
       "title": "global · Other",
       "source": "Bbc World",
       "score": 0.1,
@@ -73,5 +73,5 @@
     }
   ],
   "count": 10,
-  "written_at": "2026-08-19T10:28:26.694035Z"
+  "written_at": "2026-08-19T10:56:41.468623Z"
 }
