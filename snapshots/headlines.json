@@ -2,70 +2,70 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-08-19T08:36:12Z",
+      "ts": "2026-08-19T09:26:22Z",
       "title": "global · Other",
       "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-19T08:36:12Z",
+      "ts": "2026-08-19T09:26:22Z",
       "title": "global · Other",
-      "source": "Cnbc",
+      "source": "Bbc World, Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-19T08:36:12Z",
-      "title": "global · Other",
-      "source": "Yahoo Finance",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-19T08:36:12Z",
+      "ts": "2026-08-19T09:26:22Z",
       "title": "global · Other",
       "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-19T08:36:12Z",
+      "ts": "2026-08-19T09:26:22Z",
+      "title": "global · Other",
+      "source": "Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-19T09:26:22Z",
+      "title": "global · Other",
+      "source": "Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-19T09:26:22Z",
+      "title": "global · Other",
+      "source": "Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-19T09:26:22Z",
       "title": "us · Usd Yields",
       "source": "Yahoo Finance",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-19T08:36:12Z",
+      "ts": "2026-08-19T09:26:22Z",
       "title": "global · Other",
       "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-19T08:36:12Z",
-      "title": "global · Other",
-      "source": "Yahoo Finance",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-19T08:36:12Z",
-      "title": "fed · Rate Policy · hawkish",
-      "source": "Yahoo Finance",
+      "ts": "2026-08-19T09:26:22Z",
+      "title": "us · Geopolitics",
+      "source": "Bbc World",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-19T08:36:12Z",
-      "title": "global · Other",
-      "source": "Cnbc, Yahoo Finance",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-19T08:36:12Z",
+      "ts": "2026-08-19T09:26:22Z",
       "title": "global · Other",
       "source": "Yahoo Finance",
       "score": 0.1,
@@ -73,5 +73,5 @@
     }
   ],
   "count": 10,
-  "written_at": "2026-08-19T08:37:01.155024Z"
+  "written_at": "2026-08-19T09:33:34.054840Z"
 }
