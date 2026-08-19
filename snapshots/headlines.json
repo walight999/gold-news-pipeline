@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-08-19T04:26:24Z",
+      "ts": "2026-08-19T05:26:25Z",
       "title": "global · Other",
       "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-19T04:26:24Z",
-      "title": "us · Usd Yields",
-      "source": "Yahoo Finance",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-19T04:26:24Z",
+      "ts": "2026-08-19T05:26:25Z",
       "title": "global · Other",
-      "source": "Cnbc, Yahoo Finance",
+      "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-19T04:26:24Z",
-      "title": "global · Other · risk on",
-      "source": "Yahoo Finance",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-19T04:26:24Z",
+      "ts": "2026-08-19T05:26:25Z",
       "title": "global · Other",
       "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-19T04:26:24Z",
+      "ts": "2026-08-19T05:26:25Z",
       "title": "global · Other",
       "source": "Bbc World, Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-19T04:26:24Z",
+      "ts": "2026-08-19T05:26:25Z",
       "title": "global · Other",
       "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-19T04:26:24Z",
+      "ts": "2026-08-19T05:26:25Z",
       "title": "global · Other",
       "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-19T04:26:24Z",
+      "ts": "2026-08-19T05:26:25Z",
       "title": "global · Other",
       "source": "Bbc World, Cnbc, Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-19T04:26:24Z",
+      "ts": "2026-08-19T05:26:25Z",
       "title": "us · Geopolitics",
       "source": "Bbc World",
       "score": 0.4,
       "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-19T05:26:25Z",
+      "title": "global · Other",
+      "source": "Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-19T05:26:25Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-08-19T04:35:55.088520Z"
+  "written_at": "2026-08-19T05:29:56.797315Z"
 }
