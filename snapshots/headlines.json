@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-08-19T22:21:23Z",
+      "ts": "2026-08-19T22:46:05Z",
+      "title": "global · Other",
+      "source": "Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-19T22:46:05Z",
+      "title": "global · Other",
+      "source": "Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-19T22:46:05Z",
+      "title": "us · Usd Yields",
+      "source": "Yahoo Finance",
+      "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-19T22:46:05Z",
+      "title": "global · Other",
+      "source": "Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-19T22:46:05Z",
+      "title": "mideast · Geopolitics · risk off",
+      "source": "Yahoo Finance",
+      "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-19T22:46:05Z",
+      "title": "global · Other",
+      "source": "Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-19T22:46:05Z",
+      "title": "global · Other",
+      "source": "Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-19T22:46:05Z",
+      "title": "global · Other",
+      "source": "Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-19T22:46:05Z",
+      "title": "mideast · Geopolitics · risk on",
+      "source": "Cnbc",
+      "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-19T22:46:05Z",
       "title": "eurozone · Inflation",
       "source": "Forexlive",
       "score": 0.5,
       "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-19T22:21:23Z",
-      "title": "global · Other",
-      "source": "Bbc World, Forexlive",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-19T22:21:23Z",
-      "title": "uk · Inflation",
-      "source": "Forexlive",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-19T22:21:23Z",
-      "title": "mideast · Geopolitics · risk on",
-      "source": "Bbc World",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-19T22:21:23Z",
-      "title": "global · Other",
-      "source": "Forexlive",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-19T22:21:23Z",
-      "title": "us · Inflation · hawkish",
-      "source": "Forexlive",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-19T22:21:23Z",
-      "title": "fed · Rate Policy · hawkish",
-      "source": "Forexlive",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-19T22:21:23Z",
-      "title": "us · Inflation",
-      "source": "Forexlive",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-19T22:21:23Z",
-      "title": "global · Other",
-      "source": "Bbc World",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-19T22:21:23Z",
-      "title": "global · Other · risk off",
-      "source": "Bbc World",
-      "score": 0.1,
-      "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-08-19T22:24:02.807371Z"
+  "written_at": "2026-08-19T22:51:25.316889Z"
 }
