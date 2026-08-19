@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-08-18T23:46:04Z",
-      "title": "global · Other",
-      "source": "Yahoo Finance",
-      "score": 0.1,
+      "ts": "2026-08-19T01:11:06Z",
+      "title": "us · Usd Yields",
+      "source": "Forexlive",
+      "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-18T23:46:04Z",
-      "title": "global · Other",
-      "source": "Yahoo Finance",
-      "score": 0.1,
+      "ts": "2026-08-19T01:11:06Z",
+      "title": "us · Growth",
+      "source": "Forexlive",
+      "score": 0.2,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-18T23:46:04Z",
-      "title": "us · Inflation",
-      "source": "Yahoo Finance",
+      "ts": "2026-08-19T01:11:06Z",
+      "title": "us · Geopolitics · risk off",
+      "source": "Forexlive",
+      "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-19T01:11:06Z",
+      "title": "fed · Rate Policy",
+      "source": "Forexlive",
+      "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-19T01:11:06Z",
+      "title": "us · Geopolitics",
+      "source": "Forexlive",
+      "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-19T01:11:06Z",
+      "title": "us · Geopolitics · risk off",
+      "source": "Forexlive",
+      "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-19T01:11:06Z",
+      "title": "fed · Inflation",
+      "source": "Forexlive",
       "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-18T23:46:04Z",
-      "title": "global · Other",
-      "source": "Cnbc, Yahoo Finance",
-      "score": 0.1,
+      "ts": "2026-08-19T01:11:06Z",
+      "title": "us · Geopolitics",
+      "source": "Forexlive",
+      "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-18T23:46:04Z",
-      "title": "global · Other · risk on",
-      "source": "Yahoo Finance",
-      "score": 0.1,
+      "ts": "2026-08-19T01:11:06Z",
+      "title": "boe · Rate Policy",
+      "source": "Fxstreet",
+      "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-18T23:46:04Z",
-      "title": "global · Other",
-      "source": "Yahoo Finance",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-18T23:46:04Z",
-      "title": "global · Other",
-      "source": "Yahoo Finance",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-18T23:46:04Z",
-      "title": "global · Other",
-      "source": "Yahoo Finance",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-18T23:46:04Z",
-      "title": "global · Other",
-      "source": "Cnbc",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-18T23:46:04Z",
-      "title": "global · Other",
-      "source": "Yahoo Finance",
-      "score": 0.1,
+      "ts": "2026-08-19T01:11:06Z",
+      "title": "us · Usd Yields",
+      "source": "Fxstreet",
+      "score": 0.3,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-08-18T23:47:42.647793Z"
+  "written_at": "2026-08-19T01:12:58.918979Z"
 }
