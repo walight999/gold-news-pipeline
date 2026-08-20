@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-08-20T09:31:57Z",
-      "title": "fed · Rate Policy · hawkish",
-      "source": "Forexlive",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-20T09:31:57Z",
+      "ts": "2026-08-20T10:25:55Z",
       "title": "global · Other",
-      "source": "Forexlive",
+      "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-20T09:31:57Z",
-      "title": "china · Geopolitics · risk off",
-      "source": "Forexlive",
-      "score": 0.4,
+      "ts": "2026-08-20T10:25:55Z",
+      "title": "global · Other",
+      "source": "Yahoo Finance",
+      "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-20T09:31:57Z",
-      "title": "fed · Inflation · hawkish",
-      "source": "Forexlive",
-      "score": 0.5,
+      "ts": "2026-08-20T10:25:55Z",
+      "title": "global · Other",
+      "source": "Yahoo Finance",
+      "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-20T09:31:57Z",
-      "title": "boj · Rate Policy",
-      "source": "Forexlive",
-      "score": 0.4,
+      "ts": "2026-08-20T10:25:55Z",
+      "title": "global · Other",
+      "source": "Yahoo Finance",
+      "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-20T09:31:57Z",
-      "title": "pboc · Gold Flow",
-      "source": "Forexlive",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-20T09:31:57Z",
+      "ts": "2026-08-20T10:25:55Z",
       "title": "us · Usd Yields",
-      "source": "Forexlive",
+      "source": "Yahoo Finance",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-20T09:31:57Z",
-      "title": "pboc · Gold Flow",
-      "source": "Forexlive",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-20T09:31:57Z",
-      "title": "global · Other · dovish",
-      "source": "Forexlive",
+      "ts": "2026-08-20T10:25:55Z",
+      "title": "global · Other",
+      "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-20T09:31:57Z",
-      "title": "us · Jobs",
-      "source": "Forexlive",
-      "score": 0.5,
+      "ts": "2026-08-20T10:25:55Z",
+      "title": "us · Usd Yields",
+      "source": "Yahoo Finance",
+      "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-20T10:25:55Z",
+      "title": "global · Other",
+      "source": "Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-20T10:25:55Z",
+      "title": "global · Other",
+      "source": "Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-20T10:25:55Z",
+      "title": "global · Other",
+      "source": "Yahoo Finance",
+      "score": 0.1,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-08-20T09:33:55.155926Z"
+  "written_at": "2026-08-20T10:29:47.608979Z"
 }
