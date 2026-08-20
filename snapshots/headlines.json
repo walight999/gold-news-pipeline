@@ -2,70 +2,70 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-08-20T01:06:24Z",
+      "ts": "2026-08-20T02:35:52Z",
       "title": "global · Other",
       "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-20T01:06:24Z",
+      "ts": "2026-08-20T02:35:52Z",
       "title": "global · Other",
       "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-20T01:06:24Z",
-      "title": "global · Other · risk off",
-      "source": "Yahoo Finance",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-20T01:06:24Z",
+      "ts": "2026-08-20T02:35:52Z",
       "title": "us · Usd Yields",
       "source": "Yahoo Finance",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-20T01:06:24Z",
+      "ts": "2026-08-20T02:35:52Z",
+      "title": "global · Other · risk off",
+      "source": "Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-20T02:35:52Z",
+      "title": "global · Other",
+      "source": "Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-20T02:35:52Z",
       "title": "mideast · Geopolitics · risk off",
       "source": "Yahoo Finance",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-20T01:06:24Z",
+      "ts": "2026-08-20T02:35:52Z",
       "title": "global · Other",
       "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-20T01:06:24Z",
+      "ts": "2026-08-20T02:35:52Z",
       "title": "global · Other",
       "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-20T01:06:24Z",
+      "ts": "2026-08-20T02:35:52Z",
       "title": "global · Other",
       "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-20T01:06:24Z",
-      "title": "global · Other",
-      "source": "Yahoo Finance",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-20T01:06:24Z",
+      "ts": "2026-08-20T02:35:52Z",
       "title": "mideast · Geopolitics · risk on",
       "source": "Cnbc",
       "score": 0.4,
@@ -73,5 +73,5 @@
     }
   ],
   "count": 10,
-  "written_at": "2026-08-20T01:11:58.557887Z"
+  "written_at": "2026-08-20T02:37:21.602325Z"
 }
