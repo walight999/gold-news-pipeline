@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-08-21T15:31:50Z",
-      "title": "uk · Growth",
-      "source": "Forexlive",
-      "score": 0.2,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-21T15:31:50Z",
+      "ts": "2026-08-21T16:31:57Z",
       "title": "global · Other",
       "source": "Forexlive",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-21T15:31:50Z",
+      "ts": "2026-08-21T16:31:57Z",
       "title": "us · Usd Yields",
       "source": "Forexlive",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-21T15:31:50Z",
+      "ts": "2026-08-21T16:31:57Z",
       "title": "us · Geopolitics · risk off",
       "source": "Forexlive",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-21T15:31:50Z",
+      "ts": "2026-08-21T16:31:57Z",
       "title": "us · Growth",
       "source": "Forexlive",
       "score": 0.2,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-21T15:31:50Z",
+      "ts": "2026-08-21T16:31:57Z",
       "title": "global · Other",
       "source": "Forexlive",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-21T15:31:50Z",
+      "ts": "2026-08-21T16:31:57Z",
       "title": "us · Inflation",
       "source": "Forexlive",
       "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-21T15:31:50Z",
+      "ts": "2026-08-21T16:31:57Z",
       "title": "us · Usd Yields",
       "source": "Forexlive",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-21T15:31:50Z",
+      "ts": "2026-08-21T16:31:57Z",
       "title": "us · Growth",
       "source": "Forexlive",
       "score": 0.2,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-21T15:31:50Z",
+      "ts": "2026-08-21T16:31:57Z",
       "title": "uk · Growth",
       "source": "Forexlive",
+      "score": 0.2,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-21T16:31:57Z",
+      "title": "us · Growth",
+      "source": "Fxstreet",
       "score": 0.2,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-08-21T15:32:32.099144Z"
+  "written_at": "2026-08-21T16:33:53.502564Z"
 }
