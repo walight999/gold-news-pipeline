@@ -153,7 +153,7 @@ def main() -> int:
              offset_days=4, hour=22, minute=0),
     ]
     effects5 = {ev.event_id: forecast_vs_previous_effect(ev) for ev in events5}
-    bubble5 = weekly_preview_bubble(events5, effects5, "Mon 25 May – Fri 29 May [DEMO]")
+    bubble5 = weekly_preview_bubble(events5, effects5, "25/5/26 – 29/5/26")
     print("Pushing DEMO 5: Weekly Preview · compact pills...")
     resp = line.push_flex(target, "[DEMO 5] Weekly Preview · per-day compact", bubble5)
     print(f"  -> {resp.get('status')}")
