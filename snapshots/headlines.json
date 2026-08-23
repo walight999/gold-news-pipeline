@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-08-23T21:46:07Z",
+      "ts": "2026-08-23T22:15:53Z",
       "title": "fed · Rate Policy",
       "source": "Cnbc, Investing General",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-23T21:46:07Z",
+      "ts": "2026-08-23T22:15:53Z",
       "title": "global · Other",
       "source": "Cnbc, Marketwatch, Fxstreet +2",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-23T21:46:07Z",
-      "title": "us · Inflation",
-      "source": "Forexlive",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-23T21:46:07Z",
+      "ts": "2026-08-23T22:15:53Z",
       "title": "us · Geopolitics · risk off",
       "source": "Investing Commodities",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-23T21:46:07Z",
+      "ts": "2026-08-23T22:15:53Z",
       "title": "mideast · Geopolitics · risk on",
       "source": "Cnbc",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-23T21:46:07Z",
+      "ts": "2026-08-23T22:15:53Z",
       "title": "mideast · Geopolitics · risk off",
       "source": "Cnbc",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-23T21:46:07Z",
+      "ts": "2026-08-23T22:15:53Z",
       "title": "mideast · Geopolitics · risk off",
       "source": "Cnbc",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-23T21:46:07Z",
+      "ts": "2026-08-23T22:15:53Z",
       "title": "mideast · Geopolitics",
       "source": "Marketwatch",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-23T21:46:07Z",
+      "ts": "2026-08-23T22:15:53Z",
       "title": "mideast · Geopolitics",
       "source": "Investing Commodities",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-23T21:46:07Z",
+      "ts": "2026-08-23T22:15:53Z",
       "title": "us · Geopolitics · risk off",
+      "source": "Investing Commodities",
+      "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-23T22:15:53Z",
+      "title": "ukraine · Geopolitics · risk off",
       "source": "Investing Commodities",
       "score": 0.4,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-08-23T21:46:31.773803Z"
+  "written_at": "2026-08-23T22:20:59.540576Z"
 }
