@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-08-24T08:55:57Z",
-      "title": "fed · Rate Policy",
-      "source": "Cnbc",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-24T08:55:57Z",
-      "title": "global · Other",
-      "source": "Bbc World, Cnbc, Marketwatch",
+      "ts": "2026-08-24T09:51:45Z",
+      "title": "global · Other · dovish",
+      "source": "Forexlive",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-24T08:55:57Z",
-      "title": "ukraine · Geopolitics",
-      "source": "Bbc World",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-24T08:55:57Z",
-      "title": "mideast · Geopolitics · risk on",
-      "source": "Cnbc",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-24T08:55:57Z",
+      "ts": "2026-08-24T09:51:45Z",
       "title": "mideast · Geopolitics · risk off",
-      "source": "Cnbc",
+      "source": "Forexlive",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-24T08:55:57Z",
-      "title": "wgc · Gold Flow",
-      "source": "Bbc World",
-      "score": 0.3,
+      "ts": "2026-08-24T09:51:45Z",
+      "title": "us · Growth",
+      "source": "Forexlive",
+      "score": 0.2,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-24T08:55:57Z",
+      "ts": "2026-08-24T09:51:45Z",
+      "title": "mideast · Geopolitics · risk off",
+      "source": "Forexlive",
+      "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-24T09:51:45Z",
       "title": "us · Usd Yields",
-      "source": "Cnbc",
+      "source": "Forexlive",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-24T08:55:57Z",
-      "title": "global · Other",
-      "source": "Marketwatch",
-      "score": 0.1,
+      "ts": "2026-08-24T09:51:45Z",
+      "title": "pboc · Gold Flow",
+      "source": "Forexlive",
+      "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-24T08:55:57Z",
-      "title": "global · Other",
-      "source": "Bbc World, Cnbc",
-      "score": 0.1,
+      "ts": "2026-08-24T09:51:45Z",
+      "title": "us · Inflation",
+      "source": "Forexlive",
+      "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-24T08:55:57Z",
-      "title": "global · Other",
-      "source": "Cnbc, Marketwatch",
-      "score": 0.1,
+      "ts": "2026-08-24T09:51:45Z",
+      "title": "wgc · Gold Flow",
+      "source": "Forexlive",
+      "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-24T09:51:45Z",
+      "title": "wgc · Gold Flow · hawkish",
+      "source": "Forexlive",
+      "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-24T09:51:45Z",
+      "title": "pboc · Gold Flow",
+      "source": "Forexlive",
+      "score": 0.3,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-08-24T08:58:21.682612Z"
+  "written_at": "2026-08-24T09:55:56.506387Z"
 }
