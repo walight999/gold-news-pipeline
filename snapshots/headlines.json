@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-08-24T06:55:54Z",
+      "ts": "2026-08-24T07:55:51Z",
       "title": "fed · Rate Policy",
       "source": "Cnbc",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-24T06:55:54Z",
+      "ts": "2026-08-24T07:55:51Z",
       "title": "global · Other",
       "source": "Bbc World, Cnbc, Marketwatch",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-24T06:55:54Z",
+      "ts": "2026-08-24T07:55:51Z",
       "title": "ukraine · Geopolitics",
       "source": "Bbc World",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-24T06:55:54Z",
-      "title": "israel · Geopolitics · risk off",
-      "source": "Bbc World",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-24T06:55:54Z",
-      "title": "russia · Geopolitics · risk off",
-      "source": "Bbc World",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-24T06:55:54Z",
+      "ts": "2026-08-24T07:55:51Z",
       "title": "mideast · Geopolitics · risk on",
       "source": "Cnbc",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-24T06:55:54Z",
+      "ts": "2026-08-24T07:55:51Z",
       "title": "mideast · Geopolitics · risk off",
       "source": "Cnbc",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-24T06:55:54Z",
+      "ts": "2026-08-24T07:55:51Z",
       "title": "wgc · Gold Flow",
       "source": "Bbc World",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-24T06:55:54Z",
+      "ts": "2026-08-24T07:55:51Z",
       "title": "us · Usd Yields",
       "source": "Cnbc",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-24T06:55:54Z",
+      "ts": "2026-08-24T07:55:51Z",
       "title": "us · Usd Yields",
       "source": "Marketwatch",
       "score": 0.3,
       "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-24T07:55:51Z",
+      "title": "global · Other",
+      "source": "Marketwatch",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-24T07:55:51Z",
+      "title": "global · Other",
+      "source": "Bbc World, Cnbc, Marketwatch",
+      "score": 0.1,
+      "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-08-24T06:58:41.659594Z"
+  "written_at": "2026-08-24T08:00:09.327161Z"
 }
