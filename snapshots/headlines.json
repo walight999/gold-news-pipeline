@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-08-24T19:52:06Z",
+      "ts": "2026-08-24T20:25:53Z",
       "title": "global · Other",
-      "source": "Bbc World",
+      "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-24T19:52:06Z",
-      "title": "global · Other",
-      "source": "Bbc World",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-24T19:52:06Z",
-      "title": "us · Geopolitics · risk off",
-      "source": "Bbc World",
+      "ts": "2026-08-24T20:25:53Z",
+      "title": "mideast · Geopolitics · risk off",
+      "source": "Yahoo Finance",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-24T19:52:06Z",
+      "ts": "2026-08-24T20:25:53Z",
       "title": "global · Other",
-      "source": "Bbc World",
+      "source": "Cnbc, Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-24T19:52:06Z",
+      "ts": "2026-08-24T20:25:53Z",
       "title": "global · Other",
-      "source": "Bbc World",
+      "source": "Cnbc, Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-24T19:52:06Z",
+      "ts": "2026-08-24T20:25:53Z",
       "title": "global · Other",
-      "source": "Bbc World",
+      "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-24T19:52:06Z",
+      "ts": "2026-08-24T20:25:53Z",
       "title": "global · Other",
-      "source": "Bbc World",
+      "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-24T19:52:06Z",
-      "title": "global · Other · risk off",
-      "source": "Bbc World",
+      "ts": "2026-08-24T20:25:53Z",
+      "title": "global · Other",
+      "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-24T19:52:06Z",
+      "ts": "2026-08-24T20:25:53Z",
       "title": "global · Other",
-      "source": "Bbc World",
+      "source": "Investing Cb",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-24T19:52:06Z",
+      "ts": "2026-08-24T20:25:53Z",
+      "title": "fed · Rate Policy",
+      "source": "Yahoo Finance",
+      "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-24T20:25:53Z",
       "title": "global · Other",
-      "source": "Bbc World, Forexlive",
+      "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-08-24T19:55:26.305781Z"
+  "written_at": "2026-08-24T20:29:30.442379Z"
 }
