@@ -135,6 +135,57 @@ def test_alert_from_text_patches_leaked_english_places():
     assert "safe-haven" in alert.impact_th
 
 
+def test_alert_from_text_patches_leaked_english_names():
+    """Names are the twin of places — Gemini can leave 'Powell'/'Trump' in
+    English despite the prompt glossary. _alert_from_text must force the Thai
+    transliteration on every field, closing the self-review's raw_name QC gap."""
+    raw = json.dumps({
+        "action": "keep",
+        "news_type": "central_bank",
+        "relevance_to_gold": "high",
+        "tone": "hawkish",
+        "category": "Monetary Policy",
+        "headline_th": "Powell ส่งสัญญาณคงดอกเบี้ยนาน",
+        "body_th": ["Trump กดดัน Fed ให้ลดดอกเบี้ย",
+                    "Lagarde เตือนเงินเฟ้อยุโรปยังสูง"],
+        "impact_th": "ท่าทีของ Powell กดดันทองระยะสั้น",
+        "reason": "",
+    }, ensure_ascii=False)
+    alert = _alert_from_text(raw)
+    assert alert is not None and alert.action == "keep"
+    assert "พาวเวลล์" in alert.headline_th and "Powell" not in alert.headline_th
+    assert "ทรัมป์" in alert.body_th[0] and "Trump" not in alert.body_th[0]
+    assert "ลาการ์ด" in alert.body_th[1]
+    assert "พาวเวลล์" in alert.impact_th
+    # kept-English institution acronym must survive untouched
+    assert "Fed" in alert.body_th[0]
+
+
+def test_alert_from_text_strips_em_dash_from_every_field():
+    """Em-dash (U+2014) is the top no-ai-slop tell and is banned in shipped
+    copy. A model may emit it despite the prompt (the prompt itself is full of
+    them as style). _alert_from_text normalizes it to a spaced hyphen on every
+    user-facing field so the self-review's auto-QC has nothing to flag."""
+    raw = json.dumps({
+        "action": "keep",
+        "news_type": "central_bank",
+        "relevance_to_gold": "high",
+        "tone": "hawkish",
+        "category": "Monetary Policy",
+        "headline_th": "เฟดคงดอกเบี้ย—ตลาดผิดหวัง",
+        "body_th": ["พาวเวลล์ส่งสัญญาณระวัง — เงินเฟ้อยังสูง"],
+        "impact_th": "ดอลลาร์แข็ง―กดดันทอง",
+        "reason": "",
+    }, ensure_ascii=False)
+    alert = _alert_from_text(raw)
+    assert alert is not None and alert.action == "keep"
+    for field_text in (alert.headline_th, alert.impact_th, *alert.body_th):
+        assert "—" not in field_text and "―" not in field_text
+    assert "เฟดคงดอกเบี้ย - ตลาดผิดหวัง" == alert.headline_th
+    assert "ดอลลาร์แข็ง - กดดันทอง" == alert.impact_th
+    assert " - " in alert.body_th[0]
+
+
 def test_cache_key_distinct_per_title():
     """Same title+summary → same key. Different → different key."""
     a = _cache_key_alert("Fed signals rate cut", "Powell speech")
