@@ -2,70 +2,70 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-08-24T01:11:42Z",
+      "ts": "2026-08-24T02:41:36Z",
       "title": "global · Other",
       "source": "Bbc World, Fxstreet",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-24T01:11:42Z",
+      "ts": "2026-08-24T02:41:36Z",
       "title": "ukraine · Geopolitics",
       "source": "Bbc World",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-24T01:11:42Z",
+      "ts": "2026-08-24T02:41:36Z",
       "title": "israel · Geopolitics · risk off",
       "source": "Bbc World",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-24T01:11:42Z",
+      "ts": "2026-08-24T02:41:36Z",
       "title": "russia · Geopolitics · risk off",
       "source": "Bbc World",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-24T01:11:42Z",
+      "ts": "2026-08-24T02:41:36Z",
       "title": "wgc · Gold Flow",
       "source": "Bbc World",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-24T01:11:42Z",
+      "ts": "2026-08-24T02:41:36Z",
       "title": "global · Other",
       "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-24T01:11:42Z",
+      "ts": "2026-08-24T02:41:36Z",
       "title": "global · Other",
       "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-24T01:11:42Z",
+      "ts": "2026-08-24T02:41:36Z",
       "title": "global · Other",
       "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-24T01:11:42Z",
+      "ts": "2026-08-24T02:41:36Z",
       "title": "global · Other",
       "source": "Bbc World, Forexlive",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-24T01:11:42Z",
+      "ts": "2026-08-24T02:41:36Z",
       "title": "global · Other",
       "source": "Bbc World",
       "score": 0.1,
@@ -73,5 +73,5 @@
     }
   ],
   "count": 10,
-  "written_at": "2026-08-24T01:15:51.857351Z"
+  "written_at": "2026-08-24T02:45:28.143277Z"
 }
