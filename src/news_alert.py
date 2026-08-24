@@ -753,13 +753,20 @@ def _alert_from_text(text: str) -> MarketAlert | None:
     # regexes can't touch Thai script, so this is a no-op when the model already
     # used the Thai form, and never disturbs kept-English acronyms (Fed, CPI).
     if alert.action == "keep":
-        from .translator import _patch_places
+        from .translator import _patch_names, _patch_places, strip_em_dash
+
+        def _norm(t: str) -> str:
+            # Same net _clean_translation applies to the fallback path: force
+            # canonical Thai names + places (Gemini leaks both despite the
+            # prompt glossary), then strip the banned em-dash. All idempotent
+            # when the model already used the Thai form / plain hyphens.
+            return strip_em_dash(_patch_places(_patch_names(t)))
         if alert.headline_th:
-            alert.headline_th = _patch_places(alert.headline_th)
+            alert.headline_th = _norm(alert.headline_th)
         if alert.impact_th:
-            alert.impact_th = _patch_places(alert.impact_th)
+            alert.impact_th = _norm(alert.impact_th)
         if alert.body_th:
-            alert.body_th = [_patch_places(b) for b in alert.body_th]
+            alert.body_th = [_norm(b) for b in alert.body_th]
     # CJK leak guard — models occasionally reach for Japanese / Chinese
     # kanji when paraphrasing related-region news (e.g. ceasefire = 休戦).
     # Reject so the caller doesn't publish mixed-script Thai.
@@ -933,9 +940,9 @@ def _fallback_alert(title: str, summary: str, store: "Store | None" = None) -> M
     Output is built from COMPLETE translated sentences so the card reads
     cleanly even though no Claude rewrite happened. We never hard-slice
     Thai (no inter-word spaces → mid-word cuts); see `_soft_trim`."""
-    from .translator import to_thai
-    th_title = to_thai(title, max_len=200, store=store) or title
-    th_summary = to_thai(summary, max_len=400, store=store) if summary else ""
+    from .translator import strip_em_dash, to_thai
+    th_title = strip_em_dash(to_thai(title, max_len=200, store=store) or title)
+    th_summary = strip_em_dash(to_thai(summary, max_len=400, store=store)) if summary else ""
     body: list[str] = []
     if th_summary:
         # Split at sentence boundaries; keep whole sentences up to a budget.

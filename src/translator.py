@@ -243,10 +243,12 @@ _NAME_PATCH = [
 
 
 def _patch_names(text: str) -> str:
-    """Apply the name glossary post-translation. Only meaningful for the
-    Google Translate fallback path; Claude already produces these names
-    correctly via the in-prompt glossary. Safe to run on Claude output
-    too — it's idempotent if Claude already used the canonical form."""
+    """Apply the name glossary post-translation. Runs on BOTH paths: the
+    Google Translate fallback (which leaves "Powell"/"Trump" in English) and
+    the Claude/Gemini rewrite (Gemini especially leaks names despite the
+    in-prompt glossary — same failure mode as `_patch_places`). Idempotent
+    when the model already used the canonical Thai form; English-word \\b
+    regexes never match Thai script, so it's a no-op on clean output."""
     for pat, repl in _NAME_PATCH:
         text = pat.sub(repl, text)
     return text
@@ -283,6 +285,24 @@ def _patch_places(text: str) -> str:
     for pat, repl in _PLACE_PATCH:
         text = pat.sub(repl, text)
     return text
+
+
+# Em-dash (U+2014) and horizontal bar (U+2015) are the single top AI-slop tell
+# (no-ai-slop rule §1) and are banned in shipped copy. The weekly self-review's
+# auto-QC flags them after the fact, but nothing removed them at the source —
+# so a card carrying a model- or wire-emitted em-dash shipped, got flagged, and
+# the same defect recurred every week with no fix. Strip them at rewrite time
+# instead. Normalize to a spaced hyphen, collapsing any surrounding whitespace so
+# both "a — b" and "a—b" render "a - b". Idempotent (plain hyphens are untouched).
+_EM_DASH_RE = re.compile(r"\s*[—―]\s*")
+
+
+def strip_em_dash(text: str | None) -> str | None:
+    """Replace em-dash / horizontal-bar with a spaced hyphen. Returns the
+    input unchanged when it carries none (and passes through None/empty)."""
+    if not text:
+        return text
+    return _EM_DASH_RE.sub(" - ", text).strip()
 
 
 def _has_cjk(text: str | None) -> bool:

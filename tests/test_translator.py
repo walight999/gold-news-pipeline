@@ -2,7 +2,13 @@
 through from Reuters-style sources; the cleaner must catch that."""
 from __future__ import annotations
 
-from src.translator import _clean_translation, _has_cjk, _patch_names, _patch_places
+from src.translator import (
+    _clean_translation,
+    _has_cjk,
+    _patch_names,
+    _patch_places,
+    strip_em_dash,
+)
 
 
 def test_clean_keeps_pure_thai():
@@ -111,6 +117,28 @@ def test_patch_places_leaves_finance_acronyms():
     """The place patch must never touch kept-English finance terms."""
     text = "Fed คงดอกเบี้ย DXY แข็ง CPI สูง"
     assert _patch_places(text) == text
+
+
+# ---- em-dash sanitizer (no-ai-slop §1) ----
+
+def test_strip_em_dash_spaced_and_unspaced():
+    assert strip_em_dash("ทองขึ้น—ดอลลาร์อ่อน") == "ทองขึ้น - ดอลลาร์อ่อน"
+    assert strip_em_dash("พาวเวลล์เตือน — เงินเฟ้อสูง") == "พาวเวลล์เตือน - เงินเฟ้อสูง"
+
+
+def test_strip_em_dash_handles_horizontal_bar():
+    assert strip_em_dash("ดอลลาร์แข็ง―กดดันทอง") == "ดอลลาร์แข็ง - กดดันทอง"
+
+
+def test_strip_em_dash_noop_on_plain_hyphen_and_none():
+    assert strip_em_dash("safe-haven ยังหนุนทอง") == "safe-haven ยังหนุนทอง"
+    assert strip_em_dash("") == ""
+    assert strip_em_dash(None) is None
+
+
+def test_strip_em_dash_is_idempotent():
+    once = strip_em_dash("เฟดคงดอกเบี้ย—ตลาดผิดหวัง")
+    assert strip_em_dash(once) == once
 
 
 def test_clean_applies_place_patch():
