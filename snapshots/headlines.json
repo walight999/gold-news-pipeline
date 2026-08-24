@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-08-24T21:51:47Z",
+      "ts": "2026-08-24T22:22:16Z",
       "title": "global · Other",
-      "source": "Forexlive",
+      "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-24T21:51:47Z",
-      "title": "us · Inflation",
-      "source": "Forexlive",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-24T21:51:47Z",
-      "title": "mideast · Geopolitics",
-      "source": "Forexlive",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-24T21:51:47Z",
-      "title": "mideast · Geopolitics · risk off",
-      "source": "Forexlive",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-24T21:51:47Z",
+      "ts": "2026-08-24T22:22:16Z",
       "title": "global · Other",
-      "source": "Forexlive",
+      "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-24T21:51:47Z",
-      "title": "us · Usd Yields",
-      "source": "Forexlive",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-24T21:51:47Z",
-      "title": "us · Geopolitics",
-      "source": "Forexlive",
+      "ts": "2026-08-24T22:22:16Z",
+      "title": "us · Geopolitics · risk off",
+      "source": "Bbc World",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-24T21:51:47Z",
-      "title": "wgc · Gold Flow",
-      "source": "Forexlive",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-24T21:51:47Z",
-      "title": "us · Usd Yields",
-      "source": "Fxstreet",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-24T21:51:47Z",
+      "ts": "2026-08-24T22:22:16Z",
       "title": "global · Other",
-      "source": "Forexlive, Fxstreet",
+      "source": "Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-24T22:22:16Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-24T22:22:16Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-24T22:22:16Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-24T22:22:16Z",
+      "title": "global · Other · risk off",
+      "source": "Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-24T22:22:16Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-24T22:22:16Z",
+      "title": "global · Other",
+      "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-08-24T21:54:16.659885Z"
+  "written_at": "2026-08-24T22:25:38.801581Z"
 }
