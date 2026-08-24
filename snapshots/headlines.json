@@ -2,70 +2,70 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-08-24T10:36:25Z",
+      "ts": "2026-08-24T11:25:56Z",
       "title": "global · Other",
-      "source": "Cnbc",
+      "source": "Bbc World, Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-24T10:36:25Z",
+      "ts": "2026-08-24T11:25:56Z",
       "title": "mideast · Geopolitics · risk off",
       "source": "Cnbc",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-24T10:36:25Z",
+      "ts": "2026-08-24T11:25:56Z",
+      "title": "global · Other",
+      "source": "Bbc World, Cnbc",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-24T11:25:56Z",
       "title": "global · Other",
       "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-24T10:36:25Z",
+      "ts": "2026-08-24T11:25:56Z",
       "title": "global · Other",
-      "source": "Cnbc",
+      "source": "Bbc World, Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-24T10:36:25Z",
+      "ts": "2026-08-24T11:25:56Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-24T11:25:56Z",
       "title": "global · Other",
       "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-24T10:36:25Z",
-      "title": "global · Other",
-      "source": "Yahoo Finance",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-24T10:36:25Z",
-      "title": "global · Other",
-      "source": "Yahoo Finance",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-24T10:36:25Z",
+      "ts": "2026-08-24T11:25:56Z",
       "title": "global · Other",
       "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-24T10:36:25Z",
+      "ts": "2026-08-24T11:25:56Z",
       "title": "global · Other",
       "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-24T10:36:25Z",
+      "ts": "2026-08-24T11:25:56Z",
       "title": "global · Other",
       "source": "Cnbc",
       "score": 0.1,
@@ -73,5 +73,5 @@
     }
   ],
   "count": 10,
-  "written_at": "2026-08-24T10:38:00.556993Z"
+  "written_at": "2026-08-24T11:27:51.148116Z"
 }
