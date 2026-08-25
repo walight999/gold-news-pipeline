@@ -2,70 +2,70 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-08-25T12:46:04Z",
+      "ts": "2026-08-25T13:46:01Z",
       "title": "global · Other",
       "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-25T12:46:04Z",
-      "title": "mideast · Geopolitics · risk on",
-      "source": "Cnbc",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-25T12:46:04Z",
+      "ts": "2026-08-25T13:46:01Z",
       "title": "global · Other",
       "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-25T12:46:04Z",
+      "ts": "2026-08-25T13:46:01Z",
       "title": "wgc · Gold Flow",
       "source": "Yahoo Finance",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-25T12:46:04Z",
+      "ts": "2026-08-25T13:46:01Z",
       "title": "global · Other",
       "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-25T12:46:04Z",
+      "ts": "2026-08-25T13:46:01Z",
       "title": "fed · Rate Policy",
       "source": "Yahoo Finance",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-25T12:46:04Z",
+      "ts": "2026-08-25T13:46:01Z",
       "title": "global · Other",
       "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-25T12:46:04Z",
+      "ts": "2026-08-25T13:46:01Z",
       "title": "global · Other",
       "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-25T12:46:04Z",
+      "ts": "2026-08-25T13:46:01Z",
       "title": "global · Other",
-      "source": "Cnbc, Yahoo Finance",
+      "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-25T12:46:04Z",
+      "ts": "2026-08-25T13:46:01Z",
+      "title": "global · Other",
+      "source": "Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-25T13:46:01Z",
       "title": "global · Other",
       "source": "Cnbc",
       "score": 0.1,
@@ -73,5 +73,5 @@
     }
   ],
   "count": 10,
-  "written_at": "2026-08-25T12:46:44.934817Z"
+  "written_at": "2026-08-25T13:50:18.593878Z"
 }
