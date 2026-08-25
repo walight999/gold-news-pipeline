@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-08-25T17:31:20Z",
-      "title": "wgc · Gold Flow",
-      "source": "Forexlive",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-25T17:31:20Z",
-      "title": "global · Other · risk off",
-      "source": "Forexlive",
+      "ts": "2026-08-25T18:35:55Z",
+      "title": "global · Other",
+      "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-25T17:31:20Z",
+      "ts": "2026-08-25T18:35:55Z",
+      "title": "global · Other",
+      "source": "Cnbc",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-25T18:35:55Z",
+      "title": "global · Other · risk off",
+      "source": "Cnbc",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-25T18:35:55Z",
       "title": "us · Growth",
-      "source": "Forexlive",
+      "source": "Investing Cb",
       "score": 0.2,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-25T17:31:20Z",
+      "ts": "2026-08-25T18:35:55Z",
+      "title": "mideast · Geopolitics",
+      "source": "Cnbc",
+      "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-25T18:35:55Z",
       "title": "global · Other",
-      "source": "Forexlive",
+      "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-25T17:31:20Z",
-      "title": "us · Geopolitics · risk off",
-      "source": "Forexlive",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-25T17:31:20Z",
-      "title": "us · Geopolitics",
-      "source": "Forexlive",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-25T17:31:20Z",
-      "title": "wgc · Gold Flow",
-      "source": "Fxstreet",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-25T17:31:20Z",
-      "title": "us · Geopolitics · risk off",
-      "source": "Forexlive",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-25T17:31:20Z",
+      "ts": "2026-08-25T18:35:55Z",
       "title": "global · Other",
-      "source": "Forexlive, Fxstreet",
+      "source": "Investing Cb",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-25T17:31:20Z",
-      "title": "us · Usd Yields",
-      "source": "Forexlive",
-      "score": 0.3,
+      "ts": "2026-08-25T18:35:55Z",
+      "title": "global · Other",
+      "source": "Cnbc",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-25T18:35:55Z",
+      "title": "global · Other",
+      "source": "Cnbc",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-25T18:35:55Z",
+      "title": "us · Growth",
+      "source": "Investing Cb",
+      "score": 0.2,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-08-25T17:31:32.430156Z"
+  "written_at": "2026-08-25T18:38:25.879709Z"
 }
