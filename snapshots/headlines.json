@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-08-25T23:25:54Z",
-      "title": "wgc · Gold Flow",
-      "source": "Yahoo Finance",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-25T23:25:54Z",
+      "ts": "2026-08-25T23:46:24Z",
       "title": "global · Other",
-      "source": "Yahoo Finance",
+      "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-25T23:25:54Z",
+      "ts": "2026-08-25T23:46:24Z",
       "title": "global · Other",
-      "source": "Yahoo Finance",
+      "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-25T23:25:54Z",
-      "title": "us · Usd Yields",
-      "source": "Yahoo Finance",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-25T23:25:54Z",
+      "ts": "2026-08-25T23:46:24Z",
       "title": "global · Other",
-      "source": "Yahoo Finance",
+      "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-25T23:25:54Z",
-      "title": "us · Inflation",
-      "source": "Yahoo Finance",
-      "score": 0.5,
+      "ts": "2026-08-25T23:46:24Z",
+      "title": "us · Geopolitics · risk off",
+      "source": "Bbc World",
+      "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-25T23:25:54Z",
+      "ts": "2026-08-25T23:46:24Z",
       "title": "global · Other",
-      "source": "Yahoo Finance",
+      "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-25T23:25:54Z",
-      "title": "us · Inflation",
-      "source": "Yahoo Finance",
-      "score": 0.5,
+      "ts": "2026-08-25T23:46:24Z",
+      "title": "israel · Geopolitics",
+      "source": "Bbc World",
+      "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-25T23:25:54Z",
-      "title": "global · Other · risk on",
-      "source": "Yahoo Finance",
+      "ts": "2026-08-25T23:46:24Z",
+      "title": "russia · Geopolitics · risk off",
+      "source": "Bbc World",
+      "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-25T23:46:24Z",
+      "title": "global · Other",
+      "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-25T23:25:54Z",
-      "title": "wgc · Gold Flow",
-      "source": "Yahoo Finance",
-      "score": 0.3,
+      "ts": "2026-08-25T23:46:24Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-25T23:46:24Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-08-25T23:26:13.026666Z"
+  "written_at": "2026-08-25T23:49:38.778383Z"
 }
