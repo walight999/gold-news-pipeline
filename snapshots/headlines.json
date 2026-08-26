@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-08-26T16:51:34Z",
-      "title": "fed · Rate Policy · risk off",
-      "source": "Forexlive",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-26T16:51:34Z",
-      "title": "us · Geopolitics · risk on",
-      "source": "Forexlive",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-26T16:51:34Z",
+      "ts": "2026-08-26T18:55:54Z",
       "title": "global · Other",
-      "source": "Forexlive",
+      "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-26T16:51:34Z",
-      "title": "eurozone · Inflation",
-      "source": "Forexlive",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-26T16:51:34Z",
-      "title": "global · Other · risk off",
-      "source": "Forexlive",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-26T16:51:34Z",
+      "ts": "2026-08-26T18:55:54Z",
       "title": "global · Other",
-      "source": "Forexlive",
+      "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-26T16:51:34Z",
-      "title": "us · Geopolitics · risk off",
-      "source": "Forexlive",
-      "score": 0.4,
+      "ts": "2026-08-26T18:55:54Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-26T16:51:34Z",
-      "title": "uk · Growth",
-      "source": "Forexlive",
-      "score": 0.2,
+      "ts": "2026-08-26T18:55:54Z",
+      "title": "global · Other",
+      "source": "Yahoo Finance",
+      "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-26T16:51:34Z",
-      "title": "us · Inflation",
-      "source": "Fxstreet",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-26T16:51:34Z",
+      "ts": "2026-08-26T18:55:54Z",
       "title": "us · Usd Yields",
-      "source": "Forexlive",
+      "source": "Yahoo Finance",
       "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-26T18:55:54Z",
+      "title": "us · Usd Yields",
+      "source": "Yahoo Finance",
+      "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-26T18:55:54Z",
+      "title": "global · Other",
+      "source": "Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-26T18:55:54Z",
+      "title": "mideast · Geopolitics · risk off",
+      "source": "Yahoo Finance",
+      "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-26T18:55:54Z",
+      "title": "us · Inflation",
+      "source": "Yahoo Finance",
+      "score": 0.5,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-26T18:55:54Z",
+      "title": "global · Other",
+      "source": "Yahoo Finance",
+      "score": 0.1,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-08-26T16:53:48.607903Z"
+  "written_at": "2026-08-26T19:01:37.701842Z"
 }
