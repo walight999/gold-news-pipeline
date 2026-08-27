@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-08-27T03:25:55Z",
+      "ts": "2026-08-27T14:26:02Z",
       "title": "global · Other",
       "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-27T03:25:55Z",
+      "ts": "2026-08-27T14:26:02Z",
       "title": "global · Other",
       "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-27T03:25:55Z",
+      "ts": "2026-08-27T14:26:02Z",
+      "title": "global · Other",
+      "source": "Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-27T14:26:02Z",
+      "title": "global · Other",
+      "source": "Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-27T14:26:02Z",
       "title": "wgc · Gold Flow",
       "source": "Yahoo Finance",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-27T03:25:55Z",
-      "title": "global · Other",
+      "ts": "2026-08-27T14:26:02Z",
+      "title": "mideast · Geopolitics · risk off",
       "source": "Yahoo Finance",
+      "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-27T14:26:02Z",
+      "title": "global · Other",
+      "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-27T03:25:55Z",
-      "title": "global · Other",
-      "source": "Yahoo Finance",
+      "ts": "2026-08-27T14:26:02Z",
+      "title": "global · Other · risk off",
+      "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-27T03:25:55Z",
-      "title": "wgc · Gold Flow",
-      "source": "Yahoo Finance",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-27T03:25:55Z",
+      "ts": "2026-08-27T14:26:02Z",
       "title": "global · Other",
-      "source": "Yahoo Finance",
+      "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-27T03:25:55Z",
+      "ts": "2026-08-27T14:26:02Z",
       "title": "global · Other",
-      "source": "Yahoo Finance",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-27T03:25:55Z",
-      "title": "global · Other",
-      "source": "Yahoo Finance",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-27T03:25:55Z",
-      "title": "global · Other",
-      "source": "Yahoo Finance",
+      "source": "Cnbc, Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-08-27T03:27:20.285505Z"
+  "written_at": "2026-08-27T14:30:53.491608Z"
 }
