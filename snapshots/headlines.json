@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-08-28T11:36:21Z",
-      "title": "global · Other",
-      "source": "Yahoo Finance",
+      "ts": "2026-08-28T16:56:32Z",
+      "title": "global · Other · risk off",
+      "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-28T11:36:21Z",
-      "title": "wgc · Gold Flow",
-      "source": "Yahoo Finance",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-08-28T11:36:21Z",
-      "title": "mideast · Geopolitics · risk off",
-      "source": "Yahoo Finance",
+      "ts": "2026-08-28T16:56:32Z",
+      "title": "israel · Geopolitics · risk off",
+      "source": "Bbc World",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-28T11:36:21Z",
+      "ts": "2026-08-28T16:56:32Z",
       "title": "global · Other",
-      "source": "Yahoo Finance",
+      "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-28T11:36:21Z",
+      "ts": "2026-08-28T16:56:32Z",
       "title": "global · Other",
-      "source": "Yahoo Finance",
+      "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-28T11:36:21Z",
+      "ts": "2026-08-28T16:56:32Z",
       "title": "global · Other",
-      "source": "Yahoo Finance",
+      "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-28T11:36:21Z",
+      "ts": "2026-08-28T16:56:32Z",
       "title": "global · Other",
-      "source": "Yahoo Finance",
+      "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-28T11:36:21Z",
-      "title": "global · Other · risk on",
-      "source": "Yahoo Finance",
+      "ts": "2026-08-28T16:56:32Z",
+      "title": "global · Other",
+      "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-28T11:36:21Z",
+      "ts": "2026-08-28T16:56:32Z",
       "title": "global · Other",
-      "source": "Yahoo Finance",
+      "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-08-28T11:36:21Z",
-      "title": "global · Other",
-      "source": "Yahoo Finance",
+      "ts": "2026-08-28T16:56:32Z",
+      "title": "mideast · Geopolitics · risk off",
+      "source": "Cnbc",
+      "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-08-28T16:56:32Z",
+      "title": "global · Other · risk off",
+      "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-08-28T11:38:51.353510Z"
+  "written_at": "2026-08-28T21:45:20.516940Z"
 }
