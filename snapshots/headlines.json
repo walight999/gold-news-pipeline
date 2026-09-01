@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-09-01T17:06:28Z",
-      "title": "global · Other",
-      "source": "Bbc World",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-09-01T17:06:28Z",
-      "title": "us · Geopolitics · risk off",
-      "source": "Bbc World",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-09-01T17:06:28Z",
-      "title": "fed · Rate Policy",
-      "source": "Bbc World",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-09-01T17:06:28Z",
-      "title": "global · Other",
-      "source": "Yahoo Finance",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-09-01T17:06:28Z",
-      "title": "us · Geopolitics · risk off",
-      "source": "Bbc World",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-09-01T17:06:28Z",
+      "ts": "2026-09-01T20:02:01Z",
       "title": "us · Usd Yields",
-      "source": "Bbc World",
+      "source": "Forexlive",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-01T17:06:28Z",
+      "ts": "2026-09-01T20:02:01Z",
+      "title": "us · Growth",
+      "source": "Forexlive",
+      "score": 0.2,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-09-01T20:02:01Z",
       "title": "global · Other",
-      "source": "Bbc World, Yahoo Finance",
+      "source": "Forexlive",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-01T17:06:28Z",
+      "ts": "2026-09-01T20:02:01Z",
+      "title": "eurozone · Inflation",
+      "source": "Forexlive",
+      "score": 0.5,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-09-01T20:02:01Z",
       "title": "global · Other",
-      "source": "Yahoo Finance",
+      "source": "Forexlive",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-01T17:06:28Z",
-      "title": "global · Other",
-      "source": "Bbc World",
-      "score": 0.1,
+      "ts": "2026-09-01T20:02:01Z",
+      "title": "fed · Rate Policy · hawkish",
+      "source": "Forexlive",
+      "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-01T17:06:28Z",
-      "title": "global · Other",
-      "source": "Bbc World, Cnbc, Yahoo Finance",
-      "score": 0.1,
+      "ts": "2026-09-01T20:02:01Z",
+      "title": "fed · Rate Policy · hawkish",
+      "source": "Fxstreet",
+      "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-09-01T20:02:01Z",
+      "title": "us · Inflation",
+      "source": "Forexlive",
+      "score": 0.5,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-09-01T20:02:01Z",
+      "title": "uk · Inflation",
+      "source": "Forexlive",
+      "score": 0.5,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-09-01T20:02:01Z",
+      "title": "us · Usd Yields",
+      "source": "Forexlive",
+      "score": 0.3,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-09-01T17:10:41.558766Z"
+  "written_at": "2026-09-01T20:03:28.150767Z"
 }
