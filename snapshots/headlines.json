@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-09-04T03:05:55Z",
-      "title": "global · Other",
-      "source": "Cnbc",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-09-04T03:05:55Z",
-      "title": "global · Other",
-      "source": "Cnbc",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-09-04T03:05:55Z",
-      "title": "us · Inflation",
-      "source": "Cnbc",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-09-04T03:05:55Z",
-      "title": "global · Other",
-      "source": "Cnbc",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-09-04T03:05:55Z",
-      "title": "global · Other",
-      "source": "Cnbc, Forexlive, Investing Cb",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-09-04T03:05:55Z",
-      "title": "fed · Rate Policy · hawkish",
-      "source": "Forexlive",
+      "ts": "2026-09-04T08:06:12Z",
+      "title": "mideast · Geopolitics · risk off",
+      "source": "Yahoo Finance",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-04T03:05:55Z",
-      "title": "us · Jobs",
-      "source": "Investing Cb",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-09-04T03:05:55Z",
-      "title": "fed · Rate Policy",
-      "source": "Forexlive",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-09-04T03:05:55Z",
+      "ts": "2026-09-04T08:06:12Z",
       "title": "global · Other",
-      "source": "Investing Cb",
+      "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-04T03:05:55Z",
-      "title": "us · Growth",
-      "source": "Investing Cb",
-      "score": 0.2,
+      "ts": "2026-09-04T08:06:12Z",
+      "title": "global · Other · risk off",
+      "source": "Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-09-04T08:06:12Z",
+      "title": "mideast · Geopolitics",
+      "source": "Yahoo Finance",
+      "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-09-04T08:06:12Z",
+      "title": "mideast · Geopolitics · risk off",
+      "source": "Yahoo Finance",
+      "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-09-04T08:06:12Z",
+      "title": "global · Other",
+      "source": "Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-09-04T08:06:12Z",
+      "title": "us · Usd Yields",
+      "source": "Yahoo Finance",
+      "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-09-04T08:06:12Z",
+      "title": "global · Other",
+      "source": "Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-09-04T08:06:12Z",
+      "title": "global · Other · risk on",
+      "source": "Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-09-04T08:06:12Z",
+      "title": "global · Other",
+      "source": "Yahoo Finance",
+      "score": 0.1,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-09-04T03:10:16.260708Z"
+  "written_at": "2026-09-04T08:09:30.039550Z"
 }
