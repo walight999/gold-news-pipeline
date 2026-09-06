@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-09-06T18:02:18Z",
-      "title": "us · Jobs",
-      "source": "Cnbc, Fxstreet",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-09-06T18:02:18Z",
+      "ts": "2026-09-06T20:36:18Z",
       "title": "us · Jobs",
       "source": "Marketwatch",
       "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-06T18:02:18Z",
-      "title": "us · Inflation",
-      "source": "Forexlive",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-09-06T18:02:18Z",
-      "title": "us · Jobs · risk off",
-      "source": "Forexlive",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-09-06T18:02:18Z",
+      "ts": "2026-09-06T20:36:18Z",
       "title": "us · Jobs",
       "source": "Fxstreet",
       "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-06T18:02:18Z",
+      "ts": "2026-09-06T20:36:18Z",
       "title": "us · Inflation",
-      "source": "Fxstreet",
+      "source": "Investing Cb",
       "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-06T18:02:18Z",
-      "title": "eurozone · Inflation · hawkish",
-      "source": "Fxstreet",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-09-06T18:02:18Z",
+      "ts": "2026-09-06T20:36:18Z",
       "title": "israel · Geopolitics",
       "source": "Aljazeera",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-06T18:02:18Z",
+      "ts": "2026-09-06T20:36:18Z",
       "title": "mideast · Geopolitics · risk off",
-      "source": "Aljazeera, Marketwatch",
+      "source": "Marketwatch",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-06T18:02:18Z",
+      "ts": "2026-09-06T20:36:18Z",
       "title": "mideast · Geopolitics · risk off",
       "source": "Bbc World",
+      "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-09-06T20:36:18Z",
+      "title": "russia · Geopolitics",
+      "source": "Bbc World",
+      "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-09-06T20:36:18Z",
+      "title": "us · Geopolitics · risk off",
+      "source": "Aljazeera",
+      "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-09-06T20:36:18Z",
+      "title": "us · Geopolitics",
+      "source": "Aljazeera",
+      "score": 0.4,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-09-06T20:36:18Z",
+      "title": "israel · Geopolitics",
+      "source": "Aljazeera",
       "score": 0.4,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-09-06T18:03:13.934586Z"
+  "written_at": "2026-09-06T20:39:36.451449Z"
 }
