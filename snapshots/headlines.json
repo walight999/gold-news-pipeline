@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-09-07T11:41:38Z",
-      "title": "russia · Geopolitics",
-      "source": "Bbc World",
+      "ts": "2026-09-07T17:16:05Z",
+      "title": "mideast · Geopolitics",
+      "source": "Cnbc",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-07T11:41:38Z",
+      "ts": "2026-09-07T17:16:05Z",
       "title": "global · Other",
-      "source": "Bbc World",
+      "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-07T11:41:38Z",
+      "ts": "2026-09-07T17:16:05Z",
       "title": "global · Other",
-      "source": "Bbc World",
+      "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-07T11:41:38Z",
+      "ts": "2026-09-07T17:16:05Z",
       "title": "global · Other",
-      "source": "Bbc World",
+      "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-07T11:41:38Z",
+      "ts": "2026-09-07T17:16:05Z",
       "title": "global · Other",
-      "source": "Bbc World",
+      "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-07T11:41:38Z",
+      "ts": "2026-09-07T17:16:05Z",
       "title": "global · Other",
-      "source": "Bbc World",
+      "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-07T11:41:38Z",
-      "title": "us · Geopolitics · risk off",
-      "source": "Bbc World",
+      "ts": "2026-09-07T17:16:05Z",
+      "title": "global · Other",
+      "source": "Cnbc, Investing Cb",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-09-07T17:16:05Z",
+      "title": "us · Usd Yields",
+      "source": "Cnbc",
+      "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-09-07T17:16:05Z",
+      "title": "fed · Rate Policy · hawkish",
+      "source": "Forexlive",
       "score": 0.4,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-07T11:41:38Z",
-      "title": "us · Geopolitics",
-      "source": "Bbc World",
-      "score": 0.4,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-09-07T11:41:38Z",
-      "title": "global · Other",
-      "source": "Bbc World",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-09-07T11:41:38Z",
-      "title": "global · Other · dovish",
-      "source": "Bbc World",
-      "score": 0.1,
+      "ts": "2026-09-07T17:16:05Z",
+      "title": "us · Usd Yields",
+      "source": "Forexlive",
+      "score": 0.3,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-09-07T11:42:57.641686Z"
+  "written_at": "2026-09-07T17:21:05.382578Z"
 }
