@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-09-10T14:46:07Z",
-      "title": "global · Other",
-      "source": "Yahoo Finance",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-09-10T14:46:07Z",
+      "ts": "2026-09-10T18:06:42Z",
       "title": "wgc · Gold Flow · risk off",
       "source": "Yahoo Finance",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-10T14:46:07Z",
+      "ts": "2026-09-10T18:06:42Z",
       "title": "global · Other",
       "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-10T14:46:07Z",
+      "ts": "2026-09-10T18:06:42Z",
       "title": "global · Other",
       "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-10T14:46:07Z",
-      "title": "global · Other",
-      "source": "Cnbc",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-09-10T14:46:07Z",
-      "title": "global · Other",
-      "source": "Cnbc",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-09-10T14:46:07Z",
+      "ts": "2026-09-10T18:06:42Z",
       "title": "global · Other · risk on",
       "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-10T14:46:07Z",
-      "title": "global · Other",
-      "source": "Cnbc",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-09-10T14:46:07Z",
+      "ts": "2026-09-10T18:06:42Z",
       "title": "us · Usd Yields",
       "source": "Cnbc",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-10T14:46:07Z",
+      "ts": "2026-09-10T18:06:42Z",
       "title": "global · Other",
+      "source": "Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-09-10T18:06:42Z",
+      "title": "mideast · Geopolitics · risk off",
+      "source": "Investing Commodities",
+      "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-09-10T18:06:42Z",
+      "title": "global · Other · dovish",
       "source": "Cnbc",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-09-10T18:06:42Z",
+      "title": "us · Inflation",
+      "source": "Yahoo Finance",
+      "score": 0.5,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-09-10T18:06:42Z",
+      "title": "global · Other",
+      "source": "Cnbc, Investing Cb, Investing Commodities",
       "score": 0.1,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-09-10T14:52:12.450801Z"
+  "written_at": "2026-09-10T18:08:47.104539Z"
 }
