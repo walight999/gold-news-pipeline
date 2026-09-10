@@ -22,3 +22,4 @@ deep-translator>=1.11.0
 anthropic>=0.30.0
 # X/Twitter posting for the social_post mode (approved social_feed drafts).
 tweepy>=4.14.0
+python-dotenv

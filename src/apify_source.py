@@ -247,9 +247,23 @@ def _truth_to_entry(p: dict[str, Any], tier: int = 2,
     # Skip reblogs — we want each account's own posts (mirror of tweet isRetweet).
     if _pick(p, ["reblog", "isReblog", "reblogged"]) not in (None, "", False, "false"):
         return None
+    # Noise filters (2026-09-10, from the live probe): Truth Social is mostly
+    # political/personal, so pre-drop obvious non-broadcasts BEFORE they enter the
+    # pool and cost a classifier call. High-precision — each is almost never a
+    # gold/macro catalyst:
+    #   - replies (in_reply_to_id set): conversation noise, not a broadcast.
+    #   - "RT:"-prefixed content: a reblog the actor didn't flag structurally.
+    if _pick(p, ["in_reply_to_id", "in_reply_to_account_id"]) not in (None, "", False):
+        return None
     text = _strip_html(str(_pick(p, fm.get("text", _TRUTH_FIELDS["text"])) or ""))
     text = " ".join(text.split())
     if not text:
+        return None
+    if text[:4].upper().startswith(("RT:", "RT @")):
+        return None
+    # Link-only posts (content is just a URL, e.g. an Instagram/Rumble share):
+    # no readable claim → nothing to classify or translate.
+    if re.fullmatch(r"https?://\S+", text):
         return None
     handle = _truth_handle(p, fm)
     if handle is None:

@@ -2439,6 +2439,16 @@ async def run_event_mode(duration_min: int = 30, sleep_sec: int = 60) -> int:
 # --------------- CLI ---------------
 
 def main(argv: list[str] | None = None) -> int:
+    # Load a local .env for developer/CLI runs (probe, manual modes) so secrets
+    # like APIFY_TOKEN work locally without exporting them by hand. Best-effort +
+    # no-op in GitHub Actions: .env is gitignored (not committed) so load_dotenv
+    # finds nothing there, and it never overrides an already-set env var, so the
+    # workflow-injected secrets always win. Silent if python-dotenv isn't installed.
+    try:
+        from dotenv import load_dotenv
+        load_dotenv()
+    except Exception:  # noqa: BLE001 — dev convenience only, never block a run
+        pass
     logging.basicConfig(
         level=os.environ.get("LOG_LEVEL", "INFO"),
         format="%(asctime)s %(levelname)s %(name)s :: %(message)s",

@@ -101,6 +101,24 @@ def test_truth_entry_drops_no_author_empty_and_reblog():
                                "account": {"username": "x"}, "reblog": {"id": 5}}) is None
 
 
+def test_truth_drops_noise_replies_rt_linkonly():
+    """Live-probe noise cuts (2026-09-10): replies, RT-prefixed content, and
+    link-only posts are dropped before the pool (they cost a classifier call and
+    are ~never a gold catalyst)."""
+    assert ap._truth_to_entry({"content": "agreed", "id": "1",
+                               "account": {"username": "realDonaldTrump"},
+                               "in_reply_to_id": "999"}) is None
+    assert ap._truth_to_entry({"content": "RT: https://truthsocial.com/x/1", "id": "2",
+                               "account": {"username": "realDonaldTrump"}}) is None
+    assert ap._truth_to_entry({"content": "https://www.instagram.com/reel/abc", "id": "3",
+                               "account": {"username": "realDonaldTrump"}}) is None
+    # a real macro post still passes
+    e = ap._truth_to_entry({"content": "<p>100% tariff on all imports from China</p>",
+                            "id": "4", "url": "https://truthsocial.com/@realDonaldTrump/4",
+                            "account": {"username": "realDonaldTrump"}})
+    assert e is not None and "tariff" in e["title"]
+
+
 def test_truth_field_map_override():
     e = ap._truth_to_entry(
         {"note": "custom body field", "permalink": "https://t/1", "acct": "trumper"},
