@@ -4,9 +4,17 @@
 # Cost: ~$0.18/1,000 tweets (kaitoeasyapi). min_interval_min caps run frequency.
 x_accounts:
   enabled: true
-  min_interval_min: 12        # don't re-scrape more often than this (cost guard)
+  min_interval_min: 12        # normal cadence — don't re-scrape more often (cost guard)
   since_minutes: 14           # look back this far each scrape (= interval + 2m buffer;
                               # was 20 → paid for ~8m of overlapping tweets every scrape)
+  # Event-mode burst (2026-09-10): during --mode event (the 30-min hot window
+  # around a CPI/NFP/FOMC print, driven by calendar_check) X is scraped every
+  # `event_min_interval_min` instead of 12, looking back `event_since_minutes`,
+  # and widened by `event_extra_handles`. Concentrates Apify spend on the
+  # minutes gold actually moves. A 30-min window at 3-min cadence ≈ 10 scrapes;
+  # at ~$0.18/1k tweets and a handful of hits each, that's a few cents/event.
+  event_min_interval_min: 3
+  event_since_minutes: 5
   max_per_handle: 8
   handles:
     - DeItaone                # Walter Bloomberg — fast Fed/macro headlines
@@ -16,6 +24,63 @@ x_accounts:
     - NickTimiraos            # WSJ Fed reporter (rate-path signals)
     - KitcoNewsNOW            # gold-specific
     - GoldTelegraph_          # gold + macro
+    # Added 2026-09-10 — curated high-signal gold/macro voices. More independent
+    # orgs lifts breaking/alert confirmation (router needs >=2 orgs for alert),
+    # ~free on the $0.18/1k actor. Watch content_log ~1-2wk and prune any noisy
+    # ones. VERIFY each handle is still active before relying on it.
+    - Ole_S_Hansen            # Saxo head of commodities — top gold analyst voice
+    - WGC_News                # World Gold Council — CB gold buying + demand (structural)
+    - Schuldensuehner         # Holger Z (Bloomberg) — macro + fast gold charts
+  event_extra_handles:        # only scraped during the event burst window
+    - LiveSquawk              # fast macro wire
+    - Fxhedgers               # FX/rates flow
+    - zerohedge               # fast (noisy) macro takes
+    - PiQSuite                # fast macro/markets wire (breaking)
+    - SteveLiesman            # CNBC Fed reporter (rate-path signals, event window)
+
+# Truth Social (2026-09-10) — Trump posts (tariffs / Fed pressure / geopolitics)
+# move gold intraday and appear in NO RSS feed. Posts become tier-2 wire entries
+# in the SAME pool as tweets. OPT-IN: third-party actor output shapes differ, so
+# validate ONCE with `python -m src.main --mode apify_probe --target truth`
+# (costs one actor call), fix `field_map` if the probe extracts 0, THEN flip
+# enabled: true. Gated by APIFY_TOKEN like everything Apify.
+truth_social:
+  enabled: false
+  # VERIFY via the probe, then keep or swap. Candidates seen 2026-09 on Apify:
+  # parsebird/truth-social-scraper, automation-lab/truth-social-scraper,
+  # tri_angle/truth-scraper, muhammetakkurtt/truth-social-scraper.
+  actor_id: "parsebird/truth-social-scraper"
+  input_key: "profiles"       # some actors want "usernames" or "startUrls" — probe tells you
+  min_interval_min: 15
+  event_min_interval_min: 5
+  since_minutes: 45           # freshness gate (only applied when posts carry a timestamp)
+  max_per_handle: 6
+  tier: 2
+  handles:
+    - realDonaldTrump
+    - DonaldJTrumpJr
+  payload_extra: {}           # merged into actor input (e.g. {"onlyPosts": true})
+  field_map: {}               # override output field names if the probe extracts 0
+                              # e.g. {text: [content], handle: [username], created: [created_at]}
+
+# Cloudflare-recovery (2026-09-10) — fetch RSS feeds that a plain httpx GET can
+# no longer reach (Benzinga has 403'd behind Cloudflare since 2026-06-19) via an
+# Apify browser/unblocker actor; the raw body goes straight through parse_feed,
+# so we recover a real wire source with the Apify capacity already paid for.
+# OPT-IN: pick an actor, then `python -m src.main --mode apify_probe --target recover:benzinga_apify`,
+# confirm parse_feed yields entries, THEN flip enabled: true.
+# NOTE: Reuters is intentionally NOT here — it has no public RSS to recover, and
+# its gold/Fed coverage already arrives via the yahoo_finance syndication feed.
+apify_recover:
+  enabled: false
+  actor_id: ""                # e.g. a Cloudflare-bypass actor that returns the page body
+  input_key: "startUrls"      # apify/*-scraper convention; probe confirms
+  url_as_object: true         # true → [{"url": u}]; false → [u]
+  body_field: [body, html, content, text]   # dataset field holding the raw page body
+  min_interval_min: 10
+  payload_extra: {}
+  feeds:
+    - {id: benzinga_apify, url: "https://www.benzinga.com/markets/feed", tier: 2, source_class: wire, organization: benzinga, role: trader_macro}
 
 sources:
   # source_class + organization: both used by independent_source_count.
