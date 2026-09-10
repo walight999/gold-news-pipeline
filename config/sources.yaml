@@ -45,13 +45,12 @@ x_accounts:
 # (costs one actor call), fix `field_map` if the probe extracts 0, THEN flip
 # enabled: true. Gated by APIFY_TOKEN like everything Apify.
 truth_social:
-  enabled: false  # 2026-09-10: PARKED. Prod validation showed parsebird returns 400
-                  # + maps 0/6 records → real input/output differs from the doc-derived
-                  # config. Prod-log diagnosis is flaky (15-min gate). Reliable fix =
-                  # run `python -m src.main --mode apify_probe --target truth` locally
-                  # with APIFY_TOKEN → it dumps the actor's real input error + field
-                  # keys in ONE call. Then fix input_key/username_key/field_map here +
-                  # re-enable. All diagnostics + pre-matching are already in place.
+  enabled: true   # 2026-09-10: VALIDATED via local probe — parsebird returns 201 +
+                  # maps posts correctly (the earlier prod 400 was transient). Content
+                  # is mostly political/personal noise; RT/reply/link-only are pre-
+                  # filtered (apify_source._truth_to_entry) and the classifier rejects
+                  # non-gold downstream, so only a rare tariff/Fed post ships. Monitor
+                  # the classifier reject rate; disable if it's pure noise for a week.
   # Default = parsebird/truth-social-scraper. Its schema is pre-matched below
   # (verified from the actor docs 2026-09-10): input `username` ONE-per-run
   # (so per_handle calls it once per handle), output `content`/`created_at`/
