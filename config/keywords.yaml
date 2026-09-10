@@ -38,7 +38,11 @@ topics:
     entities:  [us, bls, eurozone, uk]
 
   rate_policy:
-    base_impact: 4
+    # 4→5 (2026-09-10, data-backed): precision_report over 6588 events showed
+    # rate_policy ARCHIVED 1265× with avg|15m move|=0.139% — higher than several
+    # topics that DO get sent (inflation digest 0.112%, geopolitics 0.104%). It
+    # was under-routed; 5 matches inflation/jobs so it reaches alert/digest.
+    base_impact: 5
     keywords:
       - fed
       - powell
@@ -72,7 +76,11 @@ topics:
     entities:  [fed, ecb, boj, boe]
 
   geopolitics:
-    base_impact: 4
+    # 4→3 (2026-09-10, data-backed): precision_report showed geopolitics is the
+    # LARGEST bucket (3270 archive + 36 alert) yet moves gold the LEAST
+    # (avg|15m|=0.09-0.10%, lowest hit% 22-24%). Over-routed/noisy → 3 still
+    # reaches digest (2.5) but an alert (3.5) now needs freshness/confirmation.
+    base_impact: 3
     keywords:
       # Mideast core
       - iran
