@@ -45,7 +45,8 @@ x_accounts:
 # (costs one actor call), fix `field_map` if the probe extracts 0, THEN flip
 # enabled: true. Gated by APIFY_TOKEN like everything Apify.
 truth_social:
-  enabled: false
+  enabled: true   # 2026-09-10: validate via live production log (GHA has APIFY_TOKEN) —
+                  # watch news_cron for "apify truth: +N entries". Best-effort: 0 = no harm.
   # Default = parsebird/truth-social-scraper. Its schema is pre-matched below
   # (verified from the actor docs 2026-09-10): input `username` ONE-per-run
   # (so per_handle calls it once per handle), output `content`/`created_at`/
@@ -78,7 +79,9 @@ truth_social:
 # NOTE: Reuters is intentionally NOT here — it has no public RSS to recover, and
 # its gold/Fed coverage already arrives via the yahoo_finance syndication feed.
 apify_recover:
-  enabled: false
+  enabled: true   # 2026-09-10: validate via live production log — watch news_cron for
+                  # "apify recover benzinga_apify: +N entries". If 0 (browser mangled the
+                  # XML) it will be disabled again; best-effort so 0 = no harm meanwhile.
   # Default = scrapeunblocker/scrapeunblocker (schema verified 2026-09-10): input
   # is a single `url` STRING (not a list), output `html` carries the raw response
   # when parsed_data:false — the closest thing to the untouched RSS/XML body.
