@@ -193,6 +193,8 @@ def _collect_apify_entries(store, src_cfg, mode: str) -> list[dict[str, Any]]:
                 token, str(tc["actor_id"]), list(tc.get("handles") or []),
                 max_per_handle=int(tc.get("max_per_handle", 6)),
                 tier=int(tc.get("tier", 2)),
+                per_handle=bool(tc.get("per_handle", True)),
+                username_key=str(tc.get("username_key", "username")),
                 input_key=str(tc.get("input_key", "profiles")),
                 payload_extra=tc.get("payload_extra") or None,
                 field_map=tc.get("field_map") or None,
@@ -213,8 +215,9 @@ def _collect_apify_entries(store, src_cfg, mode: str) -> list[dict[str, Any]]:
                 continue
             body = apify_source.fetch_url_via_proxy(
                 token, str(rc["actor_id"]), str(feed["url"]),
-                input_key=str(rc.get("input_key", "startUrls")),
-                url_as_object=bool(rc.get("url_as_object", True)),
+                input_key=str(rc.get("input_key", "url")),
+                url_as_object=bool(rc.get("url_as_object", False)),
+                url_as_list=bool(rc.get("url_as_list", False)),
                 body_field=rc.get("body_field") or None,
                 payload_extra=rc.get("payload_extra") or None)
             n = 0
@@ -2340,16 +2343,24 @@ def run_apify_probe(target: str) -> int:
         if not actor:
             print("apify_probe truth: set truth_social.actor_id first."); return 1
         handles = list(tc.get("handles") or [])
-        payload = {str(tc.get("input_key", "profiles")): handles,
-                   "maxPosts": int(tc.get("max_per_handle", 6)) * max(len(handles), 1)}
+        per_handle = bool(tc.get("per_handle", True))
+        # Dump ONE raw call so you can see the actor's real field names.
+        if per_handle and handles:
+            payload = {str(tc.get("username_key", "username")): handles[0],
+                       "maxPosts": int(tc.get("max_per_handle", 6)), "cleanContent": True}
+        else:
+            payload = {str(tc.get("input_key", "profiles")): handles,
+                       "maxPosts": int(tc.get("max_per_handle", 6)) * max(len(handles), 1)}
         payload.update(tc.get("payload_extra") or {})
         raw = apify_source.run_actor(token, actor, payload)
-        print(f"[truth] actor={actor} raw_records={len(raw)}")
+        print(f"[truth] actor={actor} per_handle={per_handle} raw_records={len(raw)}")
         if raw and isinstance(raw[0], dict):
             print(f"  record[0] keys: {list(raw[0].keys())}")
         entries = apify_source.fetch_truth_social(
             token, actor, handles,
             max_per_handle=int(tc.get("max_per_handle", 6)),
+            per_handle=per_handle,
+            username_key=str(tc.get("username_key", "username")),
             input_key=str(tc.get("input_key", "profiles")),
             payload_extra=tc.get("payload_extra") or None,
             field_map=tc.get("field_map") or None)
@@ -2373,8 +2384,9 @@ def run_apify_probe(target: str) -> int:
             print("apify_probe recover: no feed configured."); return 1
         body = apify_source.fetch_url_via_proxy(
             token, actor, str(feed["url"]),
-            input_key=str(rc.get("input_key", "startUrls")),
-            url_as_object=bool(rc.get("url_as_object", True)),
+            input_key=str(rc.get("input_key", "url")),
+            url_as_object=bool(rc.get("url_as_object", False)),
+            url_as_list=bool(rc.get("url_as_list", False)),
             body_field=rc.get("body_field") or None,
             payload_extra=rc.get("payload_extra") or None)
         if not body:

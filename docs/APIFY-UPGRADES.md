@@ -30,26 +30,32 @@ few cents total.
 **What:** scrapes Trump / Trump Jr posts (tariffs, Fed pressure, geopolitics —
 gold movers with NO RSS feed) into the pool as tier-2 wire entries.
 
-**Why it's opt-in:** third-party actor output shapes differ. We can't verify the
-field names from code, so validate once (a few cents) before enabling.
+**Default actor is pre-matched.** `parsebird/truth-social-scraper` was verified
+from its docs (2026-09-10): input is a single `username` per run (so `per_handle:
+true` calls it once per handle), output is `content` / `created_at` / `url` /
+`account.username` / `reblog` — all covered by the default field_map. So the
+probe should map entries first try. It stays opt-in only because we can't confirm
+from code that the actor runs / the handle exists / the cost on YOUR plan.
 
 **Go-live steps:**
 ```bash
-# 1. Pick an actor in your Apify console (defaults to parsebird/truth-social-scraper).
-#    Set APIFY_TOKEN locally, then probe:
+# 1. Set APIFY_TOKEN locally (from the Apify console → Settings → API), then:
 python -m src.main --mode apify_probe --target truth
 
 # 2. Read the output:
 #    - "raw_records=N" + "record[0] keys: [...]" shows the actor's real fields.
 #    - "mapped M entries" shows what we extracted.
-#    - If raw>0 but mapped=0 → set truth_social.field_map to the keys shown, e.g.
+#    - With the default parsebird actor this should already map > 0.
+#    - If you SWAPPED to a different actor and raw>0 but mapped=0 → set
+#         truth_social.field_map to the keys shown, e.g.
 #         field_map: {text: [content], handle: [username], created: [created_at]}
-#      (also check input_key — some actors want "usernames" or "startUrls").
+#      and, for a LIST actor, per_handle: false + input_key: usernames.
 
 # 3. When the probe maps entries, flip in config/sources.yaml:
 #         truth_social.enabled: true
 ```
-Cost: min-interval 15 min (5 min during event burst), ~6 posts/handle.
+Cost: `per_handle` = one actor call per handle; 2 handles × maxPosts 6, min-interval
+15 min (5 min during event burst) → a handful of cents/day.
 
 ---
 
@@ -63,18 +69,27 @@ recovers it as a real wire source.
 > Reuters is deliberately NOT included — it has no public RSS to recover, and its
 > gold/Fed coverage already arrives via the `yahoo_finance` syndication feed.
 
+**Default actor is pre-matched.** `scrapeunblocker/scrapeunblocker` (schema
+verified 2026-09-10): input a single `url` string, output `html` carrying the raw
+response when `parsed_data:false`. Config already set — the probe should return
+bytes first try.
+
 **Go-live steps:**
 ```bash
-# 1. Choose a Cloudflare-bypass actor in your console, set apify_recover.actor_id.
+# 1. Set APIFY_TOKEN locally, then:
 python -m src.main --mode apify_probe --target recover:benzinga_apify
 
 # 2. The probe prints the first 300 bytes of the returned body + how many entries
-#    parse_feed produced. If 0 bytes → fix actor_id / input_key / url_as_object.
-#    If bytes but 0 entries → the actor returned rendered HTML, not the RSS XML;
-#    point body_field at the field holding the raw response, or use a
-#    "fetch raw URL" actor rather than a JS-rendering scraper.
+#    parse_feed produced.
+#    - bytes + entries > 0 → good, flip enabled.
+#    - 0 bytes → wrong actor_id / input shape; re-check input_key / url_as_object /
+#      url_as_list against the actor docs.
+#    - bytes but 0 entries → the actor RENDERED the RSS as an HTML page instead of
+#      returning the XML. Try ecomscrape/cloudflare-web-scraper
+#      (actor_id + input_key: urls + url_as_list: true), or accept that this feed
+#      isn't recoverable this way. Benzinga is a modest win — skipping is fine.
 
-# 3. When parse_feed yields entries, flip:
+# 3. When parse_feed yields entries, flip in config/sources.yaml:
 #         apify_recover.enabled: true
 ```
 Cost: min-interval 10 min, one actor call per feed per cycle.

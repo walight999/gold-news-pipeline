@@ -263,6 +263,7 @@ def _truth_to_entry(p: dict[str, Any], tier: int = 2,
 
 def fetch_truth_social(token: str, actor_id: str, handles: list[str],
                        max_per_handle: int = 8, tier: int = 2,
+                       per_handle: bool = True, username_key: str = "username",
                        input_key: str = "profiles",
                        payload_extra: dict[str, Any] | None = None,
                        field_map: dict[str, list[str]] | None = None,
@@ -270,17 +271,30 @@ def fetch_truth_social(token: str, actor_id: str, handles: list[str],
                        timeout: float = 120.0) -> list[dict[str, Any]]:
     """RSS-shaped entries for recent Truth Social posts. Never raises → [].
 
-    `input_key` + `payload_extra` shape the actor input (actors differ: some
-    take `profiles: [handle]`, some `usernames`, some `startUrls`). `field_map`
-    remaps output fields. Both are config-driven so going live is a config +
-    one probe run, not a code change."""
+    Two input conventions, config-driven so going live is a config + one probe
+    run, not a code change:
+    - `per_handle=True` (DEFAULT, matches parsebird/truth-social-scraper): the
+      actor takes ONE `username` per run, so we call it once per handle with
+      `{username_key: handle, maxPosts: max_per_handle, cleanContent: True}`.
+      N handles ⇒ N actor calls (a handful of cents for 2 accounts).
+    - `per_handle=False` (list actors): one call with `{input_key: [handles]}`.
+    `payload_extra` merges into the input; `field_map` remaps output fields."""
     if not token or not actor_id or not handles:
         return []
-    payload: dict[str, Any] = {input_key: list(handles),
-                               "maxPosts": max_per_handle * len(handles)}
-    if payload_extra:
-        payload.update(payload_extra)
-    raw = run_actor(token, actor_id, payload, timeout=timeout)
+    raw: list[Any] = []
+    if per_handle:
+        base: dict[str, Any] = {"maxPosts": max_per_handle, "cleanContent": True}
+        if payload_extra:
+            base.update(payload_extra)
+        for h in handles:
+            raw.extend(run_actor(token, actor_id, {**base, username_key: h},
+                                 timeout=timeout))
+    else:
+        payload: dict[str, Any] = {input_key: list(handles),
+                                   "maxPosts": max_per_handle * len(handles)}
+        if payload_extra:
+            payload.update(payload_extra)
+        raw = run_actor(token, actor_id, payload, timeout=timeout)
     cutoff = (now_utc() - timedelta(minutes=since_minutes)) if since_minutes else None
     entries: list[dict[str, Any]] = []
     for p in raw:
@@ -309,28 +323,34 @@ def fetch_truth_social(token: str, actor_id: str, handles: list[str],
 # ---------------------------------------------------------------------------
 
 def fetch_url_via_proxy(token: str, actor_id: str, url: str,
-                        input_key: str = "startUrls", url_as_object: bool = True,
+                        input_key: str = "url", url_as_object: bool = False,
+                        url_as_list: bool = False,
                         body_field: list[str] | None = None,
                         payload_extra: dict[str, Any] | None = None,
                         timeout: float = 120.0) -> bytes | None:
     """Return the raw response body (bytes, for parse_feed) of `url` fetched via
     a Cloudflare-bypass Apify actor, or None on any failure.
 
-    Input shape is config-driven: `{input_key: [{"url": url}]}` when
-    `url_as_object` (the apify/*-scraper convention) else `{input_key: [url]}`.
-    `body_field` lists the dataset field holding the page body (default tries
-    the common names). Validate once with `--mode apify_probe recover:<id>`."""
+    Input shape is config-driven to cover the three common actor conventions:
+    - bare string  `{input_key: url}`               — url_as_list=False, url_as_object=False
+      (DEFAULT; matches scrapeunblocker/scrapeunblocker: input `url`, output `html`)
+    - list of str  `{input_key: [url]}`             — url_as_list=True,  url_as_object=False
+      (ecomscrape/cloudflare-web-scraper: input `urls`)
+    - list of obj  `{input_key: [{"url": url}]}`     — url_as_list=True,  url_as_object=True
+      (apify/*-scraper `startUrls` convention)
+    `body_field` lists the dataset field holding the page body (default tries the
+    common names, `html` first). Validate once with `--mode apify_probe recover:<id>`."""
     if not token or not actor_id or not url:
         return None
     item: Any = {"url": url} if url_as_object else url
-    payload: dict[str, Any] = {input_key: [item]}
+    payload: dict[str, Any] = {input_key: [item] if url_as_list else item}
     if payload_extra:
         payload.update(payload_extra)
     raw = run_actor(token, actor_id, payload, timeout=timeout)
     if not raw or not isinstance(raw[0], dict):
         log.warning("apify recover %s: actor returned no usable record for %s", actor_id, url)
         return None
-    body = _pick(raw[0], body_field or ["body", "html", "content", "text", "data", "rawBody"])
+    body = _pick(raw[0], body_field or ["html", "body", "content", "text", "data", "rawBody"])
     if not body:
         log.warning("apify recover %s: no body field in record for %s (keys=%s)",
                     actor_id, url, list(raw[0].keys())[:12])
