@@ -131,6 +131,40 @@ def test_fetch_truth_social_noop_without_config():
     assert ap.fetch_truth_social("tok", "actor", []) == []
 
 
+def test_fetch_truth_social_per_handle_calls_once_per_handle(monkeypatch):
+    """Default (parsebird) convention: ONE `username` per run → N calls for N
+    handles, each payload carrying the single-username key."""
+    calls = []
+
+    def fake_run_actor(token, actor_id, payload, timeout=90.0):
+        calls.append(payload)
+        u = payload["username"]
+        return [{"content": f"post from {u}", "id": "1",
+                 "account": {"username": u}}]
+    monkeypatch.setattr(ap, "run_actor", fake_run_actor)
+    out = ap.fetch_truth_social("tok", "parsebird/truth-social-scraper",
+                                ["realDonaldTrump", "DonaldJTrumpJr"])
+    assert len(calls) == 2                       # one call per handle
+    assert calls[0]["username"] == "realDonaldTrump"
+    assert calls[0]["cleanContent"] is True
+    assert {e["source_id"] for e in out} == {"truth_realdonaldtrump",
+                                             "truth_donaldjtrumpjr"}
+
+
+def test_fetch_truth_social_list_actor_single_call(monkeypatch):
+    """per_handle=False → one call with the list under input_key (list actors)."""
+    calls = []
+
+    def fake_run_actor(token, actor_id, payload, timeout=90.0):
+        calls.append(payload)
+        return [{"content": "hi", "id": "1", "account": {"username": "realDonaldTrump"}}]
+    monkeypatch.setattr(ap, "run_actor", fake_run_actor)
+    ap.fetch_truth_social("tok", "some/list-actor", ["realDonaldTrump", "DonaldJTrumpJr"],
+                          per_handle=False, input_key="usernames")
+    assert len(calls) == 1
+    assert calls[0]["usernames"] == ["realDonaldTrump", "DonaldJTrumpJr"]
+
+
 # ---------------- Cloudflare-recovery body fetch ----------------
 
 RSS_BODY = (
