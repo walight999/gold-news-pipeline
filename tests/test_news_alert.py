@@ -186,6 +186,52 @@ def test_alert_from_text_strips_em_dash_from_every_field():
     assert " - " in alert.body_th[0]
 
 
+def test_alert_from_text_rejects_korean_leak():
+    """A kept rewrite that leaks Korean (or any CJK) must be downgraded to
+    reject so the card never ships foreign script — the 2026-09-10 report that
+    Korean/Chinese was appearing on cards. Belt for the widened _has_cjk ranges."""
+    raw = json.dumps({
+        "action": "keep",
+        "news_type": "central_bank",
+        "relevance_to_gold": "high",
+        "tone": "hawkish",
+        "category": "Central Bank",
+        "headline_th": "BOK คงดอกเบี้ย 한국은행 คงท่าที",   # Korean leaked
+        "body_th": ["ธนาคารกลางเกาหลีใต้คงดอกเบี้ย"],
+        "impact_th": "ผลต่อทองจำกัด",
+        "reason": "",
+    }, ensure_ascii=False)
+    alert = _alert_from_text(raw)
+    assert alert is not None and alert.action == "reject"
+    assert alert.reason == "cjk-leak-in-rewrite"
+
+
+def test_explain_calendar_release_drops_on_cjk(monkeypatch):
+    """The calendar Released-News explainer had no CJK guard — this path was a
+    way foreign script reached cards. A CJK-leaked explanation must be dropped
+    (card degrades to directional-only), not shipped."""
+    from src import news_alert as na
+    monkeypatch.setattr(na, "_cal_explain_llm",
+                        lambda prompt: json.dumps({"detail_th": ["CPI ญี่ปุ่น 休戦 ต่ำกว่าคาด"]},
+                                                  ensure_ascii=False))
+    out = na.explain_calendar_release("evt1", "Japan CPI", actual="1.4%")
+    assert out is None
+
+
+def test_explain_calendar_release_patches_names_on_clean_output(monkeypatch):
+    """Clean (non-CJK) explainer output still gets the name/place/em-dash net
+    the news path applies — this path previously applied none."""
+    from src import news_alert as na
+    monkeypatch.setattr(na, "_cal_explain_llm",
+                        lambda prompt: json.dumps(
+                            {"detail_th": ["Powell ส่งสัญญาณคงดอกเบี้ย—ตลาดผิดหวัง"]},
+                            ensure_ascii=False))
+    out = na.explain_calendar_release("evt2", "Fed decision", actual="hold")
+    assert out is not None
+    assert "พาวเวลล์" in out[0] and "Powell" not in out[0]
+    assert "—" not in out[0]
+
+
 def test_cache_key_distinct_per_title():
     """Same title+summary → same key. Different → different key."""
     a = _cache_key_alert("Fed signals rate cut", "Powell speech")
