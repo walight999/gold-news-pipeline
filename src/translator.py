@@ -307,17 +307,32 @@ def strip_em_dash(text: str | None) -> str | None:
 
 def _has_cjk(text: str | None) -> bool:
     """True if `text` contains any Chinese / Japanese / Korean script
-    characters. We want Thai-only output — Chinese leaks via Google
-    Translate when the source RSS item carries Chinese names of officials
-    or places (Reuters/Yahoo Finance does this a lot)."""
+    characters. We want Thai-only output — CJK leaks when a source RSS item
+    carries Chinese/Korean names of officials or places (Reuters/Yahoo do
+    this a lot) and the model passes them through instead of transliterating.
+
+    Ranges widened 2026-09-10 after real cards shipped with Korean + Chinese
+    leaks: the old check only caught CJK Unified, kana, and Hangul SYLLABLES,
+    so it missed Hangul Jamo, Hangul Compatibility Jamo (ㄱ ㅏ), CJK Extension A,
+    CJK punctuation (、。「」), CJK Compatibility Ideographs, and halfwidth
+    katakana — any of which reads as raw foreign script on a card. Checked by
+    code point for clarity; strict superset of the previous ranges."""
     if not text:
         return False
     for c in text:
-        if "一" <= c <= "鿿":            # CJK Unified Ideographs
-            return True
-        if "぀" <= c <= "ヿ":            # Japanese Hiragana + Katakana
-            return True
-        if "가" <= c <= "힯":            # Korean Hangul
+        o = ord(c)
+        if (0x3000 <= o <= 0x303F        # CJK symbols & punctuation 、。「」《》
+                or 0x3040 <= o <= 0x30FF  # Hiragana + Katakana
+                or 0x31F0 <= o <= 0x31FF  # Katakana phonetic extensions
+                or 0x3130 <= o <= 0x318F  # Hangul Compatibility Jamo ㄱ ㅏ
+                or 0x1100 <= o <= 0x11FF  # Hangul Jamo
+                or 0x3400 <= o <= 0x4DBF  # CJK Unified Ext A
+                or 0x4E00 <= o <= 0x9FFF  # CJK Unified Ideographs
+                or 0xA960 <= o <= 0xA97F  # Hangul Jamo Extended-A
+                or 0xAC00 <= o <= 0xD7A3  # Hangul syllables
+                or 0xD7B0 <= o <= 0xD7FF  # Hangul Jamo Extended-B
+                or 0xF900 <= o <= 0xFAFF  # CJK Compatibility Ideographs
+                or 0xFF00 <= o <= 0xFFEF):  # Halfwidth/Fullwidth forms (incl. halfwidth katakana)
             return True
     return False
 

@@ -868,8 +868,13 @@ def _classify_claude_with_usage(
     client = _get_anthropic_client()
     if not client:
         return None, 0, 0
+    # high_quality (BREAKING) → Sonnet. Everything else (digest + alert, the bulk
+    # of what the reader sees) → Haiku by default, but overridable via
+    # CLAUDE_CLASSIFY_MODEL so grammar quality can be lifted to Sonnet without a
+    # code change when Haiku's Thai reads too stiff (2026-09-10 quality report).
     model = (os.environ.get("CLAUDE_BREAKING_MODEL", "claude-sonnet-4-6").strip()
-             if high_quality else "claude-haiku-4-5-20251001")
+             if high_quality
+             else os.environ.get("CLAUDE_CLASSIFY_MODEL", "claude-haiku-4-5-20251001").strip())
     prompt = _build_prompt(title, summary, source_id, age_h)
     last_exc: Exception | None = None
     for attempt in range(4):
@@ -1095,6 +1100,22 @@ def explain_calendar_release(
     detail = _cal_detail_from_text(text)
     if detail is None:
         return None
+    # Sanitize the explainer output with the SAME net the news rewrite uses
+    # (this path previously had none, so calendar Released-News cards could ship
+    # raw English names, em-dashes, and — the 2026-09-10 report — leaked CJK).
+    # Force canonical Thai names/places + strip em-dash on every line; if any
+    # line still carries CJK the model failed to transliterate, so drop the
+    # explanation (card degrades to the directional-only layout) rather than
+    # ship foreign script.
+    from .translator import _has_cjk, _patch_names, _patch_places, strip_em_dash
+    cleaned = [strip_em_dash(_patch_places(_patch_names(s))) for s in detail if s]
+    cleaned = [s for s in cleaned if s]
+    if not cleaned:
+        return None
+    if any(_has_cjk(s) for s in cleaned):
+        log.warning("calendar explainer contained CJK — dropping (event=%s)", event_id)
+        return None
+    detail = cleaned
     # Cache the rendered JSON so re-runs / retries don't re-call the model.
     if store is not None:
         try:

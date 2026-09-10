@@ -57,6 +57,20 @@ def test_has_cjk_detection():
     assert _has_cjk(None) is False
 
 
+def test_has_cjk_widened_ranges_2026_09():
+    """Ranges added after Korean + Chinese leaked onto live cards — the old
+    check missed all of these."""
+    assert _has_cjk("ราคาทอง ㄱㅏ ปรับขึ้น") is True   # Hangul Compatibility Jamo
+    assert _has_cjk("한") is True                      # Hangul Jamo
+    assert _has_cjk("ทอง、ขึ้น") is True                # CJK punctuation (、)
+    assert _has_cjk("「ทองคำ」") is True                # CJK brackets
+    assert _has_cjk("ﾆｭｰｽ ทอง") is True                # Halfwidth katakana
+    assert _has_cjk("価格") is True                      # CJK Unified (still)
+    # Pure Thai + inline English/percent must NOT be flagged.
+    assert _has_cjk("Fed คงดอกเบี้ย 5.5% กดดันทองคำ") is False
+    assert _has_cjk("ทองคำปรับขึ้น 1.2% หลัง CPI ต่ำกว่าคาด") is False
+
+
 def test_patch_names_basic():
     """Post-process glossary catches Google Translate leaks (Claude already
     produces these correctly via the in-prompt glossary)."""
