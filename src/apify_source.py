@@ -52,6 +52,19 @@ def run_actor(token: str, actor_id: str, payload: dict[str, Any],
             r = c.post(endpoint, headers={"Authorization": f"Bearer {token}"}, json=payload)
         r.raise_for_status()
         items = r.json()
+    except httpx.HTTPStatusError as e:  # log the response body — a 4xx says WHY the
+        # input was rejected (wrong field name/value), which the exception string
+        # alone hides. Body is header-token-free; redact anyway to be safe.
+        body = ""
+        try:
+            body = e.response.text[:300]
+        except Exception:  # noqa: BLE001
+            pass
+        if token:
+            body = body.replace(token, "***")
+        log.warning("apify actor %s HTTP %s: %s", actor_id,
+                    e.response.status_code, body)
+        return []
     except Exception as e:  # noqa: BLE001 — Apify is best-effort, never block the run
         msg = str(e).replace(token, "***") if token else str(e)
         log.warning("apify actor %s failed: %s", actor_id, msg)
@@ -308,6 +321,14 @@ def fetch_truth_social(token: str, actor_id: str, handles: list[str],
         if cutoff and e.get("published_ts") and e["published_ts"] < cutoff:
             continue
         entries.append(e)
+    if raw and not entries:
+        # Records came back but the mapper dropped them all — almost always the
+        # actor's output field names differ from the defaults. Log the first
+        # record's keys so field_map can be fixed from the prod log (no token
+        # needed locally).
+        sample = raw[0] if isinstance(raw[0], dict) else {}
+        log.warning("apify truth: %d records but 0 mapped — first-record keys: %s",
+                    len(raw), list(sample.keys())[:20])
     log.info("apify truth: %d post entries from %d handles (%d records dropped)",
              len(entries), len(handles), len(raw) - len(entries))
     return entries

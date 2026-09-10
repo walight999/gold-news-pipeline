@@ -79,9 +79,11 @@ truth_social:
 # NOTE: Reuters is intentionally NOT here — it has no public RSS to recover, and
 # its gold/Fed coverage already arrives via the yahoo_finance syndication feed.
 apify_recover:
-  enabled: true   # 2026-09-10: validate via live production log — watch news_cron for
-                  # "apify recover benzinga_apify: +N entries". If 0 (browser mangled the
-                  # XML) it will be disabled again; best-effort so 0 = no harm meanwhile.
+  enabled: false  # 2026-09-10: prod validation → scrapeunblocker returned a body but
+                  # parse_feed got 0 entries (browser rendered the RSS as HTML, the
+                  # flagged risk). Benzinga is low-value (X wires relay it faster) so
+                  # left OFF. To retry: try ecomscrape/cloudflare-web-scraper
+                  # (input_key: urls, url_as_list: true) or a raw-fetch actor, then probe.
   # Default = scrapeunblocker/scrapeunblocker (schema verified 2026-09-10): input
   # is a single `url` STRING (not a list), output `html` carries the raw response
   # when parsed_data:false — the closest thing to the untouched RSS/XML body.
