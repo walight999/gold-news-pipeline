@@ -323,28 +323,34 @@ def fetch_truth_social(token: str, actor_id: str, handles: list[str],
 # ---------------------------------------------------------------------------
 
 def fetch_url_via_proxy(token: str, actor_id: str, url: str,
-                        input_key: str = "startUrls", url_as_object: bool = True,
+                        input_key: str = "url", url_as_object: bool = False,
+                        url_as_list: bool = False,
                         body_field: list[str] | None = None,
                         payload_extra: dict[str, Any] | None = None,
                         timeout: float = 120.0) -> bytes | None:
     """Return the raw response body (bytes, for parse_feed) of `url` fetched via
     a Cloudflare-bypass Apify actor, or None on any failure.
 
-    Input shape is config-driven: `{input_key: [{"url": url}]}` when
-    `url_as_object` (the apify/*-scraper convention) else `{input_key: [url]}`.
-    `body_field` lists the dataset field holding the page body (default tries
-    the common names). Validate once with `--mode apify_probe recover:<id>`."""
+    Input shape is config-driven to cover the three common actor conventions:
+    - bare string  `{input_key: url}`               — url_as_list=False, url_as_object=False
+      (DEFAULT; matches scrapeunblocker/scrapeunblocker: input `url`, output `html`)
+    - list of str  `{input_key: [url]}`             — url_as_list=True,  url_as_object=False
+      (ecomscrape/cloudflare-web-scraper: input `urls`)
+    - list of obj  `{input_key: [{"url": url}]}`     — url_as_list=True,  url_as_object=True
+      (apify/*-scraper `startUrls` convention)
+    `body_field` lists the dataset field holding the page body (default tries the
+    common names, `html` first). Validate once with `--mode apify_probe recover:<id>`."""
     if not token or not actor_id or not url:
         return None
     item: Any = {"url": url} if url_as_object else url
-    payload: dict[str, Any] = {input_key: [item]}
+    payload: dict[str, Any] = {input_key: [item] if url_as_list else item}
     if payload_extra:
         payload.update(payload_extra)
     raw = run_actor(token, actor_id, payload, timeout=timeout)
     if not raw or not isinstance(raw[0], dict):
         log.warning("apify recover %s: actor returned no usable record for %s", actor_id, url)
         return None
-    body = _pick(raw[0], body_field or ["body", "html", "content", "text", "data", "rawBody"])
+    body = _pick(raw[0], body_field or ["html", "body", "content", "text", "data", "rawBody"])
     if not body:
         log.warning("apify recover %s: no body field in record for %s (keys=%s)",
                     actor_id, url, list(raw[0].keys())[:12])

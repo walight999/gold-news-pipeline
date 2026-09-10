@@ -79,12 +79,21 @@ truth_social:
 # its gold/Fed coverage already arrives via the yahoo_finance syndication feed.
 apify_recover:
   enabled: false
-  actor_id: ""                # e.g. a Cloudflare-bypass actor that returns the page body
-  input_key: "startUrls"      # apify/*-scraper convention; probe confirms
-  url_as_object: true         # true → [{"url": u}]; false → [u]
-  body_field: [body, html, content, text]   # dataset field holding the raw page body
+  # Default = scrapeunblocker/scrapeunblocker (schema verified 2026-09-10): input
+  # is a single `url` STRING (not a list), output `html` carries the raw response
+  # when parsed_data:false — the closest thing to the untouched RSS/XML body.
+  # ⚠ Caveat the probe exists to catch: a BROWSER-rendering actor may wrap the
+  # XML in an HTML viewer → parse_feed yields 0. If the probe shows bytes but 0
+  # entries, this is why — try ecomscrape/cloudflare-web-scraper
+  # (input_key: urls, url_as_list: true) or a raw-fetch actor instead. Benzinga
+  # is a modest recovery (the X wires relay it faster) — fine to skip if fiddly.
+  actor_id: "scrapeunblocker/scrapeunblocker"
+  input_key: "url"            # scrapeunblocker: single URL string
+  url_as_object: false        # false = bare url (no {"url": ...} wrapper)
+  url_as_list: false          # false = value is the string itself, not [string]
+  body_field: [html, body, content, text]   # scrapeunblocker returns `html`
+  payload_extra: {parsed_data: false}        # false = raw HTML/body (not structured JSON)
   min_interval_min: 10
-  payload_extra: {}
   feeds:
     - {id: benzinga_apify, url: "https://www.benzinga.com/markets/feed", tier: 2, source_class: wire, organization: benzinga, role: trader_macro}
 

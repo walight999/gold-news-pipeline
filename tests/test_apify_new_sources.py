@@ -173,22 +173,24 @@ RSS_BODY = (
 )
 
 
-def test_fetch_url_via_proxy_returns_body_bytes(monkeypatch):
+def test_fetch_url_via_proxy_default_bare_string(monkeypatch):
+    """Default = scrapeunblocker convention: {"url": "<str>"} (no list wrapper),
+    body in the `html` field."""
     captured = {}
 
     def fake_run_actor(token, actor_id, payload, timeout=90.0):
         captured["payload"] = payload
-        return [{"body": RSS_BODY}]
+        return [{"html": RSS_BODY}]
     monkeypatch.setattr(ap, "run_actor", fake_run_actor)
-    body = ap.fetch_url_via_proxy("tok", "some/cf-actor",
+    body = ap.fetch_url_via_proxy("tok", "scrapeunblocker/scrapeunblocker",
                                   "https://www.benzinga.com/markets/feed")
     assert isinstance(body, bytes)
     assert b"Gold rips" in body
-    # url_as_object default → [{"url": ...}]
-    assert captured["payload"]["startUrls"] == [{"url": "https://www.benzinga.com/markets/feed"}]
+    assert captured["payload"]["url"] == "https://www.benzinga.com/markets/feed"
 
 
-def test_fetch_url_via_proxy_url_as_string(monkeypatch):
+def test_fetch_url_via_proxy_list_of_strings(monkeypatch):
+    """ecomscrape convention: {"urls": ["<str>"]}."""
     captured = {}
 
     def fake_run_actor(token, actor_id, payload, timeout=90.0):
@@ -196,8 +198,21 @@ def test_fetch_url_via_proxy_url_as_string(monkeypatch):
         return [{"html": RSS_BODY}]
     monkeypatch.setattr(ap, "run_actor", fake_run_actor)
     ap.fetch_url_via_proxy("tok", "a", "https://u", input_key="urls",
-                           url_as_object=False)
+                           url_as_object=False, url_as_list=True)
     assert captured["payload"]["urls"] == ["https://u"]
+
+
+def test_fetch_url_via_proxy_list_of_objects(monkeypatch):
+    """apify/*-scraper convention: {"startUrls": [{"url": "<str>"}]}."""
+    captured = {}
+
+    def fake_run_actor(token, actor_id, payload, timeout=90.0):
+        captured["payload"] = payload
+        return [{"body": RSS_BODY}]
+    monkeypatch.setattr(ap, "run_actor", fake_run_actor)
+    ap.fetch_url_via_proxy("tok", "a", "https://u", input_key="startUrls",
+                           url_as_object=True, url_as_list=True)
+    assert captured["payload"]["startUrls"] == [{"url": "https://u"}]
 
 
 def test_fetch_url_via_proxy_none_on_empty_or_missing_body(monkeypatch):

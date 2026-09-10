@@ -69,18 +69,27 @@ recovers it as a real wire source.
 > Reuters is deliberately NOT included — it has no public RSS to recover, and its
 > gold/Fed coverage already arrives via the `yahoo_finance` syndication feed.
 
+**Default actor is pre-matched.** `scrapeunblocker/scrapeunblocker` (schema
+verified 2026-09-10): input a single `url` string, output `html` carrying the raw
+response when `parsed_data:false`. Config already set — the probe should return
+bytes first try.
+
 **Go-live steps:**
 ```bash
-# 1. Choose a Cloudflare-bypass actor in your console, set apify_recover.actor_id.
+# 1. Set APIFY_TOKEN locally, then:
 python -m src.main --mode apify_probe --target recover:benzinga_apify
 
 # 2. The probe prints the first 300 bytes of the returned body + how many entries
-#    parse_feed produced. If 0 bytes → fix actor_id / input_key / url_as_object.
-#    If bytes but 0 entries → the actor returned rendered HTML, not the RSS XML;
-#    point body_field at the field holding the raw response, or use a
-#    "fetch raw URL" actor rather than a JS-rendering scraper.
+#    parse_feed produced.
+#    - bytes + entries > 0 → good, flip enabled.
+#    - 0 bytes → wrong actor_id / input shape; re-check input_key / url_as_object /
+#      url_as_list against the actor docs.
+#    - bytes but 0 entries → the actor RENDERED the RSS as an HTML page instead of
+#      returning the XML. Try ecomscrape/cloudflare-web-scraper
+#      (actor_id + input_key: urls + url_as_list: true), or accept that this feed
+#      isn't recoverable this way. Benzinga is a modest win — skipping is fine.
 
-# 3. When parse_feed yields entries, flip:
+# 3. When parse_feed yields entries, flip in config/sources.yaml:
 #         apify_recover.enabled: true
 ```
 Cost: min-interval 10 min, one actor call per feed per cycle.
