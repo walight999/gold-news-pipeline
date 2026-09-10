@@ -215,8 +215,9 @@ def _collect_apify_entries(store, src_cfg, mode: str) -> list[dict[str, Any]]:
                 continue
             body = apify_source.fetch_url_via_proxy(
                 token, str(rc["actor_id"]), str(feed["url"]),
-                input_key=str(rc.get("input_key", "startUrls")),
-                url_as_object=bool(rc.get("url_as_object", True)),
+                input_key=str(rc.get("input_key", "url")),
+                url_as_object=bool(rc.get("url_as_object", False)),
+                url_as_list=bool(rc.get("url_as_list", False)),
                 body_field=rc.get("body_field") or None,
                 payload_extra=rc.get("payload_extra") or None)
             n = 0
@@ -2383,8 +2384,9 @@ def run_apify_probe(target: str) -> int:
             print("apify_probe recover: no feed configured."); return 1
         body = apify_source.fetch_url_via_proxy(
             token, actor, str(feed["url"]),
-            input_key=str(rc.get("input_key", "startUrls")),
-            url_as_object=bool(rc.get("url_as_object", True)),
+            input_key=str(rc.get("input_key", "url")),
+            url_as_object=bool(rc.get("url_as_object", False)),
+            url_as_list=bool(rc.get("url_as_list", False)),
             body_field=rc.get("body_field") or None,
             payload_extra=rc.get("payload_extra") or None)
         if not body:
