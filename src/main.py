@@ -1510,7 +1510,19 @@ async def run_scorecard() -> int:
             continue
         todays.append(r)
 
-    card = scorecard.build_scorecard(todays)
+    # Grading window + flat band are config-driven (schedule.yaml::scorecard) so
+    # they can be tuned from the gradeability diagnostic below — no code change.
+    sc_cfg = (_load_configs()[2].get("scorecard") or {})
+    flat_pct = float(sc_cfg.get("flat_pct", scorecard.DEFAULT_FLAT_PCT))
+    sc_window = str(sc_cfg.get("window", "15m"))
+    # Diagnostic: the flat-band EXCLUSION RATE at each window, so a future
+    # band/window change is data-backed. (2026-08-13 concern: band excluded most
+    # samples — this measures whether that's still true post the #78 backfill fix.)
+    grad = scorecard.gradeability(todays, flat_pct=flat_pct)
+    log.info("scorecard gradeability (flat=%.2f%%, using %s): %s", flat_pct, sc_window,
+             {w: f"{d['graded']}g/{d['flat']}f/{d['pending']}p" for w, d in grad.items()})
+
+    card = scorecard.build_scorecard(todays, flat_pct=flat_pct, window=sc_window)
 
     # Persist the daily aggregate (source of truth for the rolling trend).
     store.upsert("scorecard_daily", {

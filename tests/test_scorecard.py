@@ -8,6 +8,7 @@ from __future__ import annotations
 from src.scorecard import (
     build_scorecard,
     grade,
+    gradeability,
     rolling_accuracy,
     rolling_accuracy_detail,
     verdict_to_dir,
@@ -135,6 +136,28 @@ def test_build_scorecard_empty():
     assert sc["n_graded"] == 0
     assert sc["accuracy_pct"] == 0.0
     assert sc["misses"] == []
+
+
+def test_build_scorecard_window_selects_return_column():
+    """A move flat at 15m but clear at 30m grades only under window='30m'."""
+    rows = [{"predicted_dir": "bull", "xau_return_15m": 0.05,   # < 0.10 band → flat
+             "xau_return_30m": 0.22, "xau_base_price": 2600}]
+    sc15 = build_scorecard(rows, window="15m")
+    assert sc15["n_graded"] == 0 and sc15["n_flat"] == 1
+    sc30 = build_scorecard(rows, window="30m")
+    assert sc30["n_graded"] == 1 and sc30["n_correct"] == 1
+
+
+def test_gradeability_reports_per_window_exclusion():
+    rows = [
+        {"predicted_dir": "bull", "xau_return_15m": 0.05, "xau_return_30m": 0.20},  # flat@15, graded@30
+        {"predicted_dir": "bear", "xau_return_15m": 0.30, "xau_return_30m": 0.30},  # graded both
+        {"predicted_dir": "bull", "xau_return_15m": None, "xau_return_30m": 0.40},  # pending@15, graded@30
+        {"predicted_dir": "neutral", "xau_return_15m": 0.50},                        # not directional → ignored
+    ]
+    g = gradeability(rows, flat_pct=0.10, windows=("15m", "30m"))
+    assert g["15m"] == {"graded": 1, "flat": 1, "pending": 1}
+    assert g["30m"] == {"graded": 3, "flat": 0, "pending": 0}
 
 
 def test_rolling_accuracy_weighted_by_calls():

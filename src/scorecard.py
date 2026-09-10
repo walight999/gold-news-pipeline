@@ -80,12 +80,42 @@ def grade(predicted_dir: str, r15_pct: float, flat_pct: float = DEFAULT_FLAT_PCT
     return "correct" if actual == predicted_dir else "wrong"
 
 
-def build_scorecard(rows: list[dict[str, Any]], flat_pct: float = DEFAULT_FLAT_PCT) -> dict[str, Any]:
+def gradeability(rows: list[dict[str, Any]], flat_pct: float = DEFAULT_FLAT_PCT,
+                 windows: tuple[str, ...] = ("5m", "15m", "30m", "60m")) -> dict[str, dict[str, int]]:
+    """Diagnostic: for each return window, how many directional calls are
+    gradeable (|move| >= flat band → correct/wrong) vs flat (excluded) vs
+    pending (no price yet). Logged every scorecard run so the flat-band
+    EXCLUSION RATE is a measured fact — the input for any future band/window
+    change — instead of a guess. Pure, no I/O."""
+    out: dict[str, dict[str, int]] = {}
+    for w in windows:
+        col = f"xau_return_{w}"
+        graded = flat = pending = 0
+        for r in rows:
+            if (r.get("predicted_dir") or "").strip() not in ("bull", "bear"):
+                continue
+            v = _to_float(r.get(col))
+            if v is None:
+                pending += 1
+            elif abs(v) >= flat_pct:
+                graded += 1
+            else:
+                flat += 1
+        out[w] = {"graded": graded, "flat": flat, "pending": pending}
+    return out
+
+
+def build_scorecard(rows: list[dict[str, Any]], flat_pct: float = DEFAULT_FLAT_PCT,
+                    window: str = "15m") -> dict[str, Any]:
     """Aggregate today's gradeable calibration rows into a scoreboard.
 
+    `window` selects which `xau_return_<window>` column drives grading (5m/15m/
+    30m/60m). Default 15m. A longer window develops larger moves so fewer calls
+    fall in the flat band — see `gradeability` for the measured trade-off.
+
     `rows` should already be filtered to the target day. Each row is expected to
-    carry `predicted_dir`, `xau_return_15m`, and (ideally) `xau_base_price` +
-    `title`/`country`/`predicted_verdict_th` for the miss list.
+    carry `predicted_dir`, `xau_return_<window>`, and (ideally) `xau_base_price`
+    + `title`/`country`/`predicted_verdict_th` for the miss list.
 
     Returns a dict with both the headline aggregate and a `misses` list (the
     wrong calls, largest $-move first). `n_pending` counts directional calls
@@ -96,11 +126,12 @@ def build_scorecard(rows: list[dict[str, Any]], flat_pct: float = DEFAULT_FLAT_P
     sum_down_usd = 0.0
     misses: list[dict[str, Any]] = []
 
+    ret_col = f"xau_return_{window}"
     for r in rows:
         pdir = (r.get("predicted_dir") or "").strip()
         if pdir not in ("bull", "bear", "neutral"):
             continue
-        r15 = _to_float(r.get("xau_return_15m"))
+        r15 = _to_float(r.get(ret_col))
         if r15 is None:
             # Directional call we made but can't grade yet (no price bar).
             if pdir in ("bull", "bear"):
