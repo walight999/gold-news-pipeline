@@ -60,6 +60,20 @@ social:
   # the cost. Add "digest" back to restore the old firehose.
   draft_routes: ["breaking", "alert"]
 
+scorecard:
+  # Directional-accuracy grading of calendar verdicts (src/scorecard.py).
+  # window: which xau_return_<window> drives grading — 5m/15m/30m/60m. 15m =
+  #   the immediate release reaction (default). A longer window develops bigger
+  #   moves so fewer calls fall in the flat band (more gradeable), at the cost of
+  #   more unrelated drift. Every run logs the gradeability at ALL windows
+  #   ("Ng/Mf/Pp" = graded/flat/pending) — pick the window from THAT data, not a guess.
+  # flat_pct: |move| below this (%) is "flat" → excluded from accuracy (neither
+  #   hit nor miss). 0.10% ≈ $2.6 on ~$2,600 gold. Raise to exclude more noise,
+  #   lower to grade more calls. NOTE: if you change `window`, also update the
+  #   "15 นาที" label on the scorecard card (line_flex.scorecard_bubble).
+  window: "15m"
+  flat_pct: 0.10
+
 session:
   # Active-session gate (ICT). London open → NY close.
   active_start_ict: "14:00"
