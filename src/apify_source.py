@@ -14,6 +14,7 @@ limits). A min-interval guard in main.py caps how often this runs so overlapping
 from __future__ import annotations
 
 import logging
+import re
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -25,6 +26,43 @@ log = logging.getLogger("apify_source")
 
 ACTOR = "kaitoeasyapi~twitter-x-data-tweet-scraper-pay-per-result-cheapest"
 ENDPOINT = f"https://api.apify.com/v2/acts/{ACTOR}/run-sync-get-dataset-items"
+
+_TAG_RE = re.compile(r"<[^>]+>")
+
+
+def run_actor(token: str, actor_id: str, payload: dict[str, Any],
+              timeout: float = 90.0) -> list[Any]:
+    """Run any Apify actor synchronously and return its dataset items.
+
+    Generic sibling of the X-specific `fetch_tweets` — every new Apify source
+    (Truth Social, Cloudflare-recovery) goes through here so the token handling
+    and error-swallowing live in ONE place. Never raises: returns [] on any
+    error, so a flaky third-party actor can never block the news run.
+
+    `actor_id` accepts either the store form `owner/name` or the API form
+    `owner~name`; both are normalised. Token travels in the Authorization
+    header (never the query string) so an Apify 4xx/5xx can't leak it into this
+    PUBLIC repo's Actions logs — same rule as fetch_tweets."""
+    if not token or not actor_id:
+        return []
+    aid = actor_id.replace("/", "~")
+    endpoint = f"https://api.apify.com/v2/acts/{aid}/run-sync-get-dataset-items"
+    try:
+        with httpx.Client(timeout=timeout) as c:
+            r = c.post(endpoint, headers={"Authorization": f"Bearer {token}"}, json=payload)
+        r.raise_for_status()
+        items = r.json()
+    except Exception as e:  # noqa: BLE001 — Apify is best-effort, never block the run
+        msg = str(e).replace(token, "***") if token else str(e)
+        log.warning("apify actor %s failed: %s", actor_id, msg)
+        return []
+    return items if isinstance(items, list) else []
+
+
+def _strip_html(s: str) -> str:
+    """Truth Social post bodies are HTML (`<p>…</p><a>…</a>`). Reduce to plain
+    text so the classifier and dedup see the same shape as a tweet."""
+    return _TAG_RE.sub(" ", s or "")
 
 
 def _pick(d: dict[str, Any], keys: list[str]) -> Any:
@@ -139,23 +177,8 @@ def fetch_tweets(token: str, handles: list[str], since_minutes: int = 20,
         "sort": "Latest",
         "lang": "en",
     }
-    try:
-        # Token in the Authorization header, NOT the query string. httpx's
-        # HTTPStatusError string embeds the full request URL, so a query-string
-        # token would leak into this PUBLIC repo's Actions logs on any Apify
-        # 4xx/5xx (429s are routine).
-        with httpx.Client(timeout=timeout) as c:
-            r = c.post(ENDPOINT, headers={"Authorization": f"Bearer {token}"}, json=payload)
-        r.raise_for_status()
-        items = r.json()
-    except Exception as e:  # noqa: BLE001 — Apify is best-effort, never block the run
-        # Defence in depth: redact the token from the error text too, in case a
-        # future code path (or the SDK) ever echoes it.
-        msg = str(e).replace(token, "***") if token else str(e)
-        log.warning("apify fetch failed: %s", msg)
-        return []
+    raw = run_actor(token, ACTOR, payload, timeout=timeout)
     entries: list[dict[str, Any]] = []
-    raw = items if isinstance(items, list) else []
     for t in raw:
         if isinstance(t, dict):
             e = _tweet_to_entry(t, tier=tier)
@@ -167,3 +190,149 @@ def fetch_tweets(token: str, handles: list[str], since_minutes: int = 20,
     log.info("apify: %d tweet entries from %d handles (%d records dropped)",
              len(entries), len(handles), len(raw) - len(entries))
     return entries
+
+
+# ---------------------------------------------------------------------------
+# Truth Social (Trump & co.) — no public API; a market-mover source not carried
+# by any RSS feed. Posts flow into the SAME pool as tweets (tier-2 wire), so
+# they dedup/score/route identically and can confirm an RSS/X break.
+#
+# Third-party actor: the output field names differ per actor, so `_field_map`
+# lets the operator remap without a code change, and every mapping is validated
+# once cheaply via `--mode apify_probe truth` (see main.py). We map on STRUCTURE
+# (no author / empty text ⇒ drop) exactly like the tweet path, so a billing
+# notice or malformed record can't become a news event.
+# ---------------------------------------------------------------------------
+
+# Default field aliases. Covers the shapes seen across the common Truth Social
+# actors (parsebird / automation-lab / tri_angle / muhammetakkurtt). Override
+# any list via config `truth_social.field_map`.
+_TRUTH_FIELDS: dict[str, list[str]] = {
+    "text": ["content", "text", "body", "rawContent", "caption"],
+    "url": ["url", "uri", "postUrl", "link"],
+    "handle": ["username", "acct", "handle", "screen_name"],
+    "created": ["created_at", "createdAt", "date", "published", "timestamp"],
+    "id": ["id", "post_id", "statusId"],
+}
+
+
+def _truth_handle(p: dict[str, Any], fm: dict[str, list[str]]) -> str | None:
+    """Author handle. Truth actors nest it under `account` OR flatten it; try
+    both. None (like the tweet path) means we can't attribute it ⇒ not news."""
+    acct = _pick(p, ["account", "author", "user"]) or {}
+    if isinstance(acct, dict):
+        h = _pick(acct, fm.get("handle", _TRUTH_FIELDS["handle"]))
+        if h:
+            return str(h)
+    h = _pick(p, fm.get("handle", _TRUTH_FIELDS["handle"]))
+    return str(h) if h else None
+
+
+def _truth_to_entry(p: dict[str, Any], tier: int = 2,
+                    field_map: dict[str, list[str]] | None = None) -> dict[str, Any] | None:
+    fm = field_map or _TRUTH_FIELDS
+    # Skip reblogs — we want each account's own posts (mirror of tweet isRetweet).
+    if _pick(p, ["reblog", "isReblog", "reblogged"]) not in (None, "", False, "false"):
+        return None
+    text = _strip_html(str(_pick(p, fm.get("text", _TRUTH_FIELDS["text"])) or ""))
+    text = " ".join(text.split())
+    if not text:
+        return None
+    handle = _truth_handle(p, fm)
+    if handle is None:
+        return None
+    url = _pick(p, fm.get("url", _TRUTH_FIELDS["url"]))
+    if not url:
+        tid = _pick(p, fm.get("id", _TRUTH_FIELDS["id"]))
+        if tid:
+            url = f"https://truthsocial.com/@{handle}/{tid}"
+    if not url:
+        return None
+    return {
+        "source_id": f"truth_{handle.lower()}",
+        "tier": tier,
+        "role": "trader_macro",
+        "title": text[:280],
+        "summary": "",
+        "url": str(url),
+        "published_ts": _parse_dt(_pick(p, fm.get("created", _TRUTH_FIELDS["created"]))),
+        "source_class": "wire",
+        "organization": f"truth_{handle.lower()}",
+    }
+
+
+def fetch_truth_social(token: str, actor_id: str, handles: list[str],
+                       max_per_handle: int = 8, tier: int = 2,
+                       input_key: str = "profiles",
+                       payload_extra: dict[str, Any] | None = None,
+                       field_map: dict[str, list[str]] | None = None,
+                       since_minutes: int | None = None,
+                       timeout: float = 120.0) -> list[dict[str, Any]]:
+    """RSS-shaped entries for recent Truth Social posts. Never raises → [].
+
+    `input_key` + `payload_extra` shape the actor input (actors differ: some
+    take `profiles: [handle]`, some `usernames`, some `startUrls`). `field_map`
+    remaps output fields. Both are config-driven so going live is a config +
+    one probe run, not a code change."""
+    if not token or not actor_id or not handles:
+        return []
+    payload: dict[str, Any] = {input_key: list(handles),
+                               "maxPosts": max_per_handle * len(handles)}
+    if payload_extra:
+        payload.update(payload_extra)
+    raw = run_actor(token, actor_id, payload, timeout=timeout)
+    cutoff = (now_utc() - timedelta(minutes=since_minutes)) if since_minutes else None
+    entries: list[dict[str, Any]] = []
+    for p in raw:
+        if not isinstance(p, dict):
+            continue
+        e = _truth_to_entry(p, tier=tier, field_map=field_map)
+        if not e:
+            continue
+        # Freshness gate (best-effort): only when the post carries a timestamp.
+        # A cron re-run over the same posts is otherwise deduped by sent_log.
+        if cutoff and e.get("published_ts") and e["published_ts"] < cutoff:
+            continue
+        entries.append(e)
+    log.info("apify truth: %d post entries from %d handles (%d records dropped)",
+             len(entries), len(handles), len(raw) - len(entries))
+    return entries
+
+
+# ---------------------------------------------------------------------------
+# Cloudflare-recovery — fetch a URL a normal httpx GET can no longer reach
+# (Benzinga 403 since 2026-06-19, and any future feed that hides behind
+# Cloudflare) through an Apify browser/unblocker actor, and hand the RAW body
+# back so the EXISTING `parser.parse_feed` handles it. We never guess the news
+# item shape here — only the actor's body field — because parse_feed already
+# knows RSS/Atom.
+# ---------------------------------------------------------------------------
+
+def fetch_url_via_proxy(token: str, actor_id: str, url: str,
+                        input_key: str = "startUrls", url_as_object: bool = True,
+                        body_field: list[str] | None = None,
+                        payload_extra: dict[str, Any] | None = None,
+                        timeout: float = 120.0) -> bytes | None:
+    """Return the raw response body (bytes, for parse_feed) of `url` fetched via
+    a Cloudflare-bypass Apify actor, or None on any failure.
+
+    Input shape is config-driven: `{input_key: [{"url": url}]}` when
+    `url_as_object` (the apify/*-scraper convention) else `{input_key: [url]}`.
+    `body_field` lists the dataset field holding the page body (default tries
+    the common names). Validate once with `--mode apify_probe recover:<id>`."""
+    if not token or not actor_id or not url:
+        return None
+    item: Any = {"url": url} if url_as_object else url
+    payload: dict[str, Any] = {input_key: [item]}
+    if payload_extra:
+        payload.update(payload_extra)
+    raw = run_actor(token, actor_id, payload, timeout=timeout)
+    if not raw or not isinstance(raw[0], dict):
+        log.warning("apify recover %s: actor returned no usable record for %s", actor_id, url)
+        return None
+    body = _pick(raw[0], body_field or ["body", "html", "content", "text", "data", "rawBody"])
+    if not body:
+        log.warning("apify recover %s: no body field in record for %s (keys=%s)",
+                    actor_id, url, list(raw[0].keys())[:12])
+        return None
+    return body.encode("utf-8") if isinstance(body, str) else bytes(body)

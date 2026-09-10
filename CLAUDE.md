@@ -125,6 +125,13 @@ with no 15m bar show as ⏳ pending, not wrong.
 - `main.py::run_once` — the cron pipeline (fetch→normalize→cluster→score→route→send).
 - `apify_source.py` — scrapes X accounts (config `x_accounts`), tweets become
   RSS-shaped entries (tier=2, role=trader_macro). Gated by `APIFY_TOKEN`.
+  **2026-09-10 upgrades (see `docs/APIFY-UPGRADES.md`):** generic `run_actor`
+  runner + `fetch_truth_social` (Trump posts, config `truth_social`, opt-in) +
+  `fetch_url_via_proxy` (Cloudflare-recovery of blocked RSS like Benzinga →
+  raw body → `parse_feed`, config `apify_recover`, opt-in). `main._collect_apify_entries`
+  drives all three; **event mode bursts X to 3-min cadence + `event_extra_handles`**.
+  Validate opt-in sources cheaply with `--mode apify_probe --target x|truth|recover:<id>`
+  (one actor call; prints raw keys + mapped entries) BEFORE flipping `enabled: true`.
 - `news_alert.py` — Claude Haiku classify + Thai rewrite for LINE. **Do not
   repurpose for social** — keep LINE and social independent. Also owns
   `explain_calendar_release()` — short Thai "what this print means for gold"

@@ -130,6 +130,109 @@ def _load_configs() -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
 
 # --------------- Single-run pipeline ---------------
 
+def _apify_due(store, key: str, interval_min: int) -> bool:
+    """Cost guard: has `interval_min` passed since this Apify sub-source last
+    ran? State tracked in source_state under a synthetic `key` (e.g. `_apify`)."""
+    from .utils_time import parse_iso
+    last = store.get("source_state", (key,)) or {}
+    last_ts = parse_iso(last.get("last_attempt_ts"))
+    return (last_ts is None) or (now_utc() - last_ts).total_seconds() >= interval_min * 60
+
+
+def _mark_apify(store, key: str, n: int) -> None:
+    ts = iso_utc(now_utc())
+    store.upsert("source_state", {"source_id": key, "last_attempt_ts": ts,
+                                  "last_success_ts": ts, "items_last_hour": n})
+
+
+def _collect_apify_entries(store, src_cfg, mode: str) -> list[dict[str, Any]]:
+    """Every Apify-sourced entry for this run, RSS-shaped and ready for the
+    normal pool: X/Twitter (with event-mode burst), Truth Social, and
+    Cloudflare-recovered feeds. Each sub-source is independently cost-gated and
+    best-effort — a failure returns [] and never blocks the news run.
+
+    Event mode uses the shorter `event_min_interval_min` so the hot CPI/NFP/FOMC
+    window actually bursts (X ~every 3 min) instead of sitting on the 12-min
+    guard, and can widen to `event_extra_handles`. That concentrates the Apify
+    spend on the minutes gold actually moves rather than smearing it flat."""
+    token = os.environ.get("APIFY_TOKEN", "")
+    if not token:
+        return []
+    from . import apify_source
+    event = (mode == "event")
+    out: list[dict[str, Any]] = []
+
+    # --- X / Twitter (the original source; kaitoeasyapi) ---
+    xc = src_cfg.get("x_accounts") or {}
+    if xc.get("enabled") and xc.get("handles"):
+        interval = int(xc.get("event_min_interval_min", 3) if event
+                       else xc.get("min_interval_min", 12))
+        if _apify_due(store, "_apify", interval):
+            handles = list(xc.get("handles") or [])
+            if event:
+                handles += [h for h in (xc.get("event_extra_handles") or [])
+                            if h not in handles]
+            since = int(xc.get("event_since_minutes", interval + 2) if event
+                        else xc.get("since_minutes", 20))
+            tweets = apify_source.fetch_tweets(
+                token, handles, since_minutes=since,
+                max_per_handle=int(xc.get("max_per_handle", 8)),
+                tier=int(xc.get("tier", 2)))
+            out.extend(tweets)
+            _mark_apify(store, "_apify", len(tweets))
+            log.info("apify X: +%d entries (mode=%s interval=%dm handles=%d)",
+                     len(tweets), mode, interval, len(handles))
+
+    # --- Truth Social (opt-in; needs actor_id + one apify_probe validation) ---
+    tc = src_cfg.get("truth_social") or {}
+    if tc.get("enabled") and tc.get("actor_id") and tc.get("handles"):
+        interval = int(tc.get("event_min_interval_min", 5) if event
+                       else tc.get("min_interval_min", 15))
+        if _apify_due(store, "_apify_truth", interval):
+            posts = apify_source.fetch_truth_social(
+                token, str(tc["actor_id"]), list(tc.get("handles") or []),
+                max_per_handle=int(tc.get("max_per_handle", 6)),
+                tier=int(tc.get("tier", 2)),
+                input_key=str(tc.get("input_key", "profiles")),
+                payload_extra=tc.get("payload_extra") or None,
+                field_map=tc.get("field_map") or None,
+                since_minutes=int(tc["since_minutes"]) if tc.get("since_minutes") else None)
+            out.extend(posts)
+            _mark_apify(store, "_apify_truth", len(posts))
+            log.info("apify truth: +%d entries (mode=%s)", len(posts), mode)
+
+    # --- Cloudflare-recovered RSS (parse_feed handles the recovered body) ---
+    rc = src_cfg.get("apify_recover") or {}
+    if rc.get("enabled") and rc.get("actor_id") and rc.get("feeds"):
+        interval = int(rc.get("min_interval_min", 10))
+        for feed in rc.get("feeds") or []:
+            if not feed.get("url"):
+                continue
+            key = f"_apify_recover:{feed.get('id') or feed['url']}"
+            if not _apify_due(store, key, interval):
+                continue
+            body = apify_source.fetch_url_via_proxy(
+                token, str(rc["actor_id"]), str(feed["url"]),
+                input_key=str(rc.get("input_key", "startUrls")),
+                url_as_object=bool(rc.get("url_as_object", True)),
+                body_field=rc.get("body_field") or None,
+                payload_extra=rc.get("payload_extra") or None)
+            n = 0
+            if body:
+                recovered = parse_feed(body, {
+                    "id": feed.get("id", "apify_recover"),
+                    "tier": int(feed.get("tier", 2)),
+                    "role": feed.get("role", "trader_macro"),
+                    "source_class": feed.get("source_class", "wire"),
+                    "organization": feed.get("organization") or feed.get("id")})
+                out.extend(recovered)
+                n = len(recovered)
+            _mark_apify(store, key, n)
+            log.info("apify recover %s: +%d entries", feed.get("id"), n)
+
+    return out
+
+
 async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
     src_cfg, kw_cfg, sched_cfg = _load_configs()
 
@@ -206,32 +309,10 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
                 state["source_id"] = r.source["id"]
                 store.upsert("source_state", state)
             health.mark_validated(store, r.source["id"])
-    # 2b. Apify X/Twitter fast-news — feed high-signal accounts into the SAME
-    # pool (reaches LINE + social). Gated by APIFY_TOKEN + config + a min-interval
-    # cost guard tracked in source_state under the synthetic id "_apify".
-    apify_cfg = src_cfg.get("x_accounts") or {}
-    apify_token = os.environ.get("APIFY_TOKEN", "")
-    if apify_cfg.get("enabled") and apify_token and apify_cfg.get("handles"):
-        from .utils_time import parse_iso
-        interval_min = int(apify_cfg.get("min_interval_min", 12))
-        last = store.get("source_state", ("_apify",)) or {}
-        last_ts = parse_iso(last.get("last_attempt_ts"))
-        due = (last_ts is None) or (now_utc() - last_ts).total_seconds() >= interval_min * 60
-        if due:
-            from . import apify_source
-            tweets = apify_source.fetch_tweets(
-                apify_token,
-                list(apify_cfg.get("handles") or []),
-                since_minutes=int(apify_cfg.get("since_minutes", 20)),
-                max_per_handle=int(apify_cfg.get("max_per_handle", 8)),
-                tier=int(apify_cfg.get("tier", 2)),
-            )
-            raw_entries.extend(tweets)
-            store.upsert("source_state", {"source_id": "_apify",
-                                          "last_attempt_ts": iso_utc(now_utc()),
-                                          "last_success_ts": iso_utc(now_utc()),
-                                          "items_last_hour": len(tweets)})
-            log.info("apify: added %d tweet entries to pool", len(tweets))
+    # 2b. Apify fast-news — X/Twitter (+ event-mode burst), Truth Social, and
+    # Cloudflare-recovered feeds. All best-effort + independently cost-gated;
+    # see _collect_apify_entries. Feeds the SAME pool (reaches LINE + social).
+    raw_entries.extend(_collect_apify_entries(store, src_cfg, mode))
 
     items = normalize(raw_entries)
     log.info("items normalized: %d (from %d entries)", len(items), len(raw_entries))
@@ -2227,6 +2308,94 @@ async def run_macro_push() -> int:
     return 0
 
 
+def run_apify_probe(target: str) -> int:
+    """Cheap one-shot validation of an Apify source before you enable it.
+
+    `target`: `x` | `truth` | `recover:<feed_id>` (or `recover` for the first
+    feed). Runs exactly ONE actor call (a few cents), needs APIFY_TOKEN set
+    locally, and prints the raw records plus what the mapper extracted — so a
+    wrong actor_id / field name is visible here instead of failing silently in
+    production. Fix the config, re-probe, then flip `enabled: true`."""
+    src_cfg, _, _ = _load_configs()
+    token = os.environ.get("APIFY_TOKEN", "")
+    if not token:
+        print("apify_probe: APIFY_TOKEN not set in the environment.")
+        return 1
+    from . import apify_source
+
+    if target == "x":
+        xc = src_cfg.get("x_accounts") or {}
+        entries = apify_source.fetch_tweets(
+            token, list(xc.get("handles") or []),
+            since_minutes=int(xc.get("since_minutes", 20)),
+            max_per_handle=int(xc.get("max_per_handle", 8)))
+        print(f"[x] {len(entries)} entries. Sample:")
+        for e in entries[:5]:
+            print(f"  {e['source_id']}: {e['title'][:100]}")
+        return 0
+
+    if target == "truth":
+        tc = src_cfg.get("truth_social") or {}
+        actor = str(tc.get("actor_id") or "")
+        if not actor:
+            print("apify_probe truth: set truth_social.actor_id first."); return 1
+        handles = list(tc.get("handles") or [])
+        payload = {str(tc.get("input_key", "profiles")): handles,
+                   "maxPosts": int(tc.get("max_per_handle", 6)) * max(len(handles), 1)}
+        payload.update(tc.get("payload_extra") or {})
+        raw = apify_source.run_actor(token, actor, payload)
+        print(f"[truth] actor={actor} raw_records={len(raw)}")
+        if raw and isinstance(raw[0], dict):
+            print(f"  record[0] keys: {list(raw[0].keys())}")
+        entries = apify_source.fetch_truth_social(
+            token, actor, handles,
+            max_per_handle=int(tc.get("max_per_handle", 6)),
+            input_key=str(tc.get("input_key", "profiles")),
+            payload_extra=tc.get("payload_extra") or None,
+            field_map=tc.get("field_map") or None)
+        print(f"  mapped {len(entries)} entries. Sample:")
+        for e in entries[:5]:
+            print(f"    {e['source_id']}: {e['title'][:100]}")
+        if raw and not entries:
+            print("  ⚠ actor returned records but the mapper extracted 0 — "
+                  "adjust truth_social.field_map to match the keys above.")
+        return 0
+
+    if target.startswith("recover"):
+        rc = src_cfg.get("apify_recover") or {}
+        actor = str(rc.get("actor_id") or "")
+        if not actor:
+            print("apify_probe recover: set apify_recover.actor_id first."); return 1
+        feeds = rc.get("feeds") or []
+        fid = target.split(":", 1)[1] if ":" in target else ""
+        feed = next((f for f in feeds if f.get("id") == fid), feeds[0] if feeds else None)
+        if not feed:
+            print("apify_probe recover: no feed configured."); return 1
+        body = apify_source.fetch_url_via_proxy(
+            token, actor, str(feed["url"]),
+            input_key=str(rc.get("input_key", "startUrls")),
+            url_as_object=bool(rc.get("url_as_object", True)),
+            body_field=rc.get("body_field") or None,
+            payload_extra=rc.get("payload_extra") or None)
+        if not body:
+            print(f"[recover] {feed.get('id')}: no body returned — check actor_id / "
+                  "input_key / body_field against the actor's docs."); return 1
+        print(f"[recover] {feed.get('id')}: {len(body)} bytes. First 300 chars:")
+        print("  " + body[:300].decode("utf-8", "replace"))
+        parsed = parse_feed(body, {"id": feed.get("id", "recover"),
+                                   "tier": int(feed.get("tier", 2)),
+                                   "role": feed.get("role", "trader_macro"),
+                                   "source_class": feed.get("source_class", "wire"),
+                                   "organization": feed.get("organization")})
+        print(f"  parse_feed → {len(parsed)} entries")
+        for e in parsed[:5]:
+            print(f"    {e['title'][:100]}")
+        return 0
+
+    print(f"apify_probe: unknown target '{target}'. Use x | truth | recover[:<id>].")
+    return 1
+
+
 async def run_event_mode(duration_min: int = 30, sleep_sec: int = 60) -> int:
     deadline = _time.time() + duration_min * 60
     iteration = 0
@@ -2256,11 +2425,15 @@ def main(argv: list[str] | None = None) -> int:
         "weekly_preview", "eod_recap", "verify_sources", "maintain",
         "watchdog", "social_post", "social_seed",
         "backfill_xau", "precision_report", "scorecard", "macro",
-        "content_review",
+        "content_review", "apify_probe",
     ), default="cron")
     p.add_argument("--event-duration-min", type=int, default=30)
     p.add_argument("--event-sleep-sec", type=int, default=60)
+    p.add_argument("--target", default="x",
+                   help="apify_probe target: x | truth | recover[:<feed_id>]")
     args = p.parse_args(argv)
+    if args.mode == "apify_probe":
+        return run_apify_probe(args.target)
     if args.mode == "event":
         return asyncio.run(run_event_mode(args.event_duration_min, args.event_sleep_sec))
     if args.mode == "calendar_daily":
