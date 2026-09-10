@@ -59,6 +59,10 @@ class MarketAlert:
     impact_th: str | None = None
     reason: str = ""
     is_fallback: bool = False    # True = permissive Google-translate accept (Claude down)
+    # Transient (NOT serialized): grammar-QC issue labels found on this rewrite,
+    # for logging + content_log visibility. Empty after a successful repair. The
+    # cached copy is the post-repair text, so cache hits need no flags.
+    grammar_flags: list[str] = field(default_factory=list)
 
     @property
     def should_send(self) -> bool:
@@ -250,6 +254,24 @@ BANNED Thai phrasings — these are unnatural / machine-translation artifacts:
 - Any literal back-translation of "amid" / "drag" / "weighing on" that produces awkward Thai.
 Use natural Thai trading-desk vocabulary instead.
 
+NATURAL THAI GRAMMAR — write like a Thai desk analyst, not a translator:
+- NEVER leave an English verb/preposition untranslated (amid, weighing, ahead of,
+  despite, soaring, plunging, dragging, surging). Translate the whole action.
+- Prefer active Thai verbs over English-style passive "ถูก...โดย".
+  BAD: "ทองถูกกดดันโดยดอลลาร์ที่แข็งค่า"  → GOOD: "ดอลลาร์แข็งค่ากดดันทอง"
+- Don't over-nominalise with "การ..." when a plain verb reads better.
+  BAD: "การปรับตัวขึ้นของราคาทองเกิดขึ้นหลังการประกาศตัวเลข"
+  GOOD: "ราคาทองปรับขึ้นหลังตัวเลขออก"
+- Lead with subject + action; keep one clear idea per sentence. No sentence may
+  end dangling on a connector (และ / แต่ / ที่ / ของ / เพื่อ).
+- Connect clauses with natural Thai (หลัง / หลังจาก / เนื่องจาก / ส่งผลให้ /
+  ขณะที่) — not a literal "as" / "amid" / "while".
+Grammar example:
+  Input:  "Gold slips as dollar firms ahead of CPI"
+  BAD  →  "ทองลื่นไถล as ดอลลาร์แข็ง ahead of CPI"   (English leaked, not Thai)
+  BAD  →  "ทองถูกลดลงโดยการแข็งค่าของดอลลาร์"          (awkward passive + over-nominalised)
+  GOOD →  "ทองอ่อนตัว หลังดอลลาร์แข็งค่าก่อนตัวเลข CPI"
+
 NAMES — Thai-script transliteration:
 ทรัมป์ / ไบเดน / แฮร์ริส / สี จิ้นผิง / หลี่ เฉียง / ปูติน / เซเลนสกี / เนทันยาฮู /
 คิม จอง อึน / ยุน ซอกยอล / โมดี / พาวเวลล์ / ลาการ์ด / อูเอดะ / เบลีย์ /
@@ -299,9 +321,10 @@ def _cache_key_alert(title: str, summary: str) -> str:
     h = hashlib.sha256(f"{title}\n{summary or ''}".encode("utf-8")).hexdigest()[:14]
     # Version prefix — bump to invalidate ALL old cached classifications when the
     # classifier prompt / rules change. a3 (2026-06-16): new strict reject rules
-    # + relevance gate + complete-sentence summaries; also purges the fallback
-    # (Google-translate "Other") rows that used to be cached and re-served.
-    return f"a3{h}"   # total 16 chars to fit existing cache_key column width
+    # + relevance gate + complete-sentence summaries. a4 (2026-09-10): natural-Thai
+    # grammar section added to the prompt + grammar QC/repair pass, so a3 rows hold
+    # pre-QC copy — invalidate them so the naturalised text takes effect at once.
+    return f"a4{h}"   # total 16 chars to fit existing cache_key column width
 
 
 def _cache_lookup(store: "Store | None", key: str) -> MarketAlert | None:
@@ -423,6 +446,107 @@ def _month_tokens_over_cap(store: "Store | None") -> bool:
     return False
 
 
+# ------------------------------------------------------------------ grammar QC
+_GRAMMAR_REPAIR_PROMPT = """You are a senior Thai financial-news copy editor. The Thai below was machine-rewritten and reads unnatural (literal English word order, leaked English words, or awkward phrasing). Rewrite it into fluent, natural Thai the way a professional Bangkok trading desk writes.
+
+HARD RULES:
+- Preserve EVERY fact, number, %, date, ticker, and entity exactly. Add nothing, drop nothing.
+- Keep already-correct English terms (CPI, Fed, FOMC, USD, DXY, hawkish, dovish, safe-haven, yields).
+- Canonical Thai names/places (ทรัมป์, พาวเวลล์, ลาการ์ด, ยูเครน, ช่องแคบฮอร์มุส).
+- NO Chinese/Japanese/Korean characters. NO em-dash. Gregorian years only (2026), never พ.ศ.
+- Fix ONLY grammar/naturalness. Same meaning, same number of body bullets.
+
+Issues detected: {issues}
+
+Return STRICT JSON, ONE object, no prose or code fence:
+{"headline_th": "...", "body_th": ["..."], "impact_th": "..."}
+
+Current text:
+HEADLINE: {headline}
+BODY: {body}
+IMPACT: {impact}
+
+Corrected JSON:"""
+
+
+def _grammar_repair_enabled() -> bool:
+    """Hybrid default ON: the rule check flags every card for free; the LLM
+    repair fires ONLY on flagged cards, so cost is bounded to genuinely-bad
+    output. GRAMMAR_LLM_REPAIR=0 disables the LLM pass (rule warnings still log)."""
+    return os.environ.get("GRAMMAR_LLM_REPAIR", "1").strip().lower() not in ("0", "false", "no", "")
+
+
+def _repair_grammar_llm(alert: "MarketAlert", issues: list[str]) -> "MarketAlert | None":
+    """One LLM pass (Sonnet by default via GRAMMAR_REPAIR_MODEL) that rewrites
+    the flagged Thai fields naturally. Returns a NEW MarketAlert with repaired
+    display fields (classification fields copied from `alert`), or None on any
+    failure so the caller keeps the original. Best-effort, never raises."""
+    import time as _t
+    from .translator import (_get_anthropic_client, _has_cjk, _patch_names,
+                             _patch_places, strip_em_dash)
+    client = _get_anthropic_client()
+    if not client:
+        return None
+    model = os.environ.get("GRAMMAR_REPAIR_MODEL", "claude-sonnet-4-6").strip()
+    prompt = (_GRAMMAR_REPAIR_PROMPT
+              .replace("{issues}", ", ".join(issues) or "awkward Thai")
+              .replace("{headline}", alert.headline_th or "")
+              .replace("{body}", " | ".join(alert.body_th or []))
+              .replace("{impact}", alert.impact_th or ""))
+    try:
+        _gap = _t.time() - _LAST_CLAUDE_CALL[0]
+        if _gap < _MIN_CLAUDE_GAP_S:
+            _t.sleep(_MIN_CLAUDE_GAP_S - _gap)
+        _LAST_CLAUDE_CALL[0] = _t.time()
+        resp = client.messages.create(model=model, max_tokens=900,
+                                      messages=[{"role": "user", "content": prompt}])
+        d = _parse_json_lenient(resp.content[0].text)
+    except Exception as e:  # noqa: BLE001 — best-effort; keep original on any failure
+        log.warning("grammar repair failed: %s", e)
+        return None
+    if not d:
+        return None
+
+    def _norm(t: str | None) -> str | None:
+        return strip_em_dash(_patch_places(_patch_names(t))) if t else t
+    headline = _norm(d.get("headline_th"))
+    body = [b for b in (_norm(x) for x in (d.get("body_th") or []) if x) if b][:3]
+    impact = _norm(d.get("impact_th"))
+    if not headline:                       # a keep must retain its headline
+        return None
+    if any(_has_cjk(x) for x in (headline, impact, *body)):
+        return None                        # never let repair introduce CJK
+    return MarketAlert(
+        action=alert.action, news_type=alert.news_type,
+        relevance_to_gold=alert.relevance_to_gold, freshness=alert.freshness,
+        tone=alert.tone, category=alert.category,
+        headline_th=headline, body_th=body, impact_th=impact, reason=alert.reason)
+
+
+def _apply_grammar_qc(alert: "MarketAlert") -> "MarketAlert":
+    """Rule-based grammar warnings on every kept card (free); on a flag, log it
+    and — when repair is enabled (hybrid) — spend ONE LLM pass to fix it, keeping
+    the repair only if it actually REDUCED the warning count (never a regression)."""
+    from .thai_grammar import alert_grammar_warnings
+    warnings = alert_grammar_warnings(alert.headline_th, alert.body_th, alert.impact_th)
+    if not warnings:
+        return alert
+    _RUN_STATS["grammar_flags"] = _RUN_STATS.get("grammar_flags", 0) + 1
+    log.warning("grammar QC: [%s] on '%s'", ", ".join(warnings), (alert.headline_th or "")[:70])
+    alert.grammar_flags = warnings
+    if not _grammar_repair_enabled():
+        return alert
+    repaired = _repair_grammar_llm(alert, warnings)
+    if repaired is None:
+        return alert
+    remaining = alert_grammar_warnings(repaired.headline_th, repaired.body_th, repaired.impact_th)
+    if len(remaining) < len(warnings):
+        repaired.grammar_flags = remaining
+        log.info("grammar QC: repaired %d→%d warning(s)", len(warnings), len(remaining))
+        return repaired
+    return alert
+
+
 def classify_and_rewrite(
     title: str,
     summary: str,
@@ -497,6 +621,13 @@ def classify_and_rewrite(
         result = _fallback_alert(title, summary or "", store=store)
         used_fallback = True
         _RUN_STATS["fallbacks"] += 1
+
+    # Grammar QC (hybrid) — rule-check every real keep for free; repair the
+    # flagged minority with one LLM pass BEFORE caching, so the cached copy (and
+    # every 24h cache hit) serves the naturalised text. Fallbacks are skipped
+    # (they're a known-degraded outage path, not worth a repair call).
+    if not used_fallback and result.action == "keep":
+        result = _apply_grammar_qc(result)
 
     # NEVER cache the fallback — it's a permissive Google-translate accept used
     # only during a Claude outage. Caching it poisoned the digest: a single

@@ -239,7 +239,7 @@ def test_cache_key_distinct_per_title():
     c = _cache_key_alert("Fed signals rate hike", "Powell speech")
     assert a == b
     assert a != c
-    assert a.startswith("a3")   # versioned prefix (bumped to invalidate old cache)
+    assert a.startswith("a4")   # versioned prefix (bumped to invalidate old cache)
     assert len(a) == 16
 
 
