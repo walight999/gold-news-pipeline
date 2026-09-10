@@ -46,11 +46,16 @@ x_accounts:
 # enabled: true. Gated by APIFY_TOKEN like everything Apify.
 truth_social:
   enabled: false
-  # VERIFY via the probe, then keep or swap. Candidates seen 2026-09 on Apify:
-  # parsebird/truth-social-scraper, automation-lab/truth-social-scraper,
-  # tri_angle/truth-scraper, muhammetakkurtt/truth-social-scraper.
+  # Default = parsebird/truth-social-scraper. Its schema is pre-matched below
+  # (verified from the actor docs 2026-09-10): input `username` ONE-per-run
+  # (so per_handle calls it once per handle), output `content`/`created_at`/
+  # `url`/`account.username`/`reblog` — all covered by the default field_map.
+  # Swap freely: automation-lab / tri_angle / muhammetakkurtt also exist; if you
+  # switch to a LIST actor set per_handle: false + input_key accordingly.
   actor_id: "parsebird/truth-social-scraper"
-  input_key: "profiles"       # some actors want "usernames" or "startUrls" — probe tells you
+  per_handle: true            # true = one actor call per handle via `username_key`
+  username_key: "username"    # parsebird's single-username input field
+  input_key: "profiles"       # only used when per_handle: false (list actors)
   min_interval_min: 15
   event_min_interval_min: 5
   since_minutes: 45           # freshness gate (only applied when posts carry a timestamp)
@@ -59,9 +64,10 @@ truth_social:
   handles:
     - realDonaldTrump
     - DonaldJTrumpJr
-  payload_extra: {}           # merged into actor input (e.g. {"onlyPosts": true})
-  field_map: {}               # override output field names if the probe extracts 0
-                              # e.g. {text: [content], handle: [username], created: [created_at]}
+  payload_extra: {}           # merged into actor input (e.g. {"onlyMedia": false})
+  field_map: {}               # override output field names ONLY if the probe extracts 0
+                              # (parsebird works with the defaults; e.g. a fork might need
+                              #  {text: [content], handle: [username], created: [created_at]})
 
 # Cloudflare-recovery (2026-09-10) — fetch RSS feeds that a plain httpx GET can
 # no longer reach (Benzinga has 403'd behind Cloudflare since 2026-06-19) via an
