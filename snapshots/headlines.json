@@ -2,70 +2,70 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-09-10T23:16:01Z",
+      "ts": "2026-09-11T01:16:06Z",
       "title": "global · Other",
       "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-10T23:16:01Z",
+      "ts": "2026-09-11T01:16:06Z",
       "title": "wgc · Gold Flow · risk off",
       "source": "Yahoo Finance",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-10T23:16:01Z",
+      "ts": "2026-09-11T01:16:06Z",
       "title": "global · Other",
       "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-10T23:16:01Z",
+      "ts": "2026-09-11T01:16:06Z",
       "title": "global · Other",
       "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-10T23:16:01Z",
-      "title": "mideast · Geopolitics · risk off",
+      "ts": "2026-09-11T01:16:06Z",
+      "title": "us · Usd Yields",
       "source": "Yahoo Finance",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-10T23:16:01Z",
-      "title": "global · Other · risk on",
+      "ts": "2026-09-11T01:16:06Z",
+      "title": "mideast · Geopolitics",
       "source": "Yahoo Finance",
-      "score": 0.1,
+      "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-10T23:16:01Z",
-      "title": "fed · Rate Policy",
-      "source": "Yahoo Finance",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-09-10T23:16:01Z",
+      "ts": "2026-09-11T01:16:06Z",
       "title": "global · Other",
       "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-10T23:16:01Z",
+      "ts": "2026-09-11T01:16:06Z",
+      "title": "global · Other",
+      "source": "Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-09-11T01:16:06Z",
       "title": "global · Other · risk on",
       "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-10T23:16:01Z",
+      "ts": "2026-09-11T01:16:06Z",
       "title": "us · Usd Yields",
       "source": "Cnbc",
       "score": 0.3,
@@ -73,5 +73,5 @@
     }
   ],
   "count": 10,
-  "written_at": "2026-09-10T23:19:55.543966Z"
+  "written_at": "2026-09-11T01:20:47.788710Z"
 }
