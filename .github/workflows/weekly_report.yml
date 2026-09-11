@@ -1,0 +1,37 @@
+name: weekly-report
+on:
+  schedule:
+    # 03:30 UTC Sunday = 10:30 ICT Sun. After a full ICT week; late enough that
+    # Saturday's releases have their 15m/30m returns backfilled. Idempotent per
+    # ISO week, so a throttled native cron that fires late still delivers once.
+    # For on-time delivery add a 03:30-UTC-Sunday job to cron-job.org (see
+    # docs/DISPATCHER-CRON.md).
+    - cron: "30 3 * * 0"
+  workflow_dispatch: {}
+
+concurrency:
+  # READS the durable tabs + WRITES weekly_report; store.flush() rewrites whole
+  # tabs, so serialise against news-cron / calendar / backfill / scorecard.
+  group: gold-news
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    env:
+      LINE_CHANNEL_TOKEN: ${{ secrets.LINE_CHANNEL_TOKEN }}
+      LINE_NEWS_TARGET:   ${{ secrets.LINE_NEWS_TARGET }}
+      LINE_HEALTH_TARGET: ${{ secrets.LINE_HEALTH_TARGET }}
+      GSHEET_ID:          ${{ secrets.GSHEET_ID }}
+      GSHEET_CREDS:       ${{ secrets.GSHEET_CREDS }}
+      PYTHONUNBUFFERED:   "1"
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: python -m src.main --mode weekly_report

@@ -184,6 +184,14 @@ SCHEMAS: dict[str, list[str]] = {
     "health_log": [
         "source_id", "warning_type", "warning_ts", "resolved_ts", "updated_at",
     ],
+    # One row per ISO week — the weekly performance/tuning dashboard
+    # (src/weekly_report.py). Headline columns are queryable; `report_json` holds
+    # the full structured report (routing precision, gradeability, sources, the
+    # tuning candidates) so a new metric never needs a schema migration.
+    "weekly_report": [
+        "week", "sent", "failed", "accuracy_pct", "n_tuning_candidates",
+        "report_json", "updated_at",
+    ],
     "translation_cache": [
         # cache_key = first 16 chars of SHA-256(source_text). source_text
         # truncated to 80 chars purely for human inspection; full lookup
@@ -202,6 +210,7 @@ PRIMARY_KEYS: dict[str, tuple[str, ...]] = {
     "translation_cache": ("cache_key",),
     "scorecard_daily": ("date_ict",),
     "delivery_daily": ("date_ict",),
+    "weekly_report": ("week",),
 }
 
 

@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import json
 import logging
 import os
 import sys
@@ -22,7 +23,7 @@ from typing import Any
 import yaml
 
 from . import calendar as cal
-from . import content_log, dedup, delivery_stats, digest, fred, health, macro_push, news_alert, ops_alert, price_feed, scorecard, scorer, social_feed, telegram_news, translator
+from . import content_log, dedup, delivery_stats, digest, fred, health, macro_push, news_alert, ops_alert, price_feed, scorecard, scorer, social_feed, telegram_news, translator, weekly_report
 from .fetcher import fetch_all, plan_fetch
 from .line_client import (
     PRIORITY_BRIEFING,
@@ -48,6 +49,7 @@ from .line_flex import (
     score_to_impact,
     scorecard_bubble,
     weekly_preview_bubble,
+    weekly_report_bubble,
 )
 from .normalizer import normalize
 from .parser import parse_feed
@@ -2323,6 +2325,84 @@ async def run_macro_push() -> int:
     return 0
 
 
+async def run_weekly_report() -> int:
+    """Weekly performance/tuning dashboard → weekly_report tab + detailed run log
+    + a 1:1 LINE card. Idempotent per ISO week. Complements content_review (which
+    covers content feedback); this is the routing/scorecard/delivery/cost side +
+    evidence-cited tuning candidates. Private introspection — 1:1 only."""
+    store = Store.from_env()
+    store.connect()
+    store.load_all()
+
+    ict = now_ict()
+    iso_year, iso_week, _ = ict.isocalendar()
+    week_key = f"{iso_year}-W{iso_week:02d}"
+    sent_key = f"weekly_report:{week_key}"
+    if store.get("sent_log", (sent_key, "weekly_report")):
+        log.info("weekly_report already sent for %s — skipping", week_key)
+        return 0
+
+    # flat_pct from the scorecard config so the gradeability rows agree with it.
+    flat_pct = float((_load_configs()[2].get("scorecard") or {}).get("flat_pct", 0.10))
+    rep = weekly_report.build_weekly_report(
+        now_utc(),
+        delivery_rows=store.all_rows("delivery_daily"),
+        scorecard_rows=store.all_rows("scorecard_daily"),
+        calibration_rows=store.all_rows("calibration_log"),
+        source_rows=store.all_rows("source_state"),
+        classifier_health_row=store.get("source_state", ("_classifier_health",)),
+        flat_pct=flat_pct,
+    )
+
+    # Detailed breakdown to the run log (readable via `gh run view --log`).
+    d, sc = rep["delivery"], rep["scorecard"]
+    log.info("=== WEEKLY REPORT %s (%dd) ===", week_key, rep["window_days"])
+    log.info("delivery: sent=%d failed=%d (%.0f%%) | by_route=%s",
+             d["n_sent"], d["n_failed"], d["fail_rate"] * 100, d["by_route"])
+    log.info("scorecard: accuracy=%s over %d graded (%d flat)",
+             sc.get("accuracy_pct"), sc.get("graded", 0), sc.get("flat", 0))
+    log.info("gradeability: %s", {w: f"{g['graded']}g/{g['flat']}f"
+                                  for w, g in rep["gradeability"].items()})
+    log.info("routing (top by n): %s", [f"{r['topic']}·{r['route']} n={r['n']} "
+             f"hit={r['hit_pct']}% mv={r['avg_abs_move']}%" for r in rep["routing"][:8]])
+    log.info("classifier cost: %s | sources: %s", rep["classifier_cost"], rep["sources"])
+    for c in rep["tuning_candidates"]:
+        log.info("TUNING CANDIDATE: %s", c)
+    if not rep["tuning_candidates"]:
+        log.info("no tuning candidates this week — metrics within band")
+
+    # Persist the week's row (headline cols + full JSON).
+    store.upsert("weekly_report", {
+        "week": week_key, "sent": d["n_sent"], "failed": d["n_failed"],
+        "accuracy_pct": sc.get("accuracy_pct") if sc.get("accuracy_pct") is not None else "",
+        "n_tuning_candidates": len(rep["tuning_candidates"]),
+        "report_json": json.dumps(rep, ensure_ascii=False),
+    })
+
+    target = _private_target()
+    if not target:
+        log.warning("no 1:1 target — weekly_report logged to Sheet only")
+        store.flush()
+        return 0
+    bubble = weekly_report_bubble(rep, week_key)
+    alt = (f"📊 Weekly Monitor {week_key}: แม่น {sc.get('accuracy_pct', '—')}% · "
+           f"ส่ง {d['n_sent']} · ปรับ {len(rep['tuning_candidates'])} ข้อ")
+    line = LineClient.from_env()
+    ok, reason = quota_allows(store, PRIORITY_CORE)
+    if not ok:
+        log.info("quota gate — skipping weekly_report LINE push: %s", reason)
+    else:
+        resp = line.push_flex(target, alt, bubble)
+        record_line_outcome(store, resp)
+        if resp.get("status") == 200:
+            store.upsert("sent_log", {"event_id": sent_key, "route_type": "weekly_report",
+                                      "sent_ts": iso_utc(now_utc()), "line_status": 200})
+        else:
+            log.warning("weekly_report push failed status=%s", resp.get("status"))
+    store.flush()
+    return 0
+
+
 def run_apify_probe(target: str) -> int:
     """Cheap one-shot validation of an Apify source before you enable it.
 
@@ -2459,7 +2539,7 @@ def main(argv: list[str] | None = None) -> int:
         "weekly_preview", "eod_recap", "verify_sources", "maintain",
         "watchdog", "social_post", "social_seed",
         "backfill_xau", "precision_report", "scorecard", "macro",
-        "content_review", "apify_probe",
+        "content_review", "apify_probe", "weekly_report",
     ), default="cron")
     p.add_argument("--event-duration-min", type=int, default=30)
     p.add_argument("--event-sleep-sec", type=int, default=60)
@@ -2498,6 +2578,8 @@ def main(argv: list[str] | None = None) -> int:
         return asyncio.run(run_macro_push())
     if args.mode == "content_review":
         return asyncio.run(run_content_review())
+    if args.mode == "weekly_report":
+        return asyncio.run(run_weekly_report())
     return asyncio.run(run_once(mode=args.mode))
 
 
