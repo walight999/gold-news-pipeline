@@ -707,6 +707,52 @@ def _fmt_usd(v: float | None) -> str:
     return f"{sign}${abs(v):.1f}"
 
 
+def weekly_report_bubble(rep: dict[str, Any], week_label: str) -> dict[str, Any]:
+    """Compact 1:1 weekly performance card from `weekly_report.build_weekly_report`.
+    Private operator dashboard — accuracy trend, delivery volume, and the top
+    evidence-cited tuning candidates to act on. Not for the public group."""
+    d = rep.get("delivery", {}) or {}
+    sc = rep.get("scorecard", {}) or {}
+    cands = rep.get("tuning_candidates", []) or []
+    acc = sc.get("accuracy_pct")
+    acc_txt = f"{acc:.0f}% ({sc.get('correct', 0)}/{sc.get('graded', 0)})" if acc is not None else "—"
+
+    rows: list[dict[str, Any]] = [
+        {"type": "text", "text": f"แม่นทิศทาง (7 วัน): {acc_txt}", "weight": "bold",
+         "size": "md", "color": "#1F2937", "wrap": True},
+        {"type": "text", "size": "sm", "color": "#374151", "margin": "sm", "wrap": True,
+         "text": f"ส่ง {d.get('n_sent', 0)} · ล้มเหลว {d.get('n_failed', 0)} "
+                 f"({d.get('fail_rate', 0) * 100:.0f}%)"},
+    ]
+    # Top routes by volume (compact).
+    br = d.get("by_route") or {}
+    if br:
+        top = " · ".join(f"{k} {v}" for k, v in list(br.items())[:4])
+        rows.append({"type": "text", "text": top, "size": "xs", "color": "#6B7280",
+                     "margin": "xs", "wrap": True})
+
+    rows.append({"type": "separator", "margin": "lg"})
+    if cands:
+        rows.append({"type": "text", "text": f"🎯 ข้อเสนอปรับ ({len(cands)})", "size": "xs",
+                     "weight": "bold", "color": "#B45309", "margin": "md"})
+        for c in cands[:4]:
+            rows.append({"type": "text", "text": f"• {c}", "size": "xs", "wrap": True,
+                         "color": "#374151", "margin": "sm"})
+    else:
+        rows.append({"type": "text", "margin": "md", "size": "sm", "color": "#059669",
+                     "text": "✅ ไม่มีข้อเสนอปรับสัปดาห์นี้ — metrics อยู่ในเกณฑ์"})
+
+    return {
+        "type": "bubble",
+        "header": {"type": "box", "layout": "vertical", "contents": [
+            {"type": "text", "text": "📊 Weekly Monitor", "weight": "bold",
+             "size": "sm", "color": "#FFFFFF"},
+            {"type": "text", "text": week_label, "size": "xs", "color": "#E5E7EB"},
+        ], "backgroundColor": "#1E3A8A", "paddingAll": "12px"},
+        "body": {"type": "box", "layout": "vertical", "contents": rows, "paddingAll": "14px"},
+    }
+
+
 def scorecard_bubble(data: dict[str, Any], date_label: str,
                      rolling_pct: float | None = None) -> dict[str, Any]:
     """EOD directional-accuracy scoreboard for the 1:1 chat. `data` is the dict
