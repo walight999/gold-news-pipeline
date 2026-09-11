@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-09-11T11:41:02Z",
+      "ts": "2026-09-11T15:56:30Z",
       "title": "global · Other",
-      "source": "Forexlive",
+      "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-11T11:41:02Z",
-      "title": "global · Other · risk off",
-      "source": "Forexlive",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-09-11T11:41:02Z",
-      "title": "global · Other",
-      "source": "Forexlive",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-09-11T11:41:02Z",
-      "title": "us · Inflation · hawkish",
-      "source": "Forexlive",
+      "ts": "2026-09-11T15:56:30Z",
+      "title": "fed · Inflation",
+      "source": "Yahoo Finance",
       "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-11T11:41:02Z",
-      "title": "pboc · Gold Flow",
-      "source": "Forexlive",
+      "ts": "2026-09-11T15:56:30Z",
+      "title": "us · Inflation",
+      "source": "Yahoo Finance",
+      "score": 0.5,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-09-11T15:56:30Z",
+      "title": "global · Other",
+      "source": "Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-09-11T15:56:30Z",
+      "title": "global · Other",
+      "source": "Cnbc",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-09-11T15:56:30Z",
+      "title": "us · Usd Yields",
+      "source": "Cnbc",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-11T11:41:02Z",
-      "title": "japan · Inflation · hawkish",
-      "source": "Forexlive",
-      "score": 0.5,
+      "ts": "2026-09-11T15:56:30Z",
+      "title": "global · Other",
+      "source": "Yahoo Finance",
+      "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-11T11:41:02Z",
-      "title": "japan · Inflation · hawkish",
-      "source": "Forexlive",
-      "score": 0.5,
+      "ts": "2026-09-11T15:56:30Z",
+      "title": "global · Other",
+      "source": "Cnbc",
+      "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-11T11:41:02Z",
+      "ts": "2026-09-11T15:56:30Z",
+      "title": "global · Other",
+      "source": "Cnbc",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-09-11T15:56:30Z",
       "title": "pboc · Gold Flow",
       "source": "Forexlive",
       "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-09-11T11:41:02Z",
-      "title": "ecb · Rate Policy · hawkish",
-      "source": "Forexlive",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-09-11T11:41:02Z",
-      "title": "fed · Inflation · hawkish",
-      "source": "Forexlive",
-      "score": 0.5,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-09-11T11:42:11.114366Z"
+  "written_at": "2026-09-11T15:58:06.870823Z"
 }
