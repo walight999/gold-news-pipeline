@@ -117,10 +117,12 @@ def test_alert_hides_other_and_neutral_chips(kw_config):
     assert "ทดสอบข่าว" in body[0]["text"]
 
 
-def test_alert_headline_not_bold(kw_config):
+def test_alert_headline_bold(kw_config):
+    # 2026-09-12 (White): breaking/alert headlines are now BOLD to match the
+    # digest card — the highest-priority cards must read heaviest / stand out.
     ev = _ev("other", "neutral", ["forexlive"], title="ทดสอบ", summary="")
     title = _first_text(alert_bubble(ev, 3.6, kw_config)["body"]["contents"])
-    assert title is not None and title.get("weight") != "bold"
+    assert title is not None and title.get("weight") == "bold"
 
 
 def test_alert_keeps_informative_chips(kw_config):

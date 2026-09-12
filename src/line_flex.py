@@ -410,11 +410,14 @@ def _event_bubble(label: str, color: str, ev: Event, score: float, kw_cfg: dict[
     if chip_row:
         body_contents.append({"type": "box", "layout": "horizontal", "spacing": "sm",
                               "alignItems": "center", "contents": chip_row})
-    # Headline in regular weight (bold read heavy in Thai) with filler stripped,
-    # wrapping freely so nothing is cut mid-thought.
+    # Headline in BOLD (2026-09-12, White): breaking/alert are the highest-
+    # priority cards but were rendering regular-weight while the lower-priority
+    # digest card (news_update) was already bold — inverted prominence that made
+    # breaking hard to pick out. Match digest so the most important card reads
+    # heaviest. Filler stripped; wraps freely so nothing is cut mid-thought.
     body_contents.append(
         {"type": "text", "text": _compact_th(display_title), "size": "md",
-         "wrap": True, "color": "#111827",
+         "wrap": True, "color": "#111827", "weight": "bold",
          "margin": "md" if chip_row else "none"})
     # Bullets — render each as its own line. Limit to 3 bullets.
     for bullet in body_lines[:3]:
