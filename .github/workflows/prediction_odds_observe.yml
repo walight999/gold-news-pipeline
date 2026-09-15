@@ -1,0 +1,53 @@
+name: prediction-odds-observe
+# TRIAL (2026-09-15): once/day, fetch the curated Polymarket odds for the XAU
+# drivers and commit the snapshot + append the history log, so deltas accrue over
+# ~1-2 weeks and we can judge whether the odds actually reprice around the events
+# gold cares about. PRINT-ONLY observation harness — it does NOT push to LINE and
+# is fully isolated from the news pipeline. Delete this file to end the trial.
+# Cadence can be raised (e.g. add a pre/post-US-data slot) if the daily read looks
+# useful. No secrets needed — Polymarket's public API is open.
+
+on:
+  schedule:
+    - cron: "0 20 * * *"    # 20:00 UTC = 03:00 ICT next day (after the US session)
+  workflow_dispatch: {}
+
+concurrency:
+  group: prediction-odds-observe
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  observe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      PYTHONUNBUFFERED: "1"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - run: pip install httpx
+
+      - name: Fetch + print curated prediction-market odds
+        run: python -m src.prediction_odds
+
+      - name: Commit snapshot + log if changed
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if [ -n "$(git status --porcelain snapshots/prediction_odds.json snapshots/prediction_odds_log.jsonl)" ]; then
+            git add snapshots/prediction_odds.json snapshots/prediction_odds_log.jsonl
+            git commit -m "chore(odds): observe prediction-market odds [skip ci]"
+            git push
+          else
+            echo "No odds changes — skip commit."
+          fi
