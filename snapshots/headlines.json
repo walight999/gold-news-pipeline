@@ -2,70 +2,70 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-09-15T01:11:02Z",
-      "title": "mideast · Geopolitics · risk off",
-      "source": "Bbc World",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-09-15T01:11:02Z",
+      "ts": "2026-09-15T06:25:59Z",
       "title": "global · Other",
       "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-15T01:11:02Z",
+      "ts": "2026-09-15T06:25:59Z",
       "title": "global · Other",
       "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-15T01:11:02Z",
-      "title": "global · Other",
-      "source": "Bbc World",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-09-15T01:11:02Z",
-      "title": "global · Other",
-      "source": "Bbc World",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-09-15T01:11:02Z",
-      "title": "global · Other",
-      "source": "Bbc World",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-09-15T01:11:02Z",
+      "ts": "2026-09-15T06:25:59Z",
       "title": "global · Other · dovish",
       "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-15T01:11:02Z",
+      "ts": "2026-09-15T06:25:59Z",
       "title": "us · Geopolitics",
       "source": "Bbc World",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-15T01:11:02Z",
+      "ts": "2026-09-15T06:25:59Z",
       "title": "russia · Geopolitics · risk off",
       "source": "Bbc World",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-15T01:11:02Z",
+      "ts": "2026-09-15T06:25:59Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-09-15T06:25:59Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-09-15T06:25:59Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-09-15T06:25:59Z",
+      "title": "global · Other · dovish",
+      "source": "Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-09-15T06:25:59Z",
       "title": "global · Other",
       "source": "Bbc World",
       "score": 0.1,
@@ -73,5 +73,5 @@
     }
   ],
   "count": 10,
-  "written_at": "2026-09-15T01:11:22.157838Z"
+  "written_at": "2026-09-15T06:28:21.648273Z"
 }
