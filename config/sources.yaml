@@ -37,6 +37,15 @@ x_accounts:
     - zerohedge               # fast (noisy) macro takes
     - PiQSuite                # fast macro/markets wire (breaking)
     - SteveLiesman            # CNBC Fed reporter (rate-path signals, event window)
+    # Trial 2026-09-15 — macro/geo squawk wires. Probed via Apify: both carry
+    # real macro/geopolitics (Iran, BoE/BoF GDP, Treasury/yields), NOT AI/crypto.
+    # Kept OUT of core because they heavily relay the same copy as
+    # DeItaone/FirstSquawk (and each other) — in event-extra they add breadth in
+    # the burst window without inflating the router's >=2-org alert confirmation
+    # during normal cadence. Watch content_log ~1-2wk: promote if they break
+    # ahead of core handles, prune if they only echo (NodeWire triple-posts).
+    - NodeWire                # macro/geo squawk (relay-overlap w/ DeItaone/FirstSquawk)
+    - MarketsCapApp           # macro/rates/geo squawk (dup of NodeWire copy)
 
 # Truth Social (2026-09-10) — Trump posts (tariffs / Fed pressure / geopolitics)
 # move gold intraday and appear in NO RSS feed. Posts become tier-2 wire entries
