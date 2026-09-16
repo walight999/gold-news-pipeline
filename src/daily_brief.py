@@ -25,6 +25,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 from datetime import timedelta
 from typing import Any
 
@@ -106,17 +107,21 @@ DAILY BRIEF in the brand's analytical voice for THREE channels.
 VOICE + RULES (follow exactly, all Thai output):
 - Analytical, confident trader Thai. No hype, no clickbait, no question marks.
 - NO em-dash (—). NO AI-isms ("มาดูกันว่า", "น่าตื่นเต้น", engagement-bait closings).
-- Attribute claims to the named source when you cite a stat/survey (CNBC, WSJ, รอยเตอร์, TD ...).
+- ATTRIBUTION: cite ONLY the primary institution or publication named IN the
+  headline text (Fed, FOMC, BoJ, BoE, ECB, CNBC, WSJ, รอยเตอร์, FXStreet, TD
+  Securities, OCBC, RBC, ...). NEVER cite an X/Twitter handle or a wire relay
+  (a headline tagged "wire" has no citable source — state the fact without
+  attribution). Do not attribute the SAME source in more than 2 tweets; vary it.
 - Do NOT invent numbers or levels beyond what the headlines state.
 
 Return ONLY JSON with these keys:
 {
  "theme": "<one Thai sentence: the day's dominant driver>",
  "tweets": [
-   "<3 to 4 tweets. Each starts with ONE direction emoji 🔴 (gold-bearish) / 🟢 (bullish) / 🟡 (neutral/mixed), then analytical Thai, and ends with this exact line: {TAGS}. Keep each tweet under 270 chars. Pick the highest-signal, non-duplicate angles.>"
+   "<3 to 4 tweets. Each starts with ONE direction emoji 🔴 (gold-bearish) / 🟢 (bullish) / 🟡 (neutral/mixed), then analytical Thai, and ends with this exact line: {TAGS}. Keep each tweet under 270 chars. ONE clear angle per tweet (do not cram two topics). Pick the highest-signal, non-duplicate angles.>"
  ],
- "fb_article": "<a long-form Thai wrap, 4 to 6 paragraphs separated by a blank line. Open with the state of gold, then the driver, then the cross-currents, then what to watch and key levels. No hashtags. No emoji.>",
- "video_script": "<a spoken Thai narration for a ~75-second daily brief video. Break into 4-5 scenes, each marked '[ฉาก N — <visual cue>]' on its own line followed by the spoken lines. TTS-ready: spell tricky numbers in words where it helps delivery. End on a soft sign-off, no engagement-bait.>"
+ "fb_article": "<Facebook long-form. LINE 1 = a strong one-line Thai hook/headline (no label, no emoji, no hashtag) that makes someone stop scrolling. Then a blank line, then 4 to 6 paragraphs separated by blank lines: state of gold → the driver → the cross-currents → what to watch + key levels. No hashtags. No emoji. Keep paragraphs readable (2-4 sentences each, avoid one giant wall).>",
+ "video_script": "<a spoken Thai narration for a ~75-second daily brief video, 4-5 scenes. Each scene: a marker line '[ฉาก N: <visual cue>]' then the spoken lines. TTS-FRIENDLY THAI (this is read aloud): spell ALL numbers in Thai words, and render English phrases in Thai — safe-haven → สินทรัพย์ปลอดภัย, price in → สะท้อนในราคาแล้ว, dot plot → ดอตพล็อต, basis points/bp → เบสิสพอยต์, hawkish → สายเข้มงวด, dovish → สายผ่อนคลาย. Keep only short well-known tickers spoken as-is (Fed, BoJ, ดอลลาร์, ทอง). End on a soft sign-off, no engagement-bait.>"
 }
 
 TODAY'S HEADLINES:
@@ -124,10 +129,21 @@ TODAY'S HEADLINES:
 """
 
 
+def _clean_source(src: str) -> str:
+    """Normalize the feed source tag for the prompt so the model never sees a
+    citable X-handle. Wire relays ("X Deitaone", "X Firstsquawk", ...) collapse
+    to "wire" (the model is told not to cite those); real publications
+    (CNBC / FXStreet / WSJ / รอยเตอร์ ...) pass through as the primary source."""
+    s = (src or "").strip()
+    if s.lower().startswith("x ") or s.lower() in {"deitaone", "firstsquawk"}:
+        return "wire"
+    return s
+
+
 def _headlines_block(events: list[dict[str, Any]], cap: int = 24) -> str:
     lines = []
     for i, e in enumerate(events[:cap], 1):
-        src = e.get("source") or ""
+        src = _clean_source(e.get("source") or "")
         tone = e.get("tone") or ""
         lines.append(
             f"{i}. [{tone}/{src}] {e['headline_th']} :: {e.get('impact_th','')}"
@@ -204,9 +220,13 @@ def _normalize_brief(data: dict[str, Any]) -> dict[str, Any]:
 
 
 def _sanitize_plain(text: Any) -> str:
-    """Dash-strip for non-tweet copy (keep newlines, unlike tweet _sanitize)."""
-    return (str(text or "")
-            .replace("—", " ").replace("–", " ").replace("―", " ")).strip()
+    """Dash-strip for non-tweet copy (keeps newlines, unlike tweet _sanitize).
+    Collapses the double-space an em-dash→space swap leaves behind, without
+    touching line breaks."""
+    s = (str(text or "")
+         .replace("—", " ").replace("–", " ").replace("―", " "))
+    s = re.sub(r"[ \t]{2,}", " ", s)          # collapse runs, keep newlines
+    return "\n".join(line.strip() for line in s.split("\n")).strip()
 
 
 # --------------------------------------------------------------------------
@@ -244,6 +264,11 @@ def _h2(text: str) -> dict[str, Any]:
             "heading_2": {"rich_text": _rt(text)}}
 
 
+def _h3(text: str) -> dict[str, Any]:
+    return {"object": "block", "type": "heading_3",
+            "heading_3": {"rich_text": _rt(text)}}
+
+
 def _todo(text: str) -> dict[str, Any]:
     return {"object": "block", "type": "to_do",
             "to_do": {"rich_text": _rt(text), "checked": False}}
@@ -273,8 +298,10 @@ def render_notion_blocks(brief: dict[str, Any], *, date_label: str,
 
     blocks.append(_h2("2. Facebook — บทความ (ติ๊กเพื่ออนุมัติ)"))
     blocks.append(_todo("อนุมัติบทความ Facebook"))
-    for piece in _chunks(brief.get("fb_article") or ""):
-        blocks.append(_para(piece))
+    fb_pieces = _chunks(brief.get("fb_article") or "")
+    for j, piece in enumerate(fb_pieces):
+        # First chunk = the scroll-stopper hook → render as a sub-heading.
+        blocks.append(_h3(piece) if j == 0 else _para(piece))
     blocks.append(_divider())
 
     blocks.append(_h2("3. Video — บทพูด (ติ๊กเพื่ออนุมัติ)"))
@@ -308,9 +335,10 @@ def render_markdown(brief: dict[str, Any], *, date_label: str,
 # --------------------------------------------------------------------------
 
 def post_to_notion(*, title: str, blocks: list[dict[str, Any]],
-                   token: str, parent_id: str) -> str | None:
-    """Create a Notion page under `parent_id` with `blocks`. Returns the page
-    URL, or None on failure. Notion caps children at 100 per create call; extra
+                   token: str, parent_id: str) -> dict[str, str] | None:
+    """Create a Notion page under `parent_id` with `blocks`. Returns
+    {"id":..., "url":...} (the id is needed later to read approval checkboxes),
+    or None on failure. Notion caps children at 100 per create call; extra
     blocks are appended in follow-up PATCHes."""
     import httpx
 
@@ -334,7 +362,31 @@ def post_to_notion(*, title: str, blocks: list[dict[str, Any]],
                 c.patch(f"https://api.notion.com/v1/blocks/{page_id}/children",
                         headers=headers, json={"children": blocks[i:i + 100]}
                         ).raise_for_status()
-            return page.get("url") or page_id
+            return {"id": page_id or "", "url": page.get("url") or page_id or ""}
     except Exception:  # noqa: BLE001 — publishing is best-effort
         log.exception("daily_brief: Notion post failed")
         return None
+
+
+# --------------------------------------------------------------------------
+# 5. Log — persist page id + artifacts so a later fb_post can read approval
+# --------------------------------------------------------------------------
+
+LOG_TAB = "daily_brief_log"
+LOG_HEADERS = ["date", "page_id", "page_url", "fb_article", "video_script",
+               "fb_posted", "notes"]
+
+
+def log_brief(store, *, date_label: str, page_id: str, page_url: str,
+              brief: dict[str, Any]) -> bool:
+    """Append one row to daily_brief_log so `--mode fb_post` can later read the
+    Notion approval checkbox for this page and publish the stored article.
+    Best-effort — never raises."""
+    try:
+        row = [date_label, page_id, page_url, brief.get("fb_article", ""),
+               brief.get("video_script", ""), "", ""]
+        store.append_feed(LOG_TAB, LOG_HEADERS, [row])
+        return True
+    except Exception:  # noqa: BLE001
+        log.exception("daily_brief: log_brief append failed")
+        return False

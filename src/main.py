@@ -23,7 +23,7 @@ from typing import Any
 import yaml
 
 from . import calendar as cal
-from . import content_log, daily_brief, dedup, delivery_stats, digest, fred, health, macro_push, news_alert, ops_alert, price_feed, scorecard, scorer, social_feed, telegram_news, translator, weekly_report
+from . import content_log, daily_brief, dedup, delivery_stats, digest, fb_publish, fred, health, macro_push, news_alert, ops_alert, price_feed, scorecard, scorer, social_feed, telegram_news, translator, weekly_report
 from .fetcher import fetch_all, plan_fetch
 from .line_client import (
     PRIORITY_BRIEFING,
@@ -1139,13 +1139,65 @@ async def run_daily_brief() -> int:
 
     blocks = daily_brief.render_notion_blocks(brief, date_label=date_label,
                                               event_count=n_ev)
-    url = daily_brief.post_to_notion(title=title, blocks=blocks,
-                                     token=token, parent_id=parent)
-    if url:
-        log.info("daily_brief: posted Notion page %s", url)
+    page = daily_brief.post_to_notion(title=title, blocks=blocks,
+                                      token=token, parent_id=parent)
+    if page:
+        log.info("daily_brief: posted Notion page %s", page["url"])
+        # Persist page id + article so --mode fb_post can read approval later.
+        daily_brief.log_brief(store, date_label=date_label, page_id=page["id"],
+                              page_url=page["url"], brief=brief)
     else:
         log.warning("daily_brief: Notion post failed (snapshot kept)")
     return 0
+
+
+async def run_fb_post() -> int:
+    """Publish approved daily-brief FB articles (Phase 2). Reads
+    `daily_brief_log`, and for the most recent not-yet-posted row, checks the
+    Notion FB approval checkbox; if ticked, posts the stored article to the
+    Facebook Page and stamps `fb_posted` with the post URL.
+
+    Env-gated: FB_PAGE_ID/FB_PAGE_TOKEN unset → no-op; NOTION_TOKEN is needed to
+    read the approval checkbox. Nothing posts without an explicit tick."""
+    fb_page = os.environ.get("FB_PAGE_ID")
+    fb_token = os.environ.get("FB_PAGE_TOKEN")
+    notion_token = os.environ.get("NOTION_TOKEN")
+    if not fb_page or not fb_token:
+        log.info("fb_post: FB_PAGE_ID/FB_PAGE_TOKEN unset — no-op")
+        return 0
+    if not notion_token:
+        log.info("fb_post: NOTION_TOKEN unset — cannot read approval, no-op")
+        return 0
+
+    store = Store.from_env()
+    store.connect()
+    headers, rows = store.read_feed(daily_brief.LOG_TAB)
+    if not rows or "fb_posted" not in headers:
+        return 0
+    posted_col = headers.index("fb_posted") + 1
+
+    n = 0
+    for r in reversed(rows):                       # newest first
+        if str(r.get("fb_posted") or "").strip():
+            continue
+        page_id = str(r.get("page_id") or "").strip()
+        article = str(r.get("fb_article") or "").strip()
+        if not page_id or not article:
+            continue
+        if not fb_publish.is_fb_approved(page_id, notion_token):
+            continue
+        url = fb_publish.post_to_page(article, page_id=fb_page, token=fb_token)
+        if not url:
+            continue                               # left unposted, retry next run
+        try:
+            store.set_feed_cell(daily_brief.LOG_TAB, r["_row"], posted_col, url)
+        except Exception:  # noqa: BLE001
+            log.exception("fb_post: mark-posted failed (post WAS made: %s)", url)
+        log.info("fb_post: posted FB article %s", url)
+        n += 1
+        break                                      # one/day content — one per run
+    log.info("fb_post: published %d article(s)", n)
+    return n
 
 
 async def run_maintain() -> int:
@@ -2591,7 +2643,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--mode", choices=(
         "cron", "event", "digest", "calendar_daily", "calendar_check",
         "weekly_preview", "eod_recap", "verify_sources", "maintain",
-        "watchdog", "social_post", "social_seed", "daily_brief",
+        "watchdog", "social_post", "social_seed", "daily_brief", "fb_post",
         "backfill_xau", "precision_report", "scorecard", "macro",
         "content_review", "apify_probe", "weekly_report",
     ), default="cron")
@@ -2624,6 +2676,8 @@ def main(argv: list[str] | None = None) -> int:
         return asyncio.run(run_social_seed())
     if args.mode == "daily_brief":
         return asyncio.run(run_daily_brief())
+    if args.mode == "fb_post":
+        return asyncio.run(run_fb_post())
     if args.mode == "backfill_xau":
         return asyncio.run(run_backfill_xau())
     if args.mode == "precision_report":
