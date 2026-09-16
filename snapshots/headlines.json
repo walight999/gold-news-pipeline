@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-09-16T17:26:29Z",
-      "title": "global · Other",
-      "source": "Yahoo Finance",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-09-16T17:26:29Z",
-      "title": "global · Other",
-      "source": "Bbc World",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-09-16T17:26:29Z",
-      "title": "russia · Geopolitics",
-      "source": "Bbc World",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-09-16T17:26:29Z",
-      "title": "global · Other",
-      "source": "Yahoo Finance",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-09-16T17:26:29Z",
-      "title": "fed · Rate Policy · hawkish",
-      "source": "Yahoo Finance",
+      "ts": "2026-09-16T20:21:57Z",
+      "title": "fed · Rate Policy",
+      "source": "Fxstreet",
       "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-16T17:26:29Z",
+      "ts": "2026-09-16T20:21:57Z",
       "title": "global · Other",
-      "source": "Bbc World",
+      "source": "Forexlive",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-16T17:26:29Z",
+      "ts": "2026-09-16T20:21:57Z",
+      "title": "fed · Rate Policy",
+      "source": "Forexlive",
+      "score": 0.5,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-09-16T20:21:57Z",
+      "title": "us · Usd Yields",
+      "source": "Forexlive",
+      "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-09-16T20:21:57Z",
+      "title": "fed · Rate Policy · hawkish",
+      "source": "Forexlive",
+      "score": 0.5,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-09-16T20:21:57Z",
+      "title": "fed · Rate Policy",
+      "source": "Forexlive",
+      "score": 0.5,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-09-16T20:21:57Z",
+      "title": "fed · Rate Policy",
+      "source": "Forexlive, Fxstreet",
+      "score": 0.5,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-09-16T20:21:57Z",
       "title": "global · Other",
-      "source": "Yahoo Finance",
+      "source": "Forexlive",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-16T17:26:29Z",
-      "title": "global · Other",
-      "source": "Bbc World",
-      "score": 0.1,
+      "ts": "2026-09-16T20:21:57Z",
+      "title": "fed · Rate Policy · hawkish",
+      "source": "Forexlive",
+      "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-16T17:26:29Z",
-      "title": "global · Other",
-      "source": "Bbc World, Yahoo Finance",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-09-16T17:26:29Z",
-      "title": "global · Other",
-      "source": "Yahoo Finance",
-      "score": 0.1,
+      "ts": "2026-09-16T20:21:57Z",
+      "title": "us · Growth",
+      "source": "Forexlive",
+      "score": 0.2,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-09-16T17:29:25.191857Z"
+  "written_at": "2026-09-16T20:23:18.912622Z"
 }
