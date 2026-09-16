@@ -195,20 +195,26 @@ def _is_yes(v: Any) -> bool:
     return str(v or "").strip().lower() in _YES
 
 
-def x_post(text: str) -> str:
+def x_post(text: str, media: bytes | None = None) -> str:
     """Post a single tweet via the X API v2 (user-context OAuth 1.0a) and return
-    its URL. Requires the 4 X app credentials in env. Raises on failure so the
-    caller can leave the row unposted for the next run to retry."""
+    its URL. If `media` (image bytes) is given, upload it via the v1.1 media
+    endpoint and attach it. Requires the 4 X app credentials in env. Raises on
+    failure so the caller can leave the row unposted for the next run to retry."""
     import os
+
     import tweepy  # lazy — only needed in the social_post run
 
-    client = tweepy.Client(
-        consumer_key=os.environ["X_API_KEY"],
-        consumer_secret=os.environ["X_API_SECRET"],
-        access_token=os.environ["X_ACCESS_TOKEN"],
-        access_token_secret=os.environ["X_ACCESS_TOKEN_SECRET"],
-    )
-    resp = client.create_tweet(text=text)
+    ck, cs = os.environ["X_API_KEY"], os.environ["X_API_SECRET"]
+    at, ats = os.environ["X_ACCESS_TOKEN"], os.environ["X_ACCESS_TOKEN_SECRET"]
+    client = tweepy.Client(consumer_key=ck, consumer_secret=cs,
+                           access_token=at, access_token_secret=ats)
+    media_ids = None
+    if media:
+        import io
+        api = tweepy.API(tweepy.OAuth1UserHandler(ck, cs, at, ats))
+        up = api.media_upload(filename="artwork.png", file=io.BytesIO(media))
+        media_ids = [up.media_id]
+    resp = client.create_tweet(text=text, media_ids=media_ids)
     tweet_id = resp.data["id"]
     return f"https://x.com/i/web/status/{tweet_id}"
 

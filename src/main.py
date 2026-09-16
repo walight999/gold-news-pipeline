@@ -23,7 +23,7 @@ from typing import Any
 import yaml
 
 from . import calendar as cal
-from . import content_log, daily_brief, dedup, delivery_stats, digest, fb_publish, fred, health, image_gen, macro_push, news_alert, ops_alert, price_feed, scorecard, scorer, social_feed, telegram_news, translator, video_brief, weekly_report
+from . import content_log, daily_brief, dedup, delivery_stats, digest, drive_upload, fb_publish, fred, health, image_gen, macro_push, news_alert, ops_alert, price_feed, scorecard, scorer, social_feed, telegram_news, translator, video_brief, weekly_report
 from .fetcher import fetch_all, plan_fetch
 from .line_client import (
     PRIORITY_BRIEFING,
@@ -1259,7 +1259,17 @@ async def run_fb_post() -> int:
             continue
         if not fb_publish.is_fb_approved(page_id, notion_token):
             continue
-        url = fb_publish.post_to_page(article, page_id=fb_page, token=fb_token)
+        # Prefer a photo post (artwork + caption) when the row has artwork;
+        # download the bytes from Drive (reliable) and upload them directly.
+        url = None
+        artwork_id = str(r.get("artwork") or "").strip()
+        if artwork_id:
+            img = drive_upload.download(artwork_id)
+            if img:
+                url = fb_publish.post_photo(img, page_id=fb_page, token=fb_token,
+                                            message=article)
+        if not url:                                # no artwork / photo failed
+            url = fb_publish.post_to_page(article, page_id=fb_page, token=fb_token)
         if not url:
             continue                               # left unposted, retry next run
         try:
@@ -1303,6 +1313,28 @@ async def run_artwork() -> int:
         log.info("artwork: saved %s (%d bytes)", path, len(data))
     except Exception:  # noqa: BLE001
         log.exception("artwork: save failed")
+
+    # Host on Drive → stamp the latest daily_brief_log row + show in Notion review.
+    file_id = drive_upload.upload_png(data, name=f"artwork_{date_label}.png")
+    if not file_id:
+        log.info("artwork: Drive upload skipped/failed (local snapshot kept)")
+        return 0
+    log.info("artwork: uploaded to Drive %s", file_id)
+    try:
+        store = Store.from_env()
+        store.connect()
+        headers, rows = store.read_feed(daily_brief.LOG_TAB)
+        if rows and "artwork" in headers:
+            row = rows[-1]
+            store.set_feed_cell(daily_brief.LOG_TAB, row["_row"],
+                                headers.index("artwork") + 1, file_id)
+            notion_token = os.environ.get("NOTION_TOKEN")
+            page_id = str(row.get("page_id") or "").strip()
+            if notion_token and page_id:
+                fb_publish.attach_image_to_notion(page_id, notion_token,
+                                                  drive_upload.view_url(file_id))
+    except Exception:  # noqa: BLE001
+        log.exception("artwork: stamp/attach failed")
     return 0
 
 
