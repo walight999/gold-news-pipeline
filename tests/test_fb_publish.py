@@ -52,3 +52,25 @@ def test_post_to_page_none_on_empty_args():
     assert fb.post_to_page("", page_id="p", token="t") is None
     assert fb.post_to_page("msg", page_id="", token="t") is None
     assert fb.post_to_page("msg", page_id="p", token="") is None
+
+
+def test_is_approved_generic_reads_video_label(monkeypatch):
+    monkeypatch.setattr(fb, "_notion_children",
+                        lambda pid, tok: [_todo(fb.VIDEO_APPROVE_LABEL, True)])
+    assert fb.is_approved("p", "t", fb.VIDEO_APPROVE_LABEL) is True
+    # the FB wrapper still works and is independent of the video label
+    monkeypatch.setattr(fb, "_notion_children",
+                        lambda pid, tok: [_todo(fb.FB_APPROVE_LABEL, False)])
+    assert fb.is_fb_approved("p", "t") is False
+
+
+def test_post_reel_none_on_empty_args():
+    assert fb.post_reel("", page_id="p", token="t") is None
+    assert fb.post_reel("http://v/x.mp4", page_id="", token="t") is None
+    assert fb.post_reel("http://v/x.mp4", page_id="p", token="") is None
+
+
+def test_attach_video_to_notion_none_on_empty_args():
+    assert fb.attach_video_to_notion("", "tok", "http://v/x.mp4") is False
+    assert fb.attach_video_to_notion("page", "", "http://v/x.mp4") is False
+    assert fb.attach_video_to_notion("page", "tok", "") is False

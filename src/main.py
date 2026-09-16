@@ -1184,7 +1184,12 @@ async def run_video_brief() -> int:
         return 0
 
     date_label = str(row.get("date") or to_ict(now_utc()).strftime("%d %b %Y"))
-    payload = video_brief.build_payload(scenes, title=f"Gold Daily Brief — {date_label}")
+    # Per-scene backgrounds: typographic card / Pexels b-roll / gradient text.
+    # No key → all scenes fall back to gradient text (still a valid reel).
+    visuals = video_brief.resolve_visuals(
+        scenes, pexels_key=os.environ.get("PEXELS_API_KEY"))
+    payload = video_brief.build_payload(
+        scenes, title=f"Gold Daily Brief — {date_label}", visuals=visuals)
 
     try:
         os.makedirs("snapshots", exist_ok=True)
@@ -1201,10 +1206,21 @@ async def run_video_brief() -> int:
                  len(scenes))
         return 0
     url = video_brief.submit_and_wait(payload, api_key=key)
-    if url:
-        log.info("video_brief: rendered MP4 %s", url)   # Phase 3b: → Notion review
-    else:
+    if not url:
         log.warning("video_brief: render failed (payload snapshot kept)")
+        return 0
+    log.info("video_brief: rendered MP4 %s", url)
+    # Stash the MP4 on the log row + attach it to the Notion page for review.
+    if "video_url" in headers:
+        try:
+            store.set_feed_cell(daily_brief.LOG_TAB, row["_row"],
+                                headers.index("video_url") + 1, url)
+        except Exception:  # noqa: BLE001
+            log.exception("video_brief: could not stamp video_url")
+    notion_token = os.environ.get("NOTION_TOKEN")
+    page_id = str(row.get("page_id") or "").strip()
+    if notion_token and page_id:
+        fb_publish.attach_video_to_notion(page_id, notion_token, url)
     return 0
 
 
@@ -1254,6 +1270,58 @@ async def run_fb_post() -> int:
         n += 1
         break                                      # one/day content — one per run
     log.info("fb_post: published %d article(s)", n)
+    return n
+
+
+async def run_reel_post() -> int:
+    """Publish approved daily-brief videos as FB Reels (Phase 3b). Reads
+    `daily_brief_log`; for the newest row that has a rendered `video_url`, an
+    empty `reel_posted`, and a ticked "อนุมัติบทพูด video" checkbox on its Notion
+    page, posts the MP4 as a Reel and stamps `reel_posted`.
+
+    Env-gated: FB_PAGE_ID/FB_PAGE_TOKEN unset → no-op; NOTION_TOKEN needed to read
+    approval. Nothing posts without an explicit tick."""
+    fb_page = os.environ.get("FB_PAGE_ID")
+    fb_token = os.environ.get("FB_PAGE_TOKEN")
+    notion_token = os.environ.get("NOTION_TOKEN")
+    if not fb_page or not fb_token:
+        log.info("reel_post: FB_PAGE_ID/FB_PAGE_TOKEN unset — no-op")
+        return 0
+    if not notion_token:
+        log.info("reel_post: NOTION_TOKEN unset — cannot read approval, no-op")
+        return 0
+
+    store = Store.from_env()
+    store.connect()
+    headers, rows = store.read_feed(daily_brief.LOG_TAB)
+    if not rows or "reel_posted" not in headers or "video_url" not in headers:
+        return 0
+    posted_col = headers.index("reel_posted") + 1
+
+    n = 0
+    for r in reversed(rows):                       # newest first
+        if str(r.get("reel_posted") or "").strip():
+            continue
+        page_id = str(r.get("page_id") or "").strip()
+        video_url = str(r.get("video_url") or "").strip()
+        if not page_id or not video_url:
+            continue
+        if not fb_publish.is_approved(page_id, notion_token,
+                                      fb_publish.VIDEO_APPROVE_LABEL):
+            continue
+        desc = f"บรีฟข่าวทองประจำวัน {r.get('date','')}".strip()
+        url = fb_publish.post_reel(video_url, page_id=fb_page, token=fb_token,
+                                   description=desc)
+        if not url:
+            continue                               # left unposted, retry next run
+        try:
+            store.set_feed_cell(daily_brief.LOG_TAB, r["_row"], posted_col, url)
+        except Exception:  # noqa: BLE001
+            log.exception("reel_post: mark-posted failed (reel WAS made: %s)", url)
+        log.info("reel_post: posted Reel %s", url)
+        n += 1
+        break                                      # one/day content — one per run
+    log.info("reel_post: published %d reel(s)", n)
     return n
 
 
@@ -2701,8 +2769,8 @@ def main(argv: list[str] | None = None) -> int:
         "cron", "event", "digest", "calendar_daily", "calendar_check",
         "weekly_preview", "eod_recap", "verify_sources", "maintain",
         "watchdog", "social_post", "social_seed", "daily_brief", "fb_post",
-        "video_brief", "backfill_xau", "precision_report", "scorecard", "macro",
-        "content_review", "apify_probe", "weekly_report",
+        "video_brief", "reel_post", "backfill_xau", "precision_report",
+        "scorecard", "macro", "content_review", "apify_probe", "weekly_report",
     ), default="cron")
     p.add_argument("--event-duration-min", type=int, default=30)
     p.add_argument("--event-sleep-sec", type=int, default=60)
@@ -2737,6 +2805,8 @@ def main(argv: list[str] | None = None) -> int:
         return asyncio.run(run_fb_post())
     if args.mode == "video_brief":
         return asyncio.run(run_video_brief())
+    if args.mode == "reel_post":
+        return asyncio.run(run_reel_post())
     if args.mode == "backfill_xau":
         return asyncio.run(run_backfill_xau())
     if args.mode == "precision_report":

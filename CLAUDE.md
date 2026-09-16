@@ -77,6 +77,12 @@ uses Sonnet `BRIEF_MODEL` for fluent Thai — see `docs/DAILY-BRIEF.md`) ·
 `fb_post` (Phase 2: post the daily_brief FB article once its Notion approval
 checkbox is ticked, hourly; env-gated on `FB_PAGE_ID`+`FB_PAGE_TOKEN`+`NOTION_TOKEN`,
 reads `daily_brief_log` sheet, fail-closed) ·
+`video_brief` (Phase 3: latest brief's video_script → JSON2Video faceless reel
+[Thai TTS + karaoke subs + Pexels b-roll/cards]; 00:50 UTC; env-gated
+`JSON2VIDEO_KEY`+opt `PEXELS_API_KEY`; dry-run writes video_payload snapshot;
+stamps `daily_brief_log.video_url` + attaches MP4 to Notion) ·
+`reel_post` (Phase 3b: post the rendered MP4 as a FB Reel once "อนุมัติบทพูด video"
+is ticked, hourly; env-gated same as fb_post; `post_reel` UNVERIFIED-live) ·
 `calendar_daily` (one card/day, 04:40 ICT) · `calendar_check` (**pre- T-15 + post Released News**) ·
 `scorecard` (EOD directional-accuracy of calendar verdicts → **1:1 only**, 23:45 ICT) ·
 `macro` (compute + POST the multi-factor macro state to the CHUM alert-bot worker, every 6h) ·
@@ -170,13 +176,20 @@ with no 15m bar show as ⏳ pending, not wrong.
   approval checkbox off the brief's Notion page (`is_fb_approved`, fail-closed)
   and posts the stored `fb_article` to the FB Page via Graph API
   (`post_to_page`). Env-gated `FB_PAGE_ID`+`FB_PAGE_TOKEN`(+`NOTION_TOKEN`).
-- `video_brief.py` — Phase 3 faceless reel (`--mode video_brief`): parses the
-  brief's `video_script` into scenes (`parse_scenes`, `[ฉาก N: cue]`) and builds
-  a JSON2Video movie payload (`build_payload`: vertical, Thai TTS voice + karaoke
-  subtitles) → `submit_and_wait` renders the MP4. Env-gated `JSON2VIDEO_KEY`
-  (dry-run writes `snapshots/video_payload_*.json`; payload needs live-verify on
-  first render). Phase 3b = chart/b-roll visuals + reel_post. Docs:
-  `docs/VIDEO-BRIEF.md`.
+- `video_brief.py` — Phase 3 faceless reel (`--mode video_brief`): `parse_scenes`
+  (`[ฉาก N: cue]`) → `resolve_visuals` (typographic card if cue quotes a number,
+  else Pexels b-roll, else gradient text — NEVER gold charts) → `build_payload`
+  (JSON2Video vertical movie: bg + Thai TTS voice + global karaoke subtitles) →
+  `submit_and_wait` renders MP4. Env-gated `JSON2VIDEO_KEY`(+opt `PEXELS_API_KEY`);
+  dry-run writes `snapshots/video_payload_*.json` (payload needs live-verify).
+  Docs: `docs/VIDEO-BRIEF.md`.
+- `pexels.py` — `search_broll(query)` → portrait stock-video URL for macro b-roll
+  (central banks / trading floors), env-gated `PEXELS_API_KEY`, best-effort. Only
+  macro nouns are ever queried — never gold/charts/internal imagery.
+- `fb_publish.py` also owns Phase 3b: `is_approved(page,tok,label)` (generic
+  checkbox read; `VIDEO_APPROVE_LABEL`), `attach_video_to_notion` (append MP4 to
+  the brief page), `post_reel` (3-phase `/{page}/video_reels`, UNVERIFIED-live).
+  `daily_brief_log` gained `video_url`+`reel_posted` columns.
 - `store.py` — Google Sheets state. `flush()` clears+rewrites whole tabs (so the
   social feed uses `append_feed`/`set_feed_cell` instead, never clobbered).
   ⚠ `upsert()` **replaces** the row (rebuilt from `SCHEMAS`; absent keys become

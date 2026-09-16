@@ -1,0 +1,34 @@
+name: reel-post
+on:
+  schedule:
+    # Hourly — picks up the rendered video once the operator ticks its Notion
+    # "อนุมัติบทพูด video" checkbox. No approval / no FB secrets => no-op.
+    - cron: "20 * * * *"
+  workflow_dispatch: {}
+
+concurrency:
+  group: gold-news
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    env:
+      GSHEET_ID:     ${{ secrets.GSHEET_ID }}
+      GSHEET_CREDS:  ${{ secrets.GSHEET_CREDS }}
+      NOTION_TOKEN:  ${{ secrets.NOTION_TOKEN }}
+      # FB Reels publish. UNSET => no-op. Page token with pages_manage_posts
+      # (+ video permissions). See docs/VIDEO-BRIEF.md.
+      FB_PAGE_ID:    ${{ secrets.FB_PAGE_ID }}
+      FB_PAGE_TOKEN: ${{ secrets.FB_PAGE_TOKEN }}
+      PYTHONUNBUFFERED: "1"
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: python -m src.main --mode reel_post

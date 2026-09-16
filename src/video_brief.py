@@ -66,28 +66,86 @@ def parse_scenes(script: str) -> list[dict[str, Any]]:
 # 2. Build the JSON2Video movie payload (TTS + subtitles + assembly)
 # --------------------------------------------------------------------------
 
+_CARD_RE = re.compile(r"['\"“”‘’]([^'\"“”‘’]{2,60})['\"“”‘’]")
+
+
+def extract_card_text(cue: str) -> str | None:
+    """A quoted string in the cue (e.g. 'US 10Y 5%') = a typographic data card."""
+    m = _CARD_RE.search(cue or "")
+    return m.group(1).strip() if m else None
+
+
+def broll_query(cue: str) -> str:
+    """English keywords for a Pexels macro b-roll search, taken from the Latin
+    runs in the cue (proper nouns like 'Federal Reserve', 'Trading Floor'). Falls
+    back to a Thai→English macro map, then a generic default. Never returns a
+    gold/chart query — the prompt keeps cues macro-only."""
+    toks = re.findall(r"[A-Za-z][A-Za-z.&/]*(?:\s+[A-Za-z][A-Za-z.&/]*)*", cue or "")
+    q = " ".join(t.strip() for t in toks if len(t.strip()) > 2).strip()
+    if not q:
+        for th, en in (("ธนาคารกลาง", "central bank"), ("ตลาดหุ้น", "stock market"),
+                       ("ตลาด", "financial markets"), ("เศรษฐกิจ", "economy")):
+            if th in (cue or ""):
+                q = en
+                break
+    q = re.sub(r"\s+", " ", q).strip()
+    return q or "financial markets"
+
+
+def resolve_visuals(scenes: list[dict[str, Any]], *,
+                    pexels_key: str | None = None) -> list[dict[str, str]]:
+    """Pick a background per scene: a typographic CARD if the cue quotes a public
+    number, else Pexels B-ROLL (if a key is set and a clip is found), else the
+    cue TEXT on gradient. Never uses XAU/USD charts or internal desk imagery."""
+    from . import pexels
+
+    out: list[dict[str, str]] = []
+    for s in scenes:
+        cue = s.get("cue", "")
+        card = extract_card_text(cue)
+        if card:
+            out.append({"type": "card", "value": card})
+            continue
+        url = (pexels.search_broll(broll_query(cue), api_key=pexels_key)
+               if pexels_key else None)
+        out.append({"type": "broll", "value": url} if url
+                   else {"type": "text", "value": cue})
+    return out
+
+
 def build_payload(scenes: list[dict[str, Any]], *, title: str,
-                  voice: str | None = None) -> dict[str, Any]:
-    """Assemble the JSON2Video movie JSON: one scene per parsed scene, each a
-    branded background + a `voice` element (Thai TTS of the narration). A single
-    global `subtitles` element renders center-screen karaoke captions from the
-    movie's voices. Backgrounds are a dark brand gradient in v1; v1.1 swaps in a
-    per-scene chart image (from price_feed) or Pexels b-roll keyed off `cue`."""
+                  voice: str | None = None,
+                  visuals: list[dict[str, str]] | None = None) -> dict[str, Any]:
+    """Assemble the JSON2Video movie JSON: one scene per parsed scene with a
+    background (b-roll video / typographic card / gradient text per `visuals`) +
+    a `voice` element (Thai TTS). One global `subtitles` element renders
+    center-screen karaoke captions from the movie's voices."""
     voice = voice or os.environ.get("BRIEF_VOICE", DEFAULT_VOICE)
     movie_scenes = []
-    for s in scenes:
+    for i, s in enumerate(scenes):
+        vis = (visuals[i] if visuals and i < len(visuals)
+               else {"type": "text", "value": s["cue"]})
+        elements: list[dict[str, Any]] = []
+        if vis.get("type") == "broll" and vis.get("value"):
+            bg = "#000000"
+            elements.append({"type": "video", "src": vis["value"],
+                             "resize": "cover", "muted": True, "volume": 0})
+        elif vis.get("type") == "card":
+            bg = "#0B1F3A"
+            elements.append({"type": "text", "text": vis.get("value", ""),
+                             "position": "top-center",
+                             "settings": {"font-size": "72", "font-color": "#FFD34D",
+                                          "font-family": "Sarabun"}})
+        else:
+            bg = "#0B1F3A"
+            elements.append({"type": "text", "text": vis.get("value", s["cue"]),
+                             "position": "top-center",
+                             "settings": {"font-size": "42", "font-color": "#8AA0BF"}})
+        elements.append({"type": "voice", "text": s["narration"], "voice": voice})
         movie_scenes.append({
             "comment": f"ฉาก {s['n']}: {s['cue']}"[:120],
-            "background-color": "#0B1F3A",
-            "elements": [
-                # v1.1 TODO: replace with {"type":"image","src": chart_or_broll_url}
-                {"type": "text",
-                 "text": s["cue"],
-                 "style": "004",
-                 "position": "top-center",
-                 "settings": {"font-size": "42", "font-color": "#8AA0BF"}},
-                {"type": "voice", "text": s["narration"], "voice": voice},
-            ],
+            "background-color": bg,
+            "elements": elements,
         })
     return {
         "comment": title[:120],
