@@ -23,7 +23,7 @@ from typing import Any
 import yaml
 
 from . import calendar as cal
-from . import content_log, daily_brief, dedup, delivery_stats, digest, fb_publish, fred, health, macro_push, news_alert, ops_alert, price_feed, scorecard, scorer, social_feed, telegram_news, translator, video_brief, weekly_report
+from . import content_log, daily_brief, dedup, delivery_stats, digest, fb_publish, fred, health, image_gen, macro_push, news_alert, ops_alert, price_feed, scorecard, scorer, social_feed, telegram_news, translator, video_brief, weekly_report
 from .fetcher import fetch_all, plan_fetch
 from .line_client import (
     PRIORITY_BRIEFING,
@@ -1271,6 +1271,39 @@ async def run_fb_post() -> int:
         break                                      # one/day content — one per run
     log.info("fb_post: published %d article(s)", n)
     return n
+
+
+async def run_artwork() -> int:
+    """Generate the daily economic-calendar artwork (OpenAI) for social posts.
+
+    Env-gated OPENAI_API_KEY: unset → DRY RUN (build + log the prompt, no spend).
+    Best-effort — never crashes. Slice 2 will host it + attach to the FB/X posts
+    and the Notion review page (see docs/ARTWORK.md)."""
+    key = os.environ.get("OPENAI_API_KEY")
+    date_label = to_ict(now_utc()).strftime("%d %b %Y")
+    try:
+        events = cal.filter_today_ict(cal.fetch_calendar())
+        hi = [e for e in events if e.impact in ("High", "Medium")]
+    except Exception:  # noqa: BLE001 — calendar is best-effort
+        log.exception("artwork: calendar fetch failed")
+        hi = []
+    prompt = image_gen.calendar_artwork_prompt(hi, date_label)
+    log.info("artwork: calendar prompt built (%d high/medium events)", len(hi))
+    if not key:
+        log.info("artwork: DRY RUN (OPENAI_API_KEY unset) — prompt: %s", prompt[:300])
+        return 0
+    data = image_gen.generate(prompt, api_key=key)
+    if not data:
+        log.warning("artwork: generation failed")
+        return 0
+    try:
+        os.makedirs("snapshots", exist_ok=True)
+        path = f"snapshots/artwork_{to_ict(now_utc()).strftime('%Y%m%d')}.png"
+        image_gen.save_png(data, path)
+        log.info("artwork: saved %s (%d bytes)", path, len(data))
+    except Exception:  # noqa: BLE001
+        log.exception("artwork: save failed")
+    return 0
 
 
 async def run_reel_post() -> int:
@@ -2769,7 +2802,7 @@ def main(argv: list[str] | None = None) -> int:
         "cron", "event", "digest", "calendar_daily", "calendar_check",
         "weekly_preview", "eod_recap", "verify_sources", "maintain",
         "watchdog", "social_post", "social_seed", "daily_brief", "fb_post",
-        "video_brief", "reel_post", "backfill_xau", "precision_report",
+        "video_brief", "reel_post", "artwork", "backfill_xau", "precision_report",
         "scorecard", "macro", "content_review", "apify_probe", "weekly_report",
     ), default="cron")
     p.add_argument("--event-duration-min", type=int, default=30)
@@ -2807,6 +2840,8 @@ def main(argv: list[str] | None = None) -> int:
         return asyncio.run(run_video_brief())
     if args.mode == "reel_post":
         return asyncio.run(run_reel_post())
+    if args.mode == "artwork":
+        return asyncio.run(run_artwork())
     if args.mode == "backfill_xau":
         return asyncio.run(run_backfill_xau())
     if args.mode == "precision_report":
