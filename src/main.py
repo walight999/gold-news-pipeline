@@ -1390,6 +1390,70 @@ async def run_reel_post() -> int:
     return n
 
 
+async def run_tweet_post() -> int:
+    """Post approved daily-brief tweets to X. Reads `daily_brief_log`; for the
+    newest row, posts each ticked 'Tweet N' checkbox not already in
+    `tweets_posted`, attaching the day's artwork to the LEAD tweet only. Tracks
+    posted indices so incremental ticks work. Env-gated X creds + NOTION_TOKEN;
+    nothing posts without a tick."""
+    x_ready = all(os.environ.get(k) for k in (
+        "X_API_KEY", "X_API_SECRET", "X_ACCESS_TOKEN", "X_ACCESS_TOKEN_SECRET"))
+    notion_token = os.environ.get("NOTION_TOKEN")
+    if not x_ready:
+        log.info("tweet_post: X creds unset — no-op")
+        return 0
+    if not notion_token:
+        log.info("tweet_post: NOTION_TOKEN unset — cannot read approval, no-op")
+        return 0
+
+    store = Store.from_env()
+    store.connect()
+    headers, rows = store.read_feed(daily_brief.LOG_TAB)
+    if not rows or "tweets" not in headers or "tweets_posted" not in headers:
+        return 0
+    tp_col = headers.index("tweets_posted") + 1
+    row = rows[-1]
+    page_id = str(row.get("page_id") or "").strip()
+    try:
+        tweets = json.loads(str(row.get("tweets") or "[]"))
+    except Exception:  # noqa: BLE001
+        tweets = []
+    if not page_id or not tweets:
+        return 0
+
+    posted = {int(t) for t in str(row.get("tweets_posted") or "").split(",")
+              if t.strip().isdigit()}
+    ticked = fb_publish.checked_tweet_indices(page_id, notion_token)
+    to_post = sorted(ticked - posted)
+    if not to_post:
+        return 0
+    artwork_id = str(row.get("artwork") or "").strip()
+    lead_unposted = not posted                     # attach artwork to the 1st ever
+    n = 0
+    for idx in to_post:
+        if idx < 1 or idx > len(tweets):
+            posted.add(idx)
+            continue
+        media = None
+        if lead_unposted and n == 0 and artwork_id:
+            media = drive_upload.download(artwork_id)
+        try:
+            url = social_feed.x_post(tweets[idx - 1], media=media)
+        except Exception:  # noqa: BLE001 — one bad tweet must not stop the rest
+            log.exception("tweet_post: X post failed idx=%s", idx)
+            continue
+        posted.add(idx)
+        n += 1
+        log.info("tweet_post: posted tweet %d %s", idx, url)
+    try:
+        store.set_feed_cell(daily_brief.LOG_TAB, row["_row"], tp_col,
+                            ",".join(str(i) for i in sorted(posted)))
+    except Exception:  # noqa: BLE001
+        log.exception("tweet_post: mark-posted failed")
+    log.info("tweet_post: posted %d tweet(s)", n)
+    return n
+
+
 async def run_maintain() -> int:
     """Purge stale rows so the Sheet doesn't grow unbounded.
 
@@ -2834,8 +2898,9 @@ def main(argv: list[str] | None = None) -> int:
         "cron", "event", "digest", "calendar_daily", "calendar_check",
         "weekly_preview", "eod_recap", "verify_sources", "maintain",
         "watchdog", "social_post", "social_seed", "daily_brief", "fb_post",
-        "video_brief", "reel_post", "artwork", "backfill_xau", "precision_report",
-        "scorecard", "macro", "content_review", "apify_probe", "weekly_report",
+        "video_brief", "reel_post", "artwork", "tweet_post", "backfill_xau",
+        "precision_report", "scorecard", "macro", "content_review", "apify_probe",
+        "weekly_report",
     ), default="cron")
     p.add_argument("--event-duration-min", type=int, default=30)
     p.add_argument("--event-sleep-sec", type=int, default=60)
@@ -2874,6 +2939,8 @@ def main(argv: list[str] | None = None) -> int:
         return asyncio.run(run_reel_post())
     if args.mode == "artwork":
         return asyncio.run(run_artwork())
+    if args.mode == "tweet_post":
+        return asyncio.run(run_tweet_post())
     if args.mode == "backfill_xau":
         return asyncio.run(run_backfill_xau())
     if args.mode == "precision_report":

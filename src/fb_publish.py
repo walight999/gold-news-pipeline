@@ -17,8 +17,11 @@ GH secrets FB_PAGE_ID + FB_PAGE_TOKEN. See docs/DAILY-BRIEF.md.
 from __future__ import annotations
 
 import logging
+import re
 
 log = logging.getLogger("fb_publish")
+
+_TWEET_RE = re.compile(r"Tweet\s*(\d+)")
 
 GRAPH_VERSION = "v21.0"
 NOTION_VERSION = "2022-06-28"
@@ -78,6 +81,26 @@ def is_fb_approved(page_id: str, token: str,
                    label: str = FB_APPROVE_LABEL) -> bool:
     """The FB article checkbox — thin wrapper over is_approved."""
     return is_approved(page_id, token, label)
+
+
+def checked_tweet_indices(page_id: str, token: str) -> set[int]:
+    """The set of 1-based indices N whose 'Tweet N' checkbox is ticked on the
+    brief's Notion page. Empty on any error (fail-closed — post nothing)."""
+    if not (page_id and token):
+        return set()
+    out: set[int] = set()
+    try:
+        for b in _notion_children(page_id, token):
+            if b.get("type") != "to_do" or not b.get("to_do", {}).get("checked"):
+                continue
+            text = "".join(x.get("plain_text", "")
+                           for x in b.get("to_do", {}).get("rich_text", []))
+            m = _TWEET_RE.search(text)
+            if m:
+                out.add(int(m.group(1)))
+    except Exception:  # noqa: BLE001 — fail-closed
+        log.exception("fb_publish: read tweet checkboxes failed")
+    return out
 
 
 def post_to_page(message: str, *, page_id: str, token: str) -> str | None:

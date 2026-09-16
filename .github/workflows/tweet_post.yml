@@ -1,0 +1,34 @@
+name: tweet-post
+on:
+  schedule:
+    # Hourly — posts each daily-brief tweet once its 'Tweet N' Notion checkbox is
+    # ticked. No approval / no X creds => no-op.
+    - cron: "35 * * * *"
+  workflow_dispatch: {}
+
+concurrency:
+  group: gold-news
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      GSHEET_ID:              ${{ secrets.GSHEET_ID }}
+      GSHEET_CREDS:           ${{ secrets.GSHEET_CREDS }}
+      NOTION_TOKEN:           ${{ secrets.NOTION_TOKEN }}
+      X_API_KEY:              ${{ secrets.X_API_KEY }}
+      X_API_SECRET:           ${{ secrets.X_API_SECRET }}
+      X_ACCESS_TOKEN:         ${{ secrets.X_ACCESS_TOKEN }}
+      X_ACCESS_TOKEN_SECRET:  ${{ secrets.X_ACCESS_TOKEN_SECRET }}
+      PYTHONUNBUFFERED: "1"
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: python -m src.main --mode tweet_post
