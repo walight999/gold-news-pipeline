@@ -83,9 +83,10 @@ reads `daily_brief_log` sheet, fail-closed) ·
 stamps `daily_brief_log.video_url` + attaches MP4 to Notion) ·
 `reel_post` (Phase 3b: post the rendered MP4 as a FB Reel once "อนุมัติบทพูด video"
 is ticked, hourly; env-gated same as fb_post; `post_reel` UNVERIFIED-live) ·
-`artwork` (OpenAI image gen: daily economic-calendar poster for FB/X posts →
-Drive host → stamp log + attach to Notion; env-gated `OPENAI_API_KEY`; see
-`docs/ARTWORK.md`) ·
+`artwork` (OPTIONAL/dormant: auto OpenAI image gen → Drive host; the PRIMARY
+artwork flow is manual — daily_brief embeds the calendar-poster prompt in the
+Notion page, operator gens in ChatGPT web + drops the image, posters read it via
+`fb_publish.get_page_image`; see `docs/ARTWORK.md`) ·
 `tweet_post` (post approved daily-brief tweets to X once each 'Tweet N' Notion
 checkbox is ticked, hourly; lead tweet carries the artwork; env-gated X creds +
 `NOTION_TOKEN`; reads `daily_brief_log` tweets/tweets_posted, fail-closed) ·

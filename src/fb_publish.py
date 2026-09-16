@@ -122,6 +122,33 @@ def post_to_page(message: str, *, page_id: str, token: str) -> str | None:
         return None
 
 
+def get_page_image(page_id: str, token: str) -> bytes | None:
+    """Bytes of the FIRST image block on the brief's Notion page — the artwork the
+    operator generated in ChatGPT and dropped into the page. Downloads from the
+    block's file/external URL (valid at read time). None if absent/on error."""
+    if not (page_id and token):
+        return None
+    import httpx
+
+    try:
+        with httpx.Client(timeout=30, follow_redirects=True) as c:
+            for b in _notion_children(page_id, token):
+                if b.get("type") != "image":
+                    continue
+                img = b.get("image", {})
+                url = (img.get("file", {}).get("url") if img.get("type") == "file"
+                       else img.get("external", {}).get("url"))
+                if not url:
+                    continue
+                r = c.get(url)
+                r.raise_for_status()
+                return r.content
+        return None
+    except Exception:  # noqa: BLE001 — artwork is optional
+        log.exception("fb_publish: get page image failed")
+        return None
+
+
 def post_photo(image: bytes, *, page_id: str, token: str,
                message: str = "") -> str | None:
     """Post a photo (uploaded bytes) with a caption to the FB Page. Uploading the

@@ -100,6 +100,22 @@ def test_clean_source_collapses_x_relays_keeps_publications():
     assert "Deitaone" not in db._headlines_block(ev)
 
 
+def test_render_notion_blocks_artwork_section():
+    brief = {"theme": "t", "tweets": ["🔴 a"], "fb_article": "art",
+             "video_script": "scr"}
+    # with an artwork prompt → an Artwork heading + a code block carrying it
+    blocks = db.render_notion_blocks(brief, date_label="d", event_count=1,
+                                     artwork_prompt="CALENDAR-PROMPT-XYZ")
+    codes = [b for b in blocks if b["type"] == "code"]
+    assert len(codes) == 1
+    assert codes[0]["code"]["rich_text"][0]["text"]["content"].startswith("CALENDAR-PROMPT")
+    assert sum(1 for b in blocks if b["type"] == "heading_2") == 4
+    # without a prompt → no artwork section (back to 3 headings, no code block)
+    plain = db.render_notion_blocks(brief, date_label="d", event_count=1)
+    assert not any(b["type"] == "code" for b in plain)
+    assert sum(1 for b in plain if b["type"] == "heading_2") == 3
+
+
 def test_render_markdown_smoke():
     brief = {"theme": "t", "tweets": ["🔴 a"], "fb_article": "art",
              "video_script": "scr"}

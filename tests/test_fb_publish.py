@@ -102,3 +102,16 @@ def test_checked_tweet_indices(monkeypatch):
 def test_checked_tweet_indices_fail_closed():
     assert fb.checked_tweet_indices("", "t") == set()
     assert fb.checked_tweet_indices("p", "") == set()
+
+
+def test_get_page_image_none_without_args():
+    assert fb.get_page_image("", "t") is None
+    assert fb.get_page_image("p", "") is None
+
+
+def test_get_page_image_none_when_no_image_block(monkeypatch):
+    monkeypatch.setattr(fb, "_notion_children", lambda pid, tok: [
+        {"type": "paragraph", "paragraph": {"rich_text": []}},
+        _todo("Tweet 1", True),
+    ])
+    assert fb.get_page_image("p", "t") is None

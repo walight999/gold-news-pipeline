@@ -1,9 +1,33 @@
-# Post Artwork (OpenAI image generation)
+# Post Artwork
 
-Generates branded editorial **artwork** to attach to Twitter / Facebook posts —
-e.g. a **daily economic-calendar poster** built from the day's high-impact
-ForexFactory events. Uses the OpenAI Images API over raw HTTP (no extra SDK),
-env-gated on `OPENAI_API_KEY`, best-effort.
+Branded editorial **artwork** (e.g. a **daily economic-calendar poster**) to
+attach to Twitter / Facebook posts.
+
+## PRIMARY flow — manual ChatGPT (uses the operator's subscription, no API cost)
+
+Chosen 2026-09-16: the operator has a ChatGPT subscription and generates artwork
+in the **ChatGPT web UI** (covered by the subscription) rather than the paid API.
+
+```
+daily_brief embeds the artwork PROMPT (the day's economic-calendar poster, built
+from FF calendar events) as a copyable code block in the Notion review page,
+under a "4. Artwork" section
+   → operator copies it → generates in ChatGPT (web) → drags the image into the
+     same Notion page
+   → at post time, fb_post / tweet_post read the FIRST image block off the page
+     (fb_publish.get_page_image), download the bytes, and attach it to the FB
+     photo post + the lead tweet
+```
+
+No OpenAI API key, no extra hosting — Notion holds the image; the posters read it
+back at post time. `image_gen.calendar_artwork_prompt` builds the prompt.
+
+## OPTIONAL — automatic OpenAI API path (dormant)
+
+`--mode artwork` + `image_gen.generate()` can auto-generate via the OpenAI Images
+API (raw HTTP, `gpt-image-1`/`dall-e-3`) + host on Drive, IF `OPENAI_API_KEY` is
+set. Left env-gated and OFF (the operator prefers the subscription/web path). The
+posters fall back to a Drive-hosted `artwork` file id if one is present.
 
 ## Brand guardrail (IMPORTANT)
 

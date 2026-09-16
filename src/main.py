@@ -1146,8 +1146,19 @@ async def run_daily_brief() -> int:
                  len(brief.get("video_script", "")))
         return 0
 
+    # Build the artwork prompt (the day's economic-calendar poster) to embed in
+    # the Notion page — the operator gens it in ChatGPT (web, their subscription,
+    # no API) and drops the image into the page for the posters to pick up.
+    artwork_prompt = ""
+    try:
+        cal_hi = [e for e in cal.filter_today_ict(cal.fetch_calendar())
+                  if e.impact in ("High", "Medium")]
+        artwork_prompt = image_gen.calendar_artwork_prompt(cal_hi, date_label)
+    except Exception:  # noqa: BLE001 — artwork prompt is best-effort
+        log.exception("daily_brief: artwork prompt build failed")
     blocks = daily_brief.render_notion_blocks(brief, date_label=date_label,
-                                              event_count=n_ev)
+                                              event_count=n_ev,
+                                              artwork_prompt=artwork_prompt)
     page = daily_brief.post_to_notion(title=title, blocks=blocks,
                                       token=token, parent_id=parent)
     if page:
@@ -1259,15 +1270,18 @@ async def run_fb_post() -> int:
             continue
         if not fb_publish.is_fb_approved(page_id, notion_token):
             continue
-        # Prefer a photo post (artwork + caption) when the row has artwork;
-        # download the bytes from Drive (reliable) and upload them directly.
+        # Prefer a photo post (artwork + caption). Artwork = the image the
+        # operator dropped into the Notion page (ChatGPT-generated); fall back to
+        # a Drive-hosted artwork (API path) if that's what's set.
         url = None
-        artwork_id = str(r.get("artwork") or "").strip()
-        if artwork_id:
-            img = drive_upload.download(artwork_id)
-            if img:
-                url = fb_publish.post_photo(img, page_id=fb_page, token=fb_token,
-                                            message=article)
+        img = fb_publish.get_page_image(page_id, notion_token)
+        if not img:
+            artwork_id = str(r.get("artwork") or "").strip()
+            if artwork_id:
+                img = drive_upload.download(artwork_id)
+        if img:
+            url = fb_publish.post_photo(img, page_id=fb_page, token=fb_token,
+                                        message=article)
         if not url:                                # no artwork / photo failed
             url = fb_publish.post_to_page(article, page_id=fb_page, token=fb_token)
         if not url:
@@ -1435,8 +1449,10 @@ async def run_tweet_post() -> int:
             posted.add(idx)
             continue
         media = None
-        if lead_unposted and n == 0 and artwork_id:
-            media = drive_upload.download(artwork_id)
+        if lead_unposted and n == 0:               # lead tweet carries the artwork
+            media = fb_publish.get_page_image(page_id, notion_token)
+            if not media and artwork_id:           # fall back to Drive (API path)
+                media = drive_upload.download(artwork_id)
         try:
             url = social_feed.x_post(tweets[idx - 1], media=media)
         except Exception:  # noqa: BLE001 — one bad tweet must not stop the rest

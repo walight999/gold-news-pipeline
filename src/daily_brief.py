@@ -278,8 +278,14 @@ def _divider() -> dict[str, Any]:
     return {"object": "block", "type": "divider", "divider": {}}
 
 
+def _code(text: str) -> dict[str, Any]:
+    return {"object": "block", "type": "code",
+            "code": {"rich_text": _rt(text[:1990]), "language": "plain text"}}
+
+
 def render_notion_blocks(brief: dict[str, Any], *, date_label: str,
-                         event_count: int) -> list[dict[str, Any]]:
+                         event_count: int,
+                         artwork_prompt: str = "") -> list[dict[str, Any]]:
     """Build the Notion page body for a daily brief. One to_do per tweet + one
     per long-form artifact = the operator's single approval surface."""
     blocks: list[dict[str, Any]] = []
@@ -308,6 +314,14 @@ def render_notion_blocks(brief: dict[str, Any], *, date_label: str,
     blocks.append(_todo("อนุมัติบทพูด video"))
     for piece in _chunks(brief.get("video_script") or ""):
         blocks.append(_para(piece))
+
+    if artwork_prompt:
+        blocks.append(_divider())
+        blocks.append(_h2("4. Artwork — gen ใน ChatGPT แล้วลากรูปมาวางใต้นี้"))
+        blocks.append(_para("คัดลอก prompt ด้านล่าง → สร้างรูปใน ChatGPT (เว็บ) → "
+                            "ลากรูปที่ได้มาวางในหน้านี้ (ใต้ prompt). ตอนโพส ระบบจะ "
+                            "หยิบรูปแรกในหน้านี้ไปแนบกับโพส FB + ทวีตนำ อัตโนมัติ"))
+        blocks.append(_code(artwork_prompt))
     return blocks
 
 
