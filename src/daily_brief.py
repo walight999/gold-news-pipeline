@@ -374,18 +374,20 @@ def post_to_notion(*, title: str, blocks: list[dict[str, Any]],
 
 LOG_TAB = "daily_brief_log"
 LOG_HEADERS = ["date", "page_id", "page_url", "fb_article", "video_script",
-               "fb_posted", "video_url", "reel_posted", "artwork", "notes"]
+               "fb_posted", "video_url", "reel_posted", "artwork",
+               "tweets", "tweets_posted", "notes"]
 
 
 def log_brief(store, *, date_label: str, page_id: str, page_url: str,
               brief: dict[str, Any]) -> bool:
-    """Append one row to daily_brief_log so `--mode fb_post` / `reel_post` can
-    later read the Notion approval checkboxes for this page and publish. The
-    empty `video_url` cell is filled by `--mode video_brief` after it renders.
-    Best-effort — never raises."""
+    """Append one row to daily_brief_log so `--mode fb_post` / `reel_post` /
+    `tweet_post` can later read the Notion approval checkboxes for this page and
+    publish. `video_url`/`artwork` are filled by their modes after they render;
+    `tweets` carries the JSON list the tweet checkboxes gate. Never raises."""
     try:
         row = [date_label, page_id, page_url, brief.get("fb_article", ""),
-               brief.get("video_script", ""), "", "", "", "", ""]
+               brief.get("video_script", ""), "", "", "", "",
+               json.dumps(brief.get("tweets", []), ensure_ascii=False), "", ""]
         store.append_feed(LOG_TAB, LOG_HEADERS, [row])
         return True
     except Exception:  # noqa: BLE001

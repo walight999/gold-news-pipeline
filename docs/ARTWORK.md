@@ -70,7 +70,18 @@ after the brief). `social_feed.x_post(text, media=…)` now accepts image bytes
 > `post_photo` are **UNVERIFIED against live creds/token** — best-effort, flagged;
 > `fb_post` falls back to a text post if the photo path fails. Verify on first run.
 
-## Remaining
-- **Twitter artwork:** `x_post` accepts media, but the daily-brief tweets aren't
-  auto-posted yet (only per-event `social_feed` tweets are). Wiring the daily
-  tweet auto-post-with-artwork is the follow-up.
+## Twitter — SHIPPED (`--mode tweet_post`)
+
+The daily-brief tweets now auto-post to X with the artwork:
+- `daily_brief_log` gained `tweets` (JSON list) + `tweets_posted` (csv of posted
+  indices). `log_brief` stores the tweet list.
+- `fb_publish.checked_tweet_indices(page_id, token)` reads which **'Tweet N'**
+  checkboxes are ticked on the Notion page (fail-closed).
+- `--mode tweet_post` (hourly `tweet_post.yml`): for the newest row, posts each
+  ticked-but-unposted tweet via `social_feed.x_post`, **attaching the day's
+  artwork (downloaded from Drive) to the LEAD tweet only**, and appends the index
+  to `tweets_posted` so incremental ticks work. Env-gated X creds + `NOTION_TOKEN`.
+
+So the full one-Notion-page review now drives all channels: tick **Tweet N** →
+X (lead tweet carries the artwork); tick **FB article** → Facebook photo post;
+tick **video** → FB Reel.

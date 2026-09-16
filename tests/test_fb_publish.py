@@ -86,3 +86,19 @@ def test_attach_image_to_notion_none_on_empty_args():
     assert fb.attach_image_to_notion("", "tok", "http://i/x.png") is False
     assert fb.attach_image_to_notion("page", "", "http://i/x.png") is False
     assert fb.attach_image_to_notion("page", "tok", "") is False
+
+
+def test_checked_tweet_indices(monkeypatch):
+    blocks = [
+        _todo("Tweet 1", True),
+        _todo("Tweet 2", False),
+        _todo("Tweet 3", True),
+        _todo("อนุมัติบทความ Facebook", True),   # not a tweet → ignored
+    ]
+    monkeypatch.setattr(fb, "_notion_children", lambda pid, tok: blocks)
+    assert fb.checked_tweet_indices("p", "t") == {1, 3}
+
+
+def test_checked_tweet_indices_fail_closed():
+    assert fb.checked_tweet_indices("", "t") == set()
+    assert fb.checked_tweet_indices("p", "") == set()
