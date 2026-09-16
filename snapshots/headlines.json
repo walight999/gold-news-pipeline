@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-09-16T20:21:57Z",
-      "title": "fed · Rate Policy",
-      "source": "Fxstreet",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-09-16T20:21:57Z",
+      "ts": "2026-09-16T23:05:53Z",
       "title": "global · Other",
-      "source": "Forexlive",
+      "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-16T20:21:57Z",
-      "title": "fed · Rate Policy",
-      "source": "Forexlive",
-      "score": 0.5,
+      "ts": "2026-09-16T23:05:53Z",
+      "title": "global · Other",
+      "source": "Yahoo Finance",
+      "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-16T20:21:57Z",
+      "ts": "2026-09-16T23:05:53Z",
+      "title": "global · Other",
+      "source": "Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-09-16T23:05:53Z",
       "title": "us · Usd Yields",
-      "source": "Forexlive",
+      "source": "Yahoo Finance",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-16T20:21:57Z",
-      "title": "fed · Rate Policy · hawkish",
-      "source": "Forexlive",
-      "score": 0.5,
+      "ts": "2026-09-16T23:05:53Z",
+      "title": "us · Usd Yields · risk on",
+      "source": "Yahoo Finance",
+      "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-16T20:21:57Z",
-      "title": "fed · Rate Policy",
-      "source": "Forexlive",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-09-16T20:21:57Z",
-      "title": "fed · Rate Policy",
-      "source": "Forexlive, Fxstreet",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-09-16T20:21:57Z",
+      "ts": "2026-09-16T23:05:53Z",
       "title": "global · Other",
-      "source": "Forexlive",
+      "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-16T20:21:57Z",
-      "title": "fed · Rate Policy · hawkish",
-      "source": "Forexlive",
+      "ts": "2026-09-16T23:05:53Z",
+      "title": "global · Other",
+      "source": "Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-09-16T23:05:53Z",
+      "title": "us · Usd Yields",
+      "source": "Yahoo Finance",
+      "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-09-16T23:05:53Z",
+      "title": "fed · Rate Policy",
+      "source": "Yahoo Finance",
       "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-16T20:21:57Z",
-      "title": "us · Growth",
-      "source": "Forexlive",
-      "score": 0.2,
+      "ts": "2026-09-16T23:05:53Z",
+      "title": "global · Other",
+      "source": "Yahoo Finance",
+      "score": 0.1,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-09-16T20:23:18.912622Z"
+  "written_at": "2026-09-16T23:09:58.931199Z"
 }
