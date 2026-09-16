@@ -23,7 +23,7 @@ from typing import Any
 import yaml
 
 from . import calendar as cal
-from . import content_log, dedup, delivery_stats, digest, fred, health, macro_push, news_alert, ops_alert, price_feed, scorecard, scorer, social_feed, telegram_news, translator, weekly_report
+from . import content_log, daily_brief, dedup, delivery_stats, digest, fred, health, macro_push, news_alert, ops_alert, price_feed, scorecard, scorer, social_feed, telegram_news, translator, weekly_report
 from .fetcher import fetch_all, plan_fetch
 from .line_client import (
     PRIORITY_BRIEFING,
@@ -62,6 +62,7 @@ from .utils_time import (
     iso_utc,
     now_ict,
     now_utc,
+    to_ict,
     within_digest_slot,
 )
 
@@ -1091,6 +1092,59 @@ async def run_social_post() -> int:
     limit = int(os.environ.get("SOCIAL_POST_LIMIT", "5"))
     n = social_feed.post_pending(store, limit=limit)
     log.info("social_post: posted %d tweet(s)", n)
+    return 0
+
+
+async def run_daily_brief() -> int:
+    """Daily brief: the day's curated social_feed events → 3 @tradetongkam
+    artifacts (tweets / FB article / video script) → one Notion review page.
+
+    Env-gated, best-effort. NOTION_TOKEN + NOTION_BRIEF_PARENT unset → DRY RUN:
+    the markdown is written to snapshots/ and logged, nothing is posted. No
+    ANTHROPIC key → logs and exits 0. Never crashes the schedule."""
+    store = Store.from_env()
+    store.connect()
+    events = daily_brief.collect_brief_events(store)
+    if not events:
+        log.info("daily_brief: no breaking/alert events in window — nothing to do")
+        return 0
+    brief = daily_brief.compose_brief(events)
+    if not brief or not brief.get("tweets"):
+        log.warning("daily_brief: compose returned nothing — skipping")
+        return 0
+
+    date_label = to_ict(now_utc()).strftime("%d %b %Y")
+    title = f"{daily_brief.BRIEF_ICON} Gold Daily Brief — {date_label} (@tradetongkam)"
+    n_ev = len(events)
+
+    # Always write the local snapshot (audit trail + the dry-run deliverable).
+    try:
+        os.makedirs("snapshots", exist_ok=True)
+        md = daily_brief.render_markdown(brief, date_label=date_label, event_count=n_ev)
+        fname = f"snapshots/daily_brief_{to_ict(now_utc()).strftime('%Y%m%d')}.md"
+        with open(fname, "w", encoding="utf-8") as f:
+            f.write(md)
+        log.info("daily_brief: wrote %s", fname)
+    except Exception:  # noqa: BLE001 — snapshot is best-effort
+        log.exception("daily_brief: snapshot write failed")
+
+    token = os.environ.get("NOTION_TOKEN")
+    parent = os.environ.get("NOTION_BRIEF_PARENT")
+    if not token or not parent:
+        log.info("daily_brief: DRY RUN (NOTION_TOKEN/NOTION_BRIEF_PARENT unset) — "
+                 "%d tweets, article=%d chars, script=%d chars",
+                 len(brief["tweets"]), len(brief.get("fb_article", "")),
+                 len(brief.get("video_script", "")))
+        return 0
+
+    blocks = daily_brief.render_notion_blocks(brief, date_label=date_label,
+                                              event_count=n_ev)
+    url = daily_brief.post_to_notion(title=title, blocks=blocks,
+                                     token=token, parent_id=parent)
+    if url:
+        log.info("daily_brief: posted Notion page %s", url)
+    else:
+        log.warning("daily_brief: Notion post failed (snapshot kept)")
     return 0
 
 
@@ -2537,7 +2591,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--mode", choices=(
         "cron", "event", "digest", "calendar_daily", "calendar_check",
         "weekly_preview", "eod_recap", "verify_sources", "maintain",
-        "watchdog", "social_post", "social_seed",
+        "watchdog", "social_post", "social_seed", "daily_brief",
         "backfill_xau", "precision_report", "scorecard", "macro",
         "content_review", "apify_probe", "weekly_report",
     ), default="cron")
@@ -2568,6 +2622,8 @@ def main(argv: list[str] | None = None) -> int:
         return asyncio.run(run_social_post())
     if args.mode == "social_seed":
         return asyncio.run(run_social_seed())
+    if args.mode == "daily_brief":
+        return asyncio.run(run_daily_brief())
     if args.mode == "backfill_xau":
         return asyncio.run(run_backfill_xau())
     if args.mode == "precision_report":

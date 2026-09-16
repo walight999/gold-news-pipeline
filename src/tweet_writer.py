@@ -78,6 +78,29 @@ def _sanitize(t: str) -> str:
     return t
 
 
+def _fit(tweet: str) -> str:
+    """Ensure the tweet fits TWEET_LIMIT, trimming the body (never the hashtag
+    line) at a PHRASE boundary so it never ends mid-word. Thai separates phrases
+    with spaces, so we back off to the last space/newline/sentence mark rather
+    than a hard character cut — the 2026-09 defect where drafts ended mid-word
+    (e.g. 'ทองหา…', 'จุดสำคัญ…'). Adds '…' only when content was actually cut."""
+    if len(tweet) <= TWEET_LIMIT:
+        return tweet
+    head = tweet[: -len(TAGS)].rstrip() if tweet.endswith(TAGS) else tweet
+    room = TWEET_LIMIT - len(TAGS) - 2          # head + "…\n" + tags
+    if room <= 0:
+        return TAGS
+    clipped = head[:room]
+    # Back off to the last phrase boundary; only honor it if it keeps enough of
+    # the sentence (>=60% of room) so we don't collapse to a stub.
+    cut = max(clipped.rfind(" "), clipped.rfind("\n"),
+              clipped.rfind("."), clipped.rfind("ฯ"))
+    if cut >= int(room * 0.6):
+        clipped = clipped[:cut]
+    clipped = clipped.rstrip(" \n.,")
+    return clipped + "…\n" + TAGS
+
+
 def compose_tweet(*, headline_th: str | None, body_th: list[str] | None,
                   impact_th: str | None, category: str | None,
                   en_title: str | None, en_summary: str | None) -> str | None:
@@ -110,12 +133,7 @@ def compose_tweet(*, headline_th: str | None, body_th: list[str] | None,
             if not tweet:
                 raise ValueError("no tweet field in Claude output")
             tweet = _sanitize(str(tweet))
-            if len(tweet) > TWEET_LIMIT:
-                # Trim the body but keep the hashtag line intact.
-                head = tweet[: -len(TAGS)].rstrip()
-                room = TWEET_LIMIT - len(TAGS) - 2
-                tweet = head[: max(0, room - 1)].rstrip() + "…\n" + TAGS
-            return tweet
+            return _fit(tweet)
         except Exception as e:  # noqa: BLE001
             s = str(e)
             transient = any(c in s for c in (" 529", " 503", " 502", " 504", "overloaded", "rate_limit"))
