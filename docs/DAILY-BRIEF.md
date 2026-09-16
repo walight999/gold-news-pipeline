@@ -68,10 +68,40 @@ posted, exit 0. No Anthropic key → logs and exits 0. Nothing here crashes.
 ## Operator loop
 
 Morning: open the day's Notion page → read the 3 sections → tick ✅ on the
-tweets worth posting + article/script if good → the Twitter picks still go out
-through the existing `social_post` path; the FB article + video script are
-copied out manually (Phase 1). Facebook auto-publish (Graph API) and video-tool
-handoff are later phases.
+tweets worth posting + article/script if good → the Twitter picks go out through
+the existing `social_post` path; **the FB article auto-publishes once you tick
+its checkbox** (Phase 2, below); the video script is copied out manually
+(Phase 3 = video-tool handoff, TBD).
+
+## Phase 2 — Facebook auto-publish (`--mode fb_post`)
+
+When `daily_brief` posts the Notion page it also appends a `daily_brief_log`
+sheet row (`date`, `page_id`, `page_url`, `fb_article`, `video_script`,
+`fb_posted`, `notes`). `--mode fb_post` (hourly workflow `fb_post.yml`):
+
+```
+daily_brief_log (newest unposted row)
+   → read the Notion page's "อนุมัติบทความ Facebook" checkbox (fb_publish.is_fb_approved)
+   → if ticked: post the STORED fb_article to the FB Page (Graph API /feed)
+   → stamp fb_posted with the post URL
+```
+
+The article text is read from the sheet row (not reconstructed from Notion) so
+only the **checkbox state** comes from Notion — robust. Fail-closed: any read
+error ⇒ treated as not-approved, nothing posts. One post per run.
+
+**Go-live (White) — Facebook:**
+1. Create a Meta app (developers.facebook.com) and connect your brand
+   **Facebook Page**.
+2. Generate a **long-lived Page access token** with `pages_manage_posts` +
+   `pages_read_engagement` (Graph API Explorer → exchange for long-lived).
+3. Add GH secrets on `gold-news-pipeline`: `FB_PAGE_ID` (the numeric Page id) +
+   `FB_PAGE_TOKEN`. `NOTION_TOKEN` must already be set (Phase 1) so the approval
+   checkbox can be read.
+4. Until both FB secrets are set, `fb_post` no-ops (logs + exit 0).
+
+Video auto-handoff is Phase 3 (tool not yet chosen — the script stays
+tool-agnostic in the meantime).
 
 ## Local dry run
 

@@ -74,6 +74,9 @@ test draft) · `daily_brief` (one pool → 3 @tradetongkam artifacts [tweets/FB
 article/video script] → one Notion review page, cron 07:30 ICT; env-gated on
 `NOTION_TOKEN`+`NOTION_BRIEF_PARENT`, dry-run writes `snapshots/daily_brief_*.md`;
 uses Sonnet `BRIEF_MODEL` for fluent Thai — see `docs/DAILY-BRIEF.md`) ·
+`fb_post` (Phase 2: post the daily_brief FB article once its Notion approval
+checkbox is ticked, hourly; env-gated on `FB_PAGE_ID`+`FB_PAGE_TOKEN`+`NOTION_TOKEN`,
+reads `daily_brief_log` sheet, fail-closed) ·
 `calendar_daily` (one card/day, 04:40 ICT) · `calendar_check` (**pre- T-15 + post Released News**) ·
 `scorecard` (EOD directional-accuracy of calendar verdicts → **1:1 only**, 23:45 ICT) ·
 `macro` (compute + POST the multi-factor macro state to the CHUM alert-bot worker, every 6h) ·
@@ -161,7 +164,12 @@ with no 15m bar show as ⏳ pending, not wrong.
   social_feed rows → ONE Sonnet call → 3 @tradetongkam artifacts (tweets / FB
   article / video script) → one Notion review page (one to_do per artifact).
   Env-gated (`NOTION_TOKEN`+`NOTION_BRIEF_PARENT`), dry-run = local snapshot.
+  On Notion post it also appends a `daily_brief_log` row (page_id + artifacts).
   Docs: `docs/DAILY-BRIEF.md`.
+- `fb_publish.py` — Phase 2 FB auto-publish (`--mode fb_post`): reads the FB
+  approval checkbox off the brief's Notion page (`is_fb_approved`, fail-closed)
+  and posts the stored `fb_article` to the FB Page via Graph API
+  (`post_to_page`). Env-gated `FB_PAGE_ID`+`FB_PAGE_TOKEN`(+`NOTION_TOKEN`).
 - `store.py` — Google Sheets state. `flush()` clears+rewrites whole tabs (so the
   social feed uses `append_feed`/`set_feed_cell` instead, never clobbered).
   ⚠ `upsert()` **replaces** the row (rebuilt from `SCHEMAS`; absent keys become

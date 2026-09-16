@@ -89,6 +89,17 @@ def test_render_notion_blocks_has_todo_per_tweet_and_artifacts():
     assert sum(1 for b in blocks if b["type"] == "heading_2") == 3
 
 
+def test_clean_source_collapses_x_relays_keeps_publications():
+    assert db._clean_source("X Deitaone") == "wire"
+    assert db._clean_source("X Firstsquawk") == "wire"
+    assert db._clean_source("CNBC") == "CNBC"
+    assert db._clean_source("FXStreet") == "FXStreet"
+    # relays must not leak a citable handle into the prompt
+    ev = [{"headline_th": "ทองร่วง", "impact_th": "กด", "tone": "hawkish",
+           "source": "X Deitaone"}]
+    assert "Deitaone" not in db._headlines_block(ev)
+
+
 def test_render_markdown_smoke():
     brief = {"theme": "t", "tweets": ["🔴 a"], "fb_article": "art",
              "video_script": "scr"}
