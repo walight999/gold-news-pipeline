@@ -64,3 +64,44 @@ def test_build_payload_voice_override(monkeypatch):
     p = vb.build_payload(vb.parse_scenes(REAL_SCRIPT), title="t")
     voice_el = next(e for e in p["scenes"][0]["elements"] if e["type"] == "voice")
     assert voice_el["voice"] == "th-TH-NiwatNeural"
+
+
+def test_extract_card_text():
+    assert vb.extract_card_text("การ์ดข้อความ 'US 10Y Yield: 5%'") == "US 10Y Yield: 5%"
+    assert vb.extract_card_text('ภาพการ์ด "Fed 92.5%"') == "Fed 92.5%"
+    assert vb.extract_card_text("ภาพตึก Federal Reserve") is None
+
+
+def test_broll_query_pulls_english_nouns():
+    assert "Federal Reserve" in vb.broll_query("ภาพตึก Federal Reserve วอชิงตัน")
+    assert "Trading Floor" in vb.broll_query("ภาพ Trading Floor ตลาดหุ้น")
+    # no Latin → Thai macro map / default, never empty, never gold-chart
+    q = vb.broll_query("ภาพธนาคารกลางญี่ปุ่น")
+    assert q and "chart" not in q.lower() and "gold" not in q.lower()
+
+
+def test_resolve_visuals_without_pexels_key_uses_card_or_text():
+    scenes = [{"n": 1, "cue": "การ์ด 'US 10Y 5%'", "narration": "x"},
+              {"n": 2, "cue": "ภาพตึก Federal Reserve", "narration": "y"}]
+    vis = vb.resolve_visuals(scenes, pexels_key=None)   # no key → no b-roll
+    assert vis[0] == {"type": "card", "value": "US 10Y 5%"}
+    assert vis[1] == {"type": "text", "value": "ภาพตึก Federal Reserve"}
+
+
+def test_build_payload_visual_branches():
+    scenes = [{"n": 1, "cue": "c1", "narration": "n1"},
+              {"n": 2, "cue": "c2", "narration": "n2"},
+              {"n": 3, "cue": "c3", "narration": "n3"}]
+    visuals = [{"type": "broll", "value": "https://x/clip.mp4"},
+               {"type": "card", "value": "US 10Y 5%"},
+               {"type": "text", "value": "c3"}]
+    p = vb.build_payload(scenes, title="t", visuals=visuals)
+    s0, s1, s2 = p["scenes"]
+    assert any(e["type"] == "video" and e["src"].endswith("clip.mp4")
+               for e in s0["elements"])                 # b-roll → video bg
+    assert any(e["type"] == "text" and e["text"] == "US 10Y 5%"
+               for e in s1["elements"])                 # card → text
+    assert any(e["type"] == "text" and e["text"] == "c3" for e in s2["elements"])
+    # every scene still carries its TTS voice
+    for sc in p["scenes"]:
+        assert any(e["type"] == "voice" for e in sc["elements"])

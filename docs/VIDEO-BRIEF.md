@@ -62,16 +62,34 @@ describe macro-explainer visuals only (central-bank buildings, trading-floor /
 markets b-roll, news desks, or typographic cards of PUBLIC numbers like
 "US 10Y 5%").
 
-## Remaining — Phase 3b
+## Phase 3b — SHIPPED
 
-- **Visuals v1.1:** replace the text-on-gradient background with, per scene,
-  either **Pexels b-roll** (free API) keyed off the `cue` (Fed building, trading
-  floor, central banks) OR a generated **typographic data card** of the public
-  macro number in the cue. **No XAU/USD charts, no internal desk imagery.**
-- **Review → post loop:** attach the rendered MP4 to the brief's Notion page with
-  a video approval checkbox (reuse the existing "อนุมัติบทพูด video" to_do), then
-  `--mode reel_post` reads that checkbox (like `fb_post`) and publishes the MP4 as
-  a **FB Reel** via the Graph API resumable-upload flow (`/{page}/video_reels`).
-  Reels publishing needs `pages_manage_posts` + possibly Meta app review for video.
+**Visuals** (`video_brief.resolve_visuals`): per scene, a **typographic data card**
+if the cue quotes a public number (e.g. `'US 10Y 5%'`), else **Pexels b-roll**
+(`pexels.search_broll`, free API, `PEXELS_API_KEY`) keyed off the cue's English
+nouns (Fed building, trading floor), else the cue text on gradient. `PEXELS_API_KEY`
+unset → cards + gradient only. **Never** queries gold/charts (macro nouns only).
 
-Until 3b lands, the MP4 URL is logged; the operator posts the reel manually.
+**Review → post loop:**
+```
+video_brief renders MP4 → stamps daily_brief_log.video_url + attaches the MP4 to
+the brief's Notion page (fb_publish.attach_video_to_notion)
+   │  operator watches → ticks "อนุมัติบทพูด video"
+   ▼
+--mode reel_post (hourly reel_post.yml): newest row with video_url + empty
+reel_posted + ticked video checkbox → fb_publish.post_reel() publishes the MP4 as
+a FB Reel (3-phase /{page}/video_reels) → stamps reel_posted. Fail-closed.
+```
+
+### Go-live (White) — Phase 3b
+- **Pexels** (optional, for b-roll): free key at pexels.com/api → GH secret
+  `PEXELS_API_KEY`. Without it, scenes use cards/gradient (still a valid reel).
+- **FB Reels:** reuse `FB_PAGE_ID` + `FB_PAGE_TOKEN` (needs `pages_manage_posts`
+  + video permissions; Meta app review may apply to video/Reels).
+
+> ⚠ `post_reel` follows the documented `/{page}/video_reels` 3-phase (start →
+> upload-by-`file_url` → finish) flow but is **UNVERIFIED against a live token** —
+> the resumable Reels flow is finicky; `reel_post` leaves the row unposted (retries)
+> on failure, so verify + adjust on the first real post. Same for
+> `attach_video_to_notion` (a raw .mp4 external video block may need an embeddable
+> host).

@@ -1,0 +1,35 @@
+name: video-brief
+on:
+  schedule:
+    # 00:50 UTC = 07:50 ICT — ~20 min after daily-brief posts the Notion page.
+    - cron: "50 0 * * *"
+  workflow_dispatch: {}
+
+concurrency:
+  group: gold-news
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GSHEET_ID:        ${{ secrets.GSHEET_ID }}
+      GSHEET_CREDS:     ${{ secrets.GSHEET_CREDS }}
+      # Cloud render. UNSET => DRY RUN (writes the movie-JSON snapshot only).
+      JSON2VIDEO_KEY:   ${{ secrets.JSON2VIDEO_KEY }}
+      BRIEF_VOICE:      ${{ secrets.BRIEF_VOICE }}
+      # Optional macro b-roll. UNSET => scenes use typographic cards / gradient.
+      PEXELS_API_KEY:   ${{ secrets.PEXELS_API_KEY }}
+      # Attach the rendered MP4 to the brief's Notion page for review.
+      NOTION_TOKEN:     ${{ secrets.NOTION_TOKEN }}
+      PYTHONUNBUFFERED: "1"
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: python -m src.main --mode video_brief
