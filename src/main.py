@@ -1102,6 +1102,15 @@ async def run_daily_brief() -> int:
     Env-gated, best-effort. NOTION_TOKEN + NOTION_BRIEF_PARENT unset → DRY RUN:
     the markdown is written to snapshots/ and logged, nothing is posted. No
     ANTHROPIC key → logs and exits 0. Never crashes the schedule."""
+    # In CI the snapshot is ephemeral, so a dry run there would burn a Sonnet
+    # call every day for nothing. Skip BEFORE compose when running in GitHub
+    # Actions without Notion configured; local runs still do the full dry run.
+    if os.environ.get("GITHUB_ACTIONS") and not (
+            os.environ.get("NOTION_TOKEN") and os.environ.get("NOTION_BRIEF_PARENT")):
+        log.info("daily_brief: not configured (NOTION_TOKEN/NOTION_BRIEF_PARENT "
+                 "unset) — skipping compose in CI to avoid spend. Set the secrets "
+                 "to go live.")
+        return 0
     store = Store.from_env()
     store.connect()
     events = daily_brief.collect_brief_events(store)
