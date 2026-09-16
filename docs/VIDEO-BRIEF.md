@@ -52,11 +52,22 @@ settings may need a tweak once tested against a live key). Nothing renders until
    `snapshots/video_payload_<date>.json` + the rendered MP4. Adjust payload if the
    first render errors (field-name mismatches are the likely fix).
 
+## Visual policy (IMPORTANT)
+
+This is a **macro-explainer** channel, not a gold-chart channel. **Never** put a
+**XAU/USD price chart, candlestick, or any trading-signal chart** in the public
+video — the desk's gold charts (e.g. the ones pushed to LINE) are **internal
+data** and must not appear. The `video_script` prompt enforces this: scene cues
+describe macro-explainer visuals only (central-bank buildings, trading-floor /
+markets b-roll, news desks, or typographic cards of PUBLIC numbers like
+"US 10Y 5%").
+
 ## Remaining — Phase 3b
 
-- **Visuals v1.1:** replace the text-on-gradient background with a per-scene
-  **XAU/USD chart image** (generated from `price_feed` data — on-brand) and/or
-  **Pexels b-roll** keyed off each scene's `cue`.
+- **Visuals v1.1:** replace the text-on-gradient background with, per scene,
+  either **Pexels b-roll** (free API) keyed off the `cue` (Fed building, trading
+  floor, central banks) OR a generated **typographic data card** of the public
+  macro number in the cue. **No XAU/USD charts, no internal desk imagery.**
 - **Review → post loop:** attach the rendered MP4 to the brief's Notion page with
   a video approval checkbox (reuse the existing "อนุมัติบทพูด video" to_do), then
   `--mode reel_post` reads that checkbox (like `fb_post`) and publishes the MP4 as
