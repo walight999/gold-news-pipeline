@@ -193,7 +193,15 @@ with no 15m bar show as ⏳ pending, not wrong.
   / `brief_artwork_prompt` (pure) + `generate()` (Images API, raw HTTP, gpt-image-1
   default / dall-e-3 via `IMAGE_MODEL`). Env-gated `OPENAI_API_KEY`. **`BRAND_STYLE`
   guardrail bans AI human faces** (no-ai-slop) — illustrative/infographic only.
-  Slice 2 (host + attach to FB/X/Notion) = TODO. Docs: `docs/ARTWORK.md`.
+  `--mode artwork` → gen → Drive host → stamp `daily_brief_log.artwork` + attach
+  to Notion; `fb_post` posts it as a PHOTO (caption=article) when present.
+  Workflow `artwork.yml` (00:55 UTC). Docs: `docs/ARTWORK.md`.
+- `drive_upload.py` — Google Drive image host reusing the service account
+  (`GSHEET_CREDS`, `drive` scope): `upload_png` (+ anyone-reader) → file id,
+  `view_url` (Notion embed), `download` (authenticated bytes for FB/X upload —
+  hotlinks are flaky). Best-effort. `fb_publish` gained `post_photo` (bytes →
+  `/{page}/photos`) + `attach_image_to_notion`; `social_feed.x_post(text, media=)`
+  now takes image bytes. `daily_brief_log` +`artwork` col. UNVERIFIED-live.
 - `fb_publish.py` also owns Phase 3b: `is_approved(page,tok,label)` (generic
   checkbox read; `VIDEO_APPROVE_LABEL`), `attach_video_to_notion` (append MP4 to
   the brief page), `post_reel` (3-phase `/{page}/video_reels`, UNVERIFIED-live).

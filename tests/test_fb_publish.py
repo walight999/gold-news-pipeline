@@ -74,3 +74,15 @@ def test_attach_video_to_notion_none_on_empty_args():
     assert fb.attach_video_to_notion("", "tok", "http://v/x.mp4") is False
     assert fb.attach_video_to_notion("page", "", "http://v/x.mp4") is False
     assert fb.attach_video_to_notion("page", "tok", "") is False
+
+
+def test_post_photo_none_on_empty_args():
+    assert fb.post_photo(b"", page_id="p", token="t") is None
+    assert fb.post_photo(b"bytes", page_id="", token="t") is None
+    assert fb.post_photo(b"bytes", page_id="p", token="") is None
+
+
+def test_attach_image_to_notion_none_on_empty_args():
+    assert fb.attach_image_to_notion("", "tok", "http://i/x.png") is False
+    assert fb.attach_image_to_notion("page", "", "http://i/x.png") is False
+    assert fb.attach_image_to_notion("page", "tok", "") is False

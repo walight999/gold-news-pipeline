@@ -99,6 +99,55 @@ def post_to_page(message: str, *, page_id: str, token: str) -> str | None:
         return None
 
 
+def post_photo(image: bytes, *, page_id: str, token: str,
+               message: str = "") -> str | None:
+    """Post a photo (uploaded bytes) with a caption to the FB Page. Uploading the
+    bytes directly is more reliable than a `url` (Drive hotlinks are flaky for
+    FB's fetcher). Returns the post URL, or None."""
+    if not (image and page_id and token):
+        return None
+    import httpx
+
+    try:
+        with httpx.Client(timeout=60) as c:
+            r = c.post(f"https://graph.facebook.com/{GRAPH_VERSION}/{page_id}/photos",
+                       data={"message": message, "access_token": token},
+                       files={"source": ("artwork.png", image, "image/png")})
+            r.raise_for_status()
+            j = r.json()
+            pid = j.get("post_id") or j.get("id", "")
+            return f"https://www.facebook.com/{pid}" if pid else None
+    except Exception:  # noqa: BLE001 — one bad post must not stop the run
+        log.exception("fb_publish: photo post failed")
+        return None
+
+
+def attach_image_to_notion(page_id: str, token: str, image_url: str,
+                           caption: str = "🎨 artwork (ตรวจก่อนโพส)") -> bool:
+    """Append the artwork as a Notion image block (+ caption) to the brief page
+    so the operator sees it before approving. Best-effort."""
+    if not (page_id and token and image_url):
+        return False
+    import httpx
+
+    headers = {"Authorization": f"Bearer {token}",
+               "Notion-Version": NOTION_VERSION, "Content-Type": "application/json"}
+    children = [
+        {"object": "block", "type": "paragraph",
+         "paragraph": {"rich_text": [{"type": "text", "text": {"content": caption}}]}},
+        {"object": "block", "type": "image",
+         "image": {"type": "external", "external": {"url": image_url}}},
+    ]
+    try:
+        with httpx.Client(timeout=30) as c:
+            c.patch(f"https://api.notion.com/v1/blocks/{page_id}/children",
+                    headers=headers, json={"children": children}).raise_for_status()
+        return True
+    except Exception:  # noqa: BLE001
+        log.exception("fb_publish: attach image to notion failed")
+        return False
+
+
 def attach_video_to_notion(page_id: str, token: str, mp4_url: str,
                            caption: str = "🎬 วิดีโอที่เรนเดอร์แล้ว (ดูก่อนติ๊กอนุมัติ)") -> bool:
     """Append the rendered MP4 as a video block (+ caption) to the brief's Notion

@@ -374,7 +374,7 @@ def post_to_notion(*, title: str, blocks: list[dict[str, Any]],
 
 LOG_TAB = "daily_brief_log"
 LOG_HEADERS = ["date", "page_id", "page_url", "fb_article", "video_script",
-               "fb_posted", "video_url", "reel_posted", "notes"]
+               "fb_posted", "video_url", "reel_posted", "artwork", "notes"]
 
 
 def log_brief(store, *, date_label: str, page_id: str, page_url: str,
@@ -385,7 +385,7 @@ def log_brief(store, *, date_label: str, page_id: str, page_url: str,
     Best-effort — never raises."""
     try:
         row = [date_label, page_id, page_url, brief.get("fb_article", ""),
-               brief.get("video_script", ""), "", "", "", ""]
+               brief.get("video_script", ""), "", "", "", "", ""]
         store.append_feed(LOG_TAB, LOG_HEADERS, [row])
         return True
     except Exception:  # noqa: BLE001

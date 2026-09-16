@@ -37,24 +37,40 @@ fake person. Artwork (graphics) is allowed; faces are not.
 > `gpt-image-1` may require OpenAI org verification; if it 403s, set
 > `IMAGE_MODEL=dall-e-3`.
 
-## Slice 2 — TODO (put the artwork ON the posts)
+## Slice 2 — SHIPPED (host + attach)
 
-The generator is done; attaching it to live posts needs **hosting** so the same
-image can be shown in Notion review + attached to the FB post + the tweet:
+**Hosting = Google Drive** via the existing service account (`drive_upload.py`,
+reuses `GSHEET_CREDS`, no new vendor):
+- `upload_png(data, name)` → uploads + makes anyone-with-link → returns the Drive
+  **file id**; `view_url(id)` for the Notion embed; `download(id)` for an
+  **authenticated** byte fetch (reliable — Drive public hotlinks are flaky for
+  FB/X fetchers, so posters download bytes + upload them directly).
 
-1. **Host** the PNG → a stable URL. Options (decision needed):
-   - **Google Drive** via the existing service account (reuse `GSHEET_CREDS`, add
-     `drive.file` scope, share anyone-with-link) — no new vendor.
-   - **Cloudinary / imgbb / S3-compatible** — a dedicated image host.
-2. **Attach to review:** add the artwork as a Notion image block on the brief page
-   (next to the approval checkboxes).
-3. **Attach to posts:**
-   - **Facebook:** `POST /{page}/photos` with `url` + `message` (single-photo
-     post) instead of `/feed`.
-   - **Twitter:** upload media (tweepy `media_upload` / v2 media) → attach
-     `media_ids` to the tweet.
-4. **State:** store `artwork_url` on the `daily_brief_log` row so `fb_post` /
-   the tweet path pick it up.
+**Flow:**
+```
+--mode artwork: calendar prompt → OpenAI image → save snapshot → Drive upload
+   → stamp daily_brief_log.artwork (file id) → attach image to the Notion page
+   ↓  operator sees the artwork next to the approval checkboxes
+fb_post: if the row has `artwork`, download bytes from Drive → post as a PHOTO
+   (fb_publish.post_photo, /{page}/photos, article = caption); else text post.
+```
+`daily_brief_log` gained an `artwork` column. Workflow `artwork.yml` (00:55 UTC,
+after the brief). `social_feed.x_post(text, media=…)` now accepts image bytes
+(v1.1 media upload) so the tweet path is ready for artwork too.
 
-Generate the artwork ONCE per brief (consistency + cost) and reuse the hosted URL
-across all channels.
+### Env (slice 2)
+
+| var | purpose |
+|---|---|
+| `GSHEET_CREDS` | Drive upload/download (already set; uses `drive` scope) |
+| `NOTION_TOKEN` | attach the artwork image block to the review page |
+| `FB_PAGE_ID`+`FB_PAGE_TOKEN` | photo post (reused from Phase 2) |
+
+> ⚠ `drive_upload` (service-account public share may hit org policy) and
+> `post_photo` are **UNVERIFIED against live creds/token** — best-effort, flagged;
+> `fb_post` falls back to a text post if the photo path fails. Verify on first run.
+
+## Remaining
+- **Twitter artwork:** `x_post` accepts media, but the daily-brief tweets aren't
+  auto-posted yet (only per-event `social_feed` tweets are). Wiring the daily
+  tweet auto-post-with-artwork is the follow-up.
