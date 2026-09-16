@@ -83,6 +83,9 @@ reads `daily_brief_log` sheet, fail-closed) ·
 stamps `daily_brief_log.video_url` + attaches MP4 to Notion) ·
 `reel_post` (Phase 3b: post the rendered MP4 as a FB Reel once "อนุมัติบทพูด video"
 is ticked, hourly; env-gated same as fb_post; `post_reel` UNVERIFIED-live) ·
+`artwork` (OpenAI image gen: daily economic-calendar poster artwork for FB/X posts;
+env-gated `OPENAI_API_KEY`, dry-run logs the prompt; Slice 2 = host + attach to
+posts — see `docs/ARTWORK.md`) ·
 `calendar_daily` (one card/day, 04:40 ICT) · `calendar_check` (**pre- T-15 + post Released News**) ·
 `scorecard` (EOD directional-accuracy of calendar verdicts → **1:1 only**, 23:45 ICT) ·
 `macro` (compute + POST the multi-factor macro state to the CHUM alert-bot worker, every 6h) ·
@@ -186,6 +189,11 @@ with no 15m bar show as ⏳ pending, not wrong.
 - `pexels.py` — `search_broll(query)` → portrait stock-video URL for macro b-roll
   (central banks / trading floors), env-gated `PEXELS_API_KEY`, best-effort. Only
   macro nouns are ever queried — never gold/charts/internal imagery.
+- `image_gen.py` — OpenAI post artwork (`--mode artwork`): `calendar_artwork_prompt`
+  / `brief_artwork_prompt` (pure) + `generate()` (Images API, raw HTTP, gpt-image-1
+  default / dall-e-3 via `IMAGE_MODEL`). Env-gated `OPENAI_API_KEY`. **`BRAND_STYLE`
+  guardrail bans AI human faces** (no-ai-slop) — illustrative/infographic only.
+  Slice 2 (host + attach to FB/X/Notion) = TODO. Docs: `docs/ARTWORK.md`.
 - `fb_publish.py` also owns Phase 3b: `is_approved(page,tok,label)` (generic
   checkbox read; `VIDEO_APPROVE_LABEL`), `attach_video_to_notion` (append MP4 to
   the brief page), `post_reel` (3-phase `/{page}/video_reels`, UNVERIFIED-live).
