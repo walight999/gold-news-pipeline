@@ -23,7 +23,7 @@ from typing import Any
 import yaml
 
 from . import calendar as cal
-from . import content_log, daily_brief, dedup, delivery_stats, digest, fb_publish, fred, health, macro_push, news_alert, ops_alert, price_feed, scorecard, scorer, social_feed, telegram_news, translator, weekly_report
+from . import content_log, daily_brief, dedup, delivery_stats, digest, fb_publish, fred, health, macro_push, news_alert, ops_alert, price_feed, scorecard, scorer, social_feed, telegram_news, translator, video_brief, weekly_report
 from .fetcher import fetch_all, plan_fetch
 from .line_client import (
     PRIORITY_BRIEFING,
@@ -1148,6 +1148,54 @@ async def run_daily_brief() -> int:
                               page_url=page["url"], brief=brief)
     else:
         log.warning("daily_brief: Notion post failed (snapshot kept)")
+    return 0
+
+
+async def run_video_brief() -> int:
+    """Video brief (Phase 3): the latest daily_brief_log video_script → a
+    faceless vertical reel (Thai TTS + karaoke subtitles) via JSON2Video.
+
+    Env-gated + best-effort. Always writes the movie-JSON snapshot for review;
+    JSON2VIDEO_KEY unset → DRY RUN (no render). The rendered MP4 then flows into
+    the one-tick approval → reel_post (Phase 3b)."""
+    store = Store.from_env()
+    store.connect()
+    headers, rows = store.read_feed(daily_brief.LOG_TAB)
+    if not rows:
+        log.info("video_brief: no daily_brief_log rows — nothing to do")
+        return 0
+    row = rows[-1]                                  # newest brief
+    script = str(row.get("video_script") or "").strip()
+    if not script:
+        log.info("video_brief: latest brief has no video_script")
+        return 0
+    scenes = video_brief.parse_scenes(script)
+    if not scenes:
+        log.warning("video_brief: no scenes parsed from script")
+        return 0
+
+    date_label = str(row.get("date") or to_ict(now_utc()).strftime("%d %b %Y"))
+    payload = video_brief.build_payload(scenes, title=f"Gold Daily Brief — {date_label}")
+
+    try:
+        os.makedirs("snapshots", exist_ok=True)
+        fn = f"snapshots/video_payload_{to_ict(now_utc()).strftime('%Y%m%d')}.json"
+        with open(fn, "w", encoding="utf-8") as f:
+            json.dump(payload, f, ensure_ascii=False, indent=1)
+        log.info("video_brief: wrote %s (%d scenes)", fn, len(scenes))
+    except Exception:  # noqa: BLE001 — snapshot is best-effort
+        log.exception("video_brief: snapshot write failed")
+
+    key = os.environ.get("JSON2VIDEO_KEY")
+    if not key:
+        log.info("video_brief: DRY RUN (JSON2VIDEO_KEY unset) — %d scenes parsed",
+                 len(scenes))
+        return 0
+    url = video_brief.submit_and_wait(payload, api_key=key)
+    if url:
+        log.info("video_brief: rendered MP4 %s", url)   # Phase 3b: → Notion review
+    else:
+        log.warning("video_brief: render failed (payload snapshot kept)")
     return 0
 
 
@@ -2644,7 +2692,7 @@ def main(argv: list[str] | None = None) -> int:
         "cron", "event", "digest", "calendar_daily", "calendar_check",
         "weekly_preview", "eod_recap", "verify_sources", "maintain",
         "watchdog", "social_post", "social_seed", "daily_brief", "fb_post",
-        "backfill_xau", "precision_report", "scorecard", "macro",
+        "video_brief", "backfill_xau", "precision_report", "scorecard", "macro",
         "content_review", "apify_probe", "weekly_report",
     ), default="cron")
     p.add_argument("--event-duration-min", type=int, default=30)
@@ -2678,6 +2726,8 @@ def main(argv: list[str] | None = None) -> int:
         return asyncio.run(run_daily_brief())
     if args.mode == "fb_post":
         return asyncio.run(run_fb_post())
+    if args.mode == "video_brief":
+        return asyncio.run(run_video_brief())
     if args.mode == "backfill_xau":
         return asyncio.run(run_backfill_xau())
     if args.mode == "precision_report":

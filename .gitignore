@@ -11,3 +11,4 @@ venv/
 creds*.json
 service_account*.json
 snapshots/daily_brief_*.md
+snapshots/video_payload_*.json

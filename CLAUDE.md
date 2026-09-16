@@ -170,6 +170,13 @@ with no 15m bar show as ⏳ pending, not wrong.
   approval checkbox off the brief's Notion page (`is_fb_approved`, fail-closed)
   and posts the stored `fb_article` to the FB Page via Graph API
   (`post_to_page`). Env-gated `FB_PAGE_ID`+`FB_PAGE_TOKEN`(+`NOTION_TOKEN`).
+- `video_brief.py` — Phase 3 faceless reel (`--mode video_brief`): parses the
+  brief's `video_script` into scenes (`parse_scenes`, `[ฉาก N: cue]`) and builds
+  a JSON2Video movie payload (`build_payload`: vertical, Thai TTS voice + karaoke
+  subtitles) → `submit_and_wait` renders the MP4. Env-gated `JSON2VIDEO_KEY`
+  (dry-run writes `snapshots/video_payload_*.json`; payload needs live-verify on
+  first render). Phase 3b = chart/b-roll visuals + reel_post. Docs:
+  `docs/VIDEO-BRIEF.md`.
 - `store.py` — Google Sheets state. `flush()` clears+rewrites whole tabs (so the
   social feed uses `append_feed`/`set_feed_cell` instead, never clobbered).
   ⚠ `upsert()` **replaces** the row (rebuilt from `SCHEMAS`; absent keys become
