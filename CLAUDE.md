@@ -70,7 +70,11 @@ throttle on the T-15 window; cron-job.org now drives `calendar_check` every
 `digest` · `eod_recap` (23:00 ICT) · `weekly_preview` (Sat) · `verify_sources`
 (weekly health probe) · `maintain` (purge) · `watchdog` (self-monitor) ·
 `social_post` (post approved drafts to X, cron */20) · `social_seed` (append one
-test draft) · `calendar_daily` (one card/day, 04:40 ICT) · `calendar_check` (**pre- T-15 + post Released News**) ·
+test draft) · `daily_brief` (one pool → 3 @tradetongkam artifacts [tweets/FB
+article/video script] → one Notion review page, cron 07:30 ICT; env-gated on
+`NOTION_TOKEN`+`NOTION_BRIEF_PARENT`, dry-run writes `snapshots/daily_brief_*.md`;
+uses Sonnet `BRIEF_MODEL` for fluent Thai — see `docs/DAILY-BRIEF.md`) ·
+`calendar_daily` (one card/day, 04:40 ICT) · `calendar_check` (**pre- T-15 + post Released News**) ·
 `scorecard` (EOD directional-accuracy of calendar verdicts → **1:1 only**, 23:45 ICT) ·
 `macro` (compute + POST the multi-factor macro state to the CHUM alert-bot worker, every 6h) ·
 `content_review` (**weekly self-review → 1:1 only**: reads content_log fb_* +
@@ -153,6 +157,11 @@ with no 15m bar show as ⏳ pending, not wrong.
   tweet (no emoji, analytical, `#ทองวันนี้ #ข่าวทอง #เทรดทอง #ทองคำ`).
 - `social_feed.py` — append-only `social_feed` sheet writer + the approval-gated
   `post_pending` (posts via tweepy when `approved`=yes & `posted` empty).
+- `daily_brief.py` — `--mode daily_brief`: reads the day's breaking/alert
+  social_feed rows → ONE Sonnet call → 3 @tradetongkam artifacts (tweets / FB
+  article / video script) → one Notion review page (one to_do per artifact).
+  Env-gated (`NOTION_TOKEN`+`NOTION_BRIEF_PARENT`), dry-run = local snapshot.
+  Docs: `docs/DAILY-BRIEF.md`.
 - `store.py` — Google Sheets state. `flush()` clears+rewrites whole tabs (so the
   social feed uses `append_feed`/`set_feed_cell` instead, never clobbered).
   ⚠ `upsert()` **replaces** the row (rebuilt from `SCHEMAS`; absent keys become

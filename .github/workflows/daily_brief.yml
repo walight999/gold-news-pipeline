@@ -1,0 +1,36 @@
+name: daily-brief
+on:
+  schedule:
+    # 00:30 UTC = 07:30 ICT. One consolidated brief per morning.
+    # (GitHub cron is throttled; cron-job.org can also hit workflow_dispatch.)
+    - cron: "30 0 * * *"
+  workflow_dispatch: {}
+
+concurrency:
+  group: gold-news
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    env:
+      GSHEET_ID:         ${{ secrets.GSHEET_ID }}
+      GSHEET_CREDS:      ${{ secrets.GSHEET_CREDS }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      # Notion review surface. UNSET => DRY RUN (snapshot only, no post). Set both
+      # to publish the daily brief page. See docs/DAILY-BRIEF.md.
+      NOTION_TOKEN:         ${{ secrets.NOTION_TOKEN }}
+      NOTION_BRIEF_PARENT:  ${{ secrets.NOTION_BRIEF_PARENT }}
+      # Optional model override (defaults to claude-sonnet-4-6 for fluent Thai).
+      BRIEF_MODEL:       ${{ secrets.BRIEF_MODEL }}
+      PYTHONUNBUFFERED:  "1"
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: python -m src.main --mode daily_brief

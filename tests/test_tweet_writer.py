@@ -64,6 +64,26 @@ def test_compose_tweet_trims_over_limit(monkeypatch):
     assert t.endswith(tw.TAGS)
 
 
+def test_fit_trims_at_phrase_boundary_not_midword():
+    # Thai phrases separated by spaces; a long body must be cut BETWEEN phrases.
+    phrases = ["ทองคำปรับตัว", "ดอลลาร์แข็งค่า", "ยีลด์พันธบัตรพุ่ง",
+               "เฟดส่งสัญญาณ", "ตลาดจับตาประชุม"]
+    long_body = " ".join(phrases * 10) + "\n" + tw.TAGS
+    out = tw._fit(long_body)
+    assert len(out) <= tw.TWEET_LIMIT
+    assert out.endswith(tw.TAGS)
+    # The char just before the ellipsis must be the END of a phrase (i.e. the
+    # preceding run contains no partial-phrase remainder): the body portion,
+    # stripped of the ellipsis+tags, ends on a complete phrase from the list.
+    body = out[: -len(tw.TAGS)].rstrip().rstrip("…").rstrip()
+    assert body.split(" ")[-1] in phrases        # last kept token is a whole phrase
+
+
+def test_fit_noop_when_within_limit():
+    short = "ทองขึ้น\n" + tw.TAGS
+    assert tw._fit(short) == short
+
+
 def test_compose_tweet_none_on_garbage(monkeypatch):
     monkeypatch.setattr(tw, "_get_anthropic_client", lambda: _FakeClient("totally not json"))
     assert tw.compose_tweet(headline_th="h", body_th=[], impact_th=None,

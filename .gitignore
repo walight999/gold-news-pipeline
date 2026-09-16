@@ -10,3 +10,4 @@ venv/
 .DS_Store
 creds*.json
 service_account*.json
+snapshots/daily_brief_*.md
