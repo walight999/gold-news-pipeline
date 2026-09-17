@@ -74,7 +74,8 @@ def generate(prompt: str, *, api_key: str, size: str | None = None,
     payload = {"model": model, "prompt": prompt, "size": size, "n": 1}
     try:
         with httpx.Client(timeout=120) as c:
-            r = c.post(API_URL, headers={"Authorization": f"Bearer {api_key}"},
+            r = c.post(API_URL,
+                       headers={"Authorization": f"Bearer {(api_key or '').strip()}"},
                        json=payload)
             r.raise_for_status()
             item = (r.json().get("data") or [{}])[0]

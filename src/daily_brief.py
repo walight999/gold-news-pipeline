@@ -358,11 +358,13 @@ def post_to_notion(*, title: str, blocks: list[dict[str, Any]],
     blocks are appended in follow-up PATCHes."""
     import httpx
 
-    headers = {"Authorization": f"Bearer {token}",
+    # Strip the token — a pasted secret often carries a trailing newline/space,
+    # which makes an "Illegal header value" error (the 2026-09-17 first-live fail).
+    headers = {"Authorization": f"Bearer {(token or '').strip()}",
                "Notion-Version": NOTION_VERSION,
                "Content-Type": "application/json"}
     payload = {
-        "parent": {"type": "page_id", "page_id": parent_id},
+        "parent": {"type": "page_id", "page_id": (parent_id or "").strip()},
         "icon": {"emoji": BRIEF_ICON},
         "properties": {"title": {"title": [{"text": {"content": title}}]}},
         "children": blocks[:100],

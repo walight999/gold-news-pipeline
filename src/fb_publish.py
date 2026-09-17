@@ -33,7 +33,7 @@ def _notion_children(page_id: str, token: str) -> list[dict]:
     """All top-level blocks of a Notion page (paginated)."""
     import httpx
 
-    headers = {"Authorization": f"Bearer {token}",
+    headers = {"Authorization": f"Bearer {(token or '').strip()}",
                "Notion-Version": NOTION_VERSION}
     out: list[dict] = []
     cursor = None
@@ -113,7 +113,7 @@ def post_to_page(message: str, *, page_id: str, token: str) -> str | None:
     try:
         with httpx.Client(timeout=30) as c:
             r = c.post(f"https://graph.facebook.com/{GRAPH_VERSION}/{page_id}/feed",
-                       data={"message": message, "access_token": token})
+                       data={"message": message, "access_token": (token or "").strip()})
             r.raise_for_status()
             post_id = r.json().get("id", "")
             return f"https://www.facebook.com/{post_id}" if post_id else None
@@ -161,7 +161,7 @@ def post_photo(image: bytes, *, page_id: str, token: str,
     try:
         with httpx.Client(timeout=60) as c:
             r = c.post(f"https://graph.facebook.com/{GRAPH_VERSION}/{page_id}/photos",
-                       data={"message": message, "access_token": token},
+                       data={"message": message, "access_token": (token or "").strip()},
                        files={"source": ("artwork.png", image, "image/png")})
             r.raise_for_status()
             j = r.json()
@@ -180,7 +180,7 @@ def attach_image_to_notion(page_id: str, token: str, image_url: str,
         return False
     import httpx
 
-    headers = {"Authorization": f"Bearer {token}",
+    headers = {"Authorization": f"Bearer {(token or '').strip()}",
                "Notion-Version": NOTION_VERSION, "Content-Type": "application/json"}
     children = [
         {"object": "block", "type": "paragraph",
@@ -207,7 +207,7 @@ def attach_video_to_notion(page_id: str, token: str, mp4_url: str,
         return False
     import httpx
 
-    headers = {"Authorization": f"Bearer {token}",
+    headers = {"Authorization": f"Bearer {(token or '').strip()}",
                "Notion-Version": NOTION_VERSION, "Content-Type": "application/json"}
     children = [
         {"object": "block", "type": "paragraph",
@@ -241,7 +241,7 @@ def post_reel(video_url: str, *, page_id: str, token: str,
     try:
         with httpx.Client(timeout=60) as c:
             # Phase 1 — start: get a video_id + upload_url
-            s = c.post(base, data={"upload_phase": "start", "access_token": token})
+            s = c.post(base, data={"upload_phase": "start", "access_token": (token or "").strip()})
             s.raise_for_status()
             sj = s.json()
             video_id = sj.get("video_id")
@@ -251,13 +251,13 @@ def post_reel(video_url: str, *, page_id: str, token: str,
                 return None
             # Phase 2 — upload the hosted file by URL
             u = c.post(upload_url,
-                       headers={"Authorization": f"OAuth {token}",
+                       headers={"Authorization": f"OAuth {(token or '').strip()}",
                                 "file_url": video_url})
             u.raise_for_status()
             # Phase 3 — finish + publish
             f = c.post(base, data={"upload_phase": "finish", "video_id": video_id,
                                    "video_state": "PUBLISHED", "description": description,
-                                   "access_token": token})
+                                   "access_token": (token or "").strip()})
             f.raise_for_status()
             return f"https://www.facebook.com/reel/{video_id}"
     except Exception:  # noqa: BLE001 — one bad reel must not stop the run

@@ -186,7 +186,8 @@ def submit_and_wait(payload: dict[str, Any], *, api_key: str,
 
     import httpx
 
-    headers = {"x-api-key": api_key, "Content-Type": "application/json"}
+    headers = {"x-api-key": (api_key or "").strip(),
+               "Content-Type": "application/json"}
     try:
         with httpx.Client(timeout=30) as c:
             r = c.post(API_URL, headers=headers, json=payload)
