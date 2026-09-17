@@ -182,6 +182,22 @@ def resolve_warning(store: Store, source_id: str, warning_type: str) -> int:
     return n
 
 
+def resolve_and_should_announce(store: Store, source_id: str, warning_type: str,
+                                min_open_min: float) -> bool:
+    """Resolve an open (source, type) warning and return True IFF its recovery
+    should be ANNOUNCED — i.e. something actually resolved AND it had been open
+    at least `min_open_min`. Always resolves (clears the log) regardless of the
+    return value; the gate governs only whether a "✅ recovered" card is pushed.
+
+    Shared by both recovery paths — run_once (per-source health) and run_watchdog
+    (pipeline health) — so a brief flap resolves silently in BOTH (the watchdog
+    path used to skip this gate and announced recoveries run_once suppressed).
+    open_min is read BEFORE resolving, since resolving zeroes it."""
+    open_min = warning_open_minutes(store, source_id, warning_type)
+    resolved = resolve_warning(store, source_id, warning_type)
+    return resolved > 0 and open_min >= min_open_min
+
+
 # ---------------- Pipeline-level self-monitoring ----------------
 #
 # Per-source health (above) detects upstream breakage. The heartbeat below

@@ -503,3 +503,38 @@ def test_open_warnings_and_24h_count(store):
     assert ("forexlive", "tier2_no_item") in keys
     assert ("_pipeline_heartbeat", "watchdog_silence") not in keys   # resolved
     assert health.count_warnings_since(store, 24) == 3               # all raises count
+
+
+def _open_keys(store):
+    from src import health
+    return {(sid, wt) for sid, wt, _ in health.open_warnings(store)}
+
+
+def test_resolve_and_should_announce_true_when_open_long_enough(store):
+    """A warning open >= min_open_min resolves AND is announced."""
+    from src import health
+    store.upsert("health_log", {
+        "source_id": "marketwatch", "warning_type": "http_errors_streak",
+        "warning_ts": iso_utc(datetime.now(timezone.utc) - timedelta(minutes=40)),
+        "resolved_ts": "",
+    })
+    assert health.resolve_and_should_announce(store, "marketwatch", "http_errors_streak", 30) is True
+    assert ("marketwatch", "http_errors_streak") not in _open_keys(store)  # resolved
+
+
+def test_resolve_and_should_announce_suppresses_brief_flap_but_still_resolves(store):
+    """Open < min_open_min → NOT announced, but STILL cleared (no orphan open row).
+    This is the run_once behaviour the watchdog path was missing."""
+    from src import health
+    store.upsert("health_log", {
+        "source_id": "marketwatch", "warning_type": "http_errors_streak",
+        "warning_ts": iso_utc(datetime.now(timezone.utc) - timedelta(minutes=8)),
+        "resolved_ts": "",
+    })
+    assert health.resolve_and_should_announce(store, "marketwatch", "http_errors_streak", 30) is False
+    assert ("marketwatch", "http_errors_streak") not in _open_keys(store)  # still resolved
+
+
+def test_resolve_and_should_announce_false_when_nothing_open(store):
+    from src import health
+    assert health.resolve_and_should_announce(store, "x", "http_errors_streak", 30) is False

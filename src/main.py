@@ -121,6 +121,12 @@ def _delivered(resp: dict[str, Any]) -> bool:
 log = logging.getLogger("gold-news")
 CFG_DIR = Path(__file__).resolve().parent.parent / "config"
 
+# A recovery ("✅ recovered") is only announced for a warning that was open at
+# least this long — quick oscillations (cron jitter, a source briefly idle)
+# resolve silently. Shared by BOTH recovery paths (run_once per-source health +
+# run_watchdog pipeline health) so they stay symmetric.
+MIN_OPEN_MIN_FOR_RECOVERY_PUSH = 30
+
 
 def _load_yaml(name: str) -> dict[str, Any]:
     with (CFG_DIR / name).open("r", encoding="utf-8") as f:
@@ -500,9 +506,9 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
     current_set = set(current_warnings)
 
     # Recoveries: warnings open in store but no longer in current_set.
-    # Only PUSH the recovery if the warning was actually open >= 30 min —
-    # quick oscillations (cron jitter, source briefly idle) resolve silently.
-    MIN_OPEN_MIN_FOR_RECOVERY_PUSH = 30
+    # Only PUSH the recovery if the warning was actually open >= 30 min
+    # (MIN_OPEN_MIN_FOR_RECOVERY_PUSH, module-level) — quick oscillations
+    # resolve silently.
     recovered: list[tuple[str, str]] = []
     for row in list(store.all_rows("health_log")):
         if row.get("resolved_ts"):
@@ -513,8 +519,7 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
             continue
         if (sid, wtype) in current_set:
             continue
-        open_min = health.warning_open_minutes(store, sid, wtype)
-        if health.resolve_warning(store, sid, wtype) > 0 and open_min >= MIN_OPEN_MIN_FOR_RECOVERY_PUSH:
+        if health.resolve_and_should_announce(store, sid, wtype, MIN_OPEN_MIN_FOR_RECOVERY_PUSH):
             recovered.append((sid, wtype))
 
     # Record ALL current warnings to health_log (cooldown history + the daily
@@ -2600,8 +2605,10 @@ async def run_watchdog() -> int:
         if warning_type in warning_types:
             continue
         sid = _watchdog_source_id(warning_type)
-        if health.warning_open_minutes(store, sid, warning_type) > 0:
-            health.resolve_warning(store, sid, warning_type)
+        # Same 30-min gate as run_once (was missing here — the asymmetry that let
+        # a brief watchdog flap push a "✅ recovered" the cron path suppressed).
+        if health.resolve_and_should_announce(store, sid, warning_type,
+                                              MIN_OPEN_MIN_FOR_RECOVERY_PUSH):
             recovered.append((sid, warning_type))
     # Source-noise auto-resolve: any open source_noisy:* warning whose
     # current ratio fell back below the threshold should be cleared.
