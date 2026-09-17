@@ -100,6 +100,15 @@ def test_clean_source_collapses_x_relays_keeps_publications():
     assert "Deitaone" not in db._headlines_block(ev)
 
 
+def test_clean_page_id():
+    uid = "34d9defb-9529-812b-a397-0027bf073d97"
+    assert db._clean_page_id(uid) == uid
+    assert db._clean_page_id(uid + "?spaceId=898f4de4-abc") == uid   # the live bug
+    assert db._clean_page_id("  " + uid + "\n") == uid
+    nodash = uid.replace("-", "")
+    assert db._clean_page_id(f"https://notion.so/Gold-Brief-{nodash}") == nodash
+
+
 def test_render_notion_blocks_artwork_section():
     brief = {"theme": "t", "tweets": ["🔴 a"], "fb_article": "art",
              "video_script": "scr"}
