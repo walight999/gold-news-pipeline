@@ -353,6 +353,20 @@ def render_markdown(brief: dict[str, Any], *, date_label: str,
 # 4. Publish — Notion API (env-gated)
 # --------------------------------------------------------------------------
 
+_UUID_RE = re.compile(
+    r"[0-9a-fA-F]{8}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{4}-?"
+    r"[0-9a-fA-F]{4}-?[0-9a-fA-F]{12}")
+
+
+def _clean_page_id(raw: str) -> str:
+    """Extract the bare Notion page UUID from what the operator pasted — tolerates
+    a trailing `?spaceId=…`, a full `notion.so/Title-<id>` URL, or extra spaces.
+    The 2026-09-17 first-live fail: NOTION_BRIEF_PARENT carried `?spaceId=…`."""
+    s = (raw or "").strip().split("?")[0]
+    m = _UUID_RE.search(s)
+    return m.group(0) if m else s
+
+
 def post_to_notion(*, title: str, blocks: list[dict[str, Any]],
                    token: str, parent_id: str) -> dict[str, str] | None:
     """Create a Notion page under `parent_id` with `blocks`. Returns
@@ -367,7 +381,7 @@ def post_to_notion(*, title: str, blocks: list[dict[str, Any]],
                "Notion-Version": NOTION_VERSION,
                "Content-Type": "application/json"}
     payload = {
-        "parent": {"type": "page_id", "page_id": (parent_id or "").strip()},
+        "parent": {"type": "page_id", "page_id": _clean_page_id(parent_id)},
         "icon": {"emoji": BRIEF_ICON},
         "properties": {"title": {"title": [{"text": {"content": title}}]}},
         "children": blocks[:100],
