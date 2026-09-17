@@ -381,6 +381,12 @@ def post_to_notion(*, title: str, blocks: list[dict[str, Any]],
                         headers=headers, json={"children": blocks[i:i + 100]}
                         ).raise_for_status()
             return {"id": page_id or "", "url": page.get("url") or page_id or ""}
+    except httpx.HTTPStatusError as e:
+        # Surface Notion's exact complaint (invalid parent, unsupported block, …).
+        body = e.response.text[:600] if e.response is not None else ""
+        log.error("daily_brief: Notion post failed %s: %s",
+                  e.response.status_code if e.response is not None else "?", body)
+        return None
     except Exception:  # noqa: BLE001 — publishing is best-effort
         log.exception("daily_brief: Notion post failed")
         return None
