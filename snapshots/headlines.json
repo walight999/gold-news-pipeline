@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-09-17T07:12:28Z",
-      "title": "global · Other",
-      "source": "Bbc World",
+      "ts": "2026-09-17T12:42:02Z",
+      "title": "fed · Rate Policy · hawkish",
+      "source": "Forexlive",
+      "score": 0.5,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-09-17T12:42:02Z",
+      "title": "global · Other · risk off",
+      "source": "Forexlive",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-17T07:12:28Z",
-      "title": "global · Other",
-      "source": "Bbc World",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-09-17T07:12:28Z",
-      "title": "global · Other",
-      "source": "Bbc World",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-09-17T07:12:28Z",
-      "title": "global · Other",
-      "source": "Bbc World",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-09-17T07:12:28Z",
-      "title": "mideast · Geopolitics · risk off",
-      "source": "Bbc World",
+      "ts": "2026-09-17T12:42:02Z",
+      "title": "mideast · Geopolitics",
+      "source": "Forexlive",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-17T07:12:28Z",
-      "title": "global · Other",
-      "source": "Bbc World",
-      "score": 0.1,
+      "ts": "2026-09-17T12:42:02Z",
+      "title": "boe · Rate Policy · hawkish",
+      "source": "Forexlive",
+      "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-17T07:12:28Z",
-      "title": "global · Other",
-      "source": "Bbc World",
-      "score": 0.1,
+      "ts": "2026-09-17T12:42:02Z",
+      "title": "fed · Rate Policy · hawkish",
+      "source": "Forexlive",
+      "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-17T07:12:28Z",
-      "title": "mideast · Geopolitics · risk off",
-      "source": "Bbc World",
+      "ts": "2026-09-17T12:42:02Z",
+      "title": "us · Usd Yields",
+      "source": "Forexlive",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-17T07:12:28Z",
-      "title": "global · Other",
-      "source": "Bbc World",
-      "score": 0.1,
+      "ts": "2026-09-17T12:42:02Z",
+      "title": "us · Usd Yields · hawkish",
+      "source": "Forexlive",
+      "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-17T07:12:28Z",
-      "title": "global · Other",
-      "source": "Bbc World",
-      "score": 0.1,
+      "ts": "2026-09-17T12:42:02Z",
+      "title": "fed · Rate Policy · hawkish",
+      "source": "Forexlive",
+      "score": 0.5,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-09-17T12:42:02Z",
+      "title": "us · Usd Yields",
+      "source": "Forexlive",
+      "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-09-17T12:42:02Z",
+      "title": "boe · Rate Policy",
+      "source": "Forexlive",
+      "score": 0.5,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-09-17T07:13:46.646936Z"
+  "written_at": "2026-09-17T12:42:39.343132Z"
 }
