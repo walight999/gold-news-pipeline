@@ -29,7 +29,7 @@ def search_broll(query: str, *, api_key: str,
     try:
         with httpx.Client(timeout=20) as c:
             r = c.get(SEARCH_URL,
-                      headers={"Authorization": api_key},
+                      headers={"Authorization": (api_key or "").strip()},
                       params={"query": query, "orientation": "portrait",
                               "per_page": 3, "size": "medium"})
             r.raise_for_status()
