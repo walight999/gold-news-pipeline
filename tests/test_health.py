@@ -216,20 +216,37 @@ def test_macro_flags_dead_when_stale(store):
 
 
 def test_watchdog_flags_no_items_during_market_hours(store):
-    """Heartbeat ticking (cron is fine) but no items for 4 hours → scraper
-    or network suspected."""
-    fresh = datetime.now(timezone.utc) - timedelta(minutes=2)
-    stale_items = datetime.now(timezone.utc) - timedelta(minutes=240)
+    """Heartbeat ticking (cron is fine) but no items for 4 hours on a WEEKDAY →
+    scraper or network suspected. `now` is pinned to a weekday so the weekend
+    guard doesn't make this flaky by real calendar date."""
+    now = datetime(2026, 9, 16, 12, 0, tzinfo=timezone.utc)  # Wed → weekday in ICT
     store.upsert("source_state", {
         "source_id": HEARTBEAT_SOURCE_ID,
-        "last_success_ts": iso_utc(fresh),
-        "last_item_ts": iso_utc(stale_items),
+        "last_success_ts": iso_utc(now - timedelta(minutes=2)),
+        "last_item_ts": iso_utc(now - timedelta(minutes=240)),
     })
-    warns = check_pipeline_health(store)
+    warns = check_pipeline_health(store, now=now)
     types = [wt for wt, _ in warns]
     assert "watchdog_no_items" in types
     # Silence should NOT also fire — heartbeat is fresh.
     assert "watchdog_silence" not in types
+
+
+def test_watchdog_no_items_suppressed_on_weekend(store):
+    """Gold market is closed Sat/Sun and run_once deliberately skips fetching, so
+    "no items since Friday" is EXPECTED — it must NOT raise a CRITICAL. Before the
+    guard this fired every weekend and then flapped a false '✅ recovered' every
+    Monday (the reported bug)."""
+    now = datetime(2026, 9, 19, 12, 0, tzinfo=timezone.utc)  # Sat → weekend in ICT
+    store.upsert("source_state", {
+        "source_id": HEARTBEAT_SOURCE_ID,
+        "last_success_ts": iso_utc(now - timedelta(minutes=2)),      # heartbeat still ticks
+        "last_item_ts": iso_utc(now - timedelta(minutes=600)),       # 10h > 180, but weekend
+    })
+    warns = check_pipeline_health(store, now=now)
+    assert "watchdog_no_items" not in [wt for wt, _ in warns]
+    # The heartbeat is fresh, so silence stays quiet too — a fully clean weekend.
+    assert "watchdog_silence" not in [wt for wt, _ in warns]
 
 
 def test_write_heartbeat_preserves_last_item_when_zero(store):

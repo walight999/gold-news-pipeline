@@ -16,7 +16,7 @@ from datetime import datetime, timedelta
 from typing import Any
 
 from .store import Store
-from .utils_time import iso_utc, now_utc, parse_iso
+from .utils_time import is_weekend_ict, iso_utc, now_utc, parse_iso
 
 log = logging.getLogger(__name__)
 
@@ -253,6 +253,7 @@ def check_pipeline_health(
     classifier_min_samples: int = 20,
     source_reject_threshold_pct: int = 90,
     source_min_samples: int = 50,
+    now: datetime | None = None,
 ) -> list[tuple[str, str]]:
     """Returns (warning_type, human_message) pairs. Empty list = healthy.
     Used by --mode watchdog.
@@ -267,6 +268,7 @@ def check_pipeline_health(
                             max_ff_scrape_errors times in a row. Cloudflare
                             tightened OR FF changed HTML — post-release
                             actuals for non-FRED events go silent."""
+    now = now or now_utc()
     out: list[tuple[str, str]] = []
     row = store.get("source_state", (HEARTBEAT_SOURCE_ID,)) or {}
     last_hb = parse_iso(row.get("last_success_ts"))
@@ -274,14 +276,19 @@ def check_pipeline_health(
         out.append(("watchdog_silence",
                     "No heartbeat ever recorded — pipeline has never run successfully"))
     else:
-        silence_min = (now_utc() - last_hb).total_seconds() / 60.0
+        silence_min = (now - last_hb).total_seconds() / 60.0
         if silence_min > max_silence_min:
             out.append(("watchdog_silence",
                         f"Pipeline silent for {silence_min:.0f} min "
                         f"(last heartbeat {row.get('last_success_ts')})"))
         last_item = parse_iso(row.get("last_item_ts"))
-        if last_item:
-            no_item_min = (now_utc() - last_item).total_seconds() / 60.0
+        # Market-hours only: on ICT weekends run_once deliberately skips fetching
+        # (gold market closed Sat/Sun), so "no items since Friday" is EXPECTED,
+        # not an outage. Without this guard watchdog_no_items fired a false
+        # CRITICAL every weekend and a false "✅ recovered" every Monday — the
+        # docstring already scoped this to market hours; the guard was missing.
+        if last_item and not is_weekend_ict(now):
+            no_item_min = (now - last_item).total_seconds() / 60.0
             if no_item_min > max_no_items_min:
                 out.append(("watchdog_no_items",
                             f"No items fetched across all sources for {no_item_min:.0f} min — "
@@ -294,7 +301,7 @@ def check_pipeline_health(
     if macro_row:
         last_macro = parse_iso(macro_row.get("last_success_ts"))
         if last_macro:
-            macro_silence_min = (now_utc() - last_macro).total_seconds() / 60.0
+            macro_silence_min = (now - last_macro).total_seconds() / 60.0
             if macro_silence_min > max_macro_silence_min:
                 out.append(("macro_push_dead",
                             f"Macro push silent for {macro_silence_min / 60:.1f}h "
