@@ -183,23 +183,26 @@ def compose_brief(events: list[dict[str, Any]], *, model: str | None = None,
     # NB: get(k, DEFAULT) returns "" when the workflow sets BRIEF_MODEL to an
     # empty secret (present-but-empty), so chain with `or` to reach the default.
     model = model or os.environ.get("BRIEF_MODEL") or DEFAULT_MODEL
-    for attempt in range(2):
+    # Retry on ANY failure (not just transient): the model occasionally returns
+    # truncated/unparseable JSON, and a second call usually succeeds. 8192 tokens
+    # (up from 4096) keeps a busy-news-day brief from truncating mid-JSON.
+    for attempt in range(3):
         try:
             resp = client.messages.create(
-                model=model, max_tokens=4096,
+                model=model, max_tokens=8192,
                 messages=[{"role": "user", "content": prompt}],
             )
             data = _extract_json(resp.content[0].text)
             if not isinstance(data, dict) or "tweets" not in data:
-                raise ValueError("brief JSON missing tweets")
+                stop = getattr(resp, "stop_reason", "?")
+                raise ValueError(f"brief JSON missing tweets (stop_reason={stop})")
             return _normalize_brief(data)
         except Exception as e:  # noqa: BLE001
-            s = str(e)
-            transient = any(c in s for c in (" 529", " 503", " 502", " 504",
-                                             "overloaded", "rate_limit"))
-            if attempt < 1 and transient:
+            if attempt < 2:
+                log.warning("daily_brief compose attempt %d failed: %s — retrying",
+                            attempt + 1, e)
                 continue
-            log.warning("daily_brief compose failed: %s", e)
+            log.warning("daily_brief compose failed after retries: %s", e)
             return None
     return None
 
