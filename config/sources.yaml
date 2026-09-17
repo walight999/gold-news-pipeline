@@ -135,7 +135,11 @@ sources:
   - {id: bbc_world,   tier: 1, source_class: aggregator, organization: bbc,          role: geopolitics,  url: "https://feeds.bbci.co.uk/news/world/rss.xml",        poll_min: 15, enabled: true}
   - {id: aljazeera,   tier: 1, source_class: aggregator, organization: aljazeera,    role: geopolitics,  url: "https://www.aljazeera.com/xml/rss/all.xml",          poll_min: 15, enabled: true}
   - {id: cnbc,        tier: 1, source_class: aggregator, organization: cnbc,         role: macro,        url: "https://www.cnbc.com/id/100003114/device/rss/rss.html", poll_min: 10, enabled: true}
-  - {id: marketwatch, tier: 1, source_class: aggregator, organization: marketwatch,  role: macro,        url: "https://feeds.marketwatch.com/marketwatch/topstories/", poll_min: 10, enabled: true}
+  # 2026-09-17: old feeds.marketwatch.com/marketwatch/topstories/ now 301-moves to
+  # the Dow Jones host and the old CDN endpoint flaps 301/400 — every 10-min poll
+  # 3x-errored → http_errors_streak spammed the 1:1 health chat all day. Feed is
+  # ALIVE, just moved: point straight at the 301 target (stable 200 + valid RSS).
+  - {id: marketwatch, tier: 1, source_class: aggregator, organization: marketwatch,  role: macro,        url: "https://feeds.content.dowjones.io/public/rss/mw_topstories", poll_min: 10, enabled: true}
   - {id: forexlive,   tier: 2, source_class: wire,       organization: forexlive,    role: trader_macro, url: "https://www.forexlive.com/feed/",                    poll_min: 5,  enabled: true}
   - {id: fxstreet,    tier: 2, source_class: wire,       organization: fxstreet,     role: gold_bias,    url: "https://www.fxstreet.com/rss",                       poll_min: 5,  enabled: true}
   - {id: kitco,       tier: 3, source_class: gold_blog,  organization: kitco,        role: gold_context, url: "https://www.kitco.com/rss/",                         poll_min: 60, enabled: false, note: "feed 404"}
