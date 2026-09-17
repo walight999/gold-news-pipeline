@@ -584,11 +584,24 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
             # A round with any real classification never touches this, so a
             # one-off transient rate-limit can't leak a machine-translated card.
             degraded_pool: list[tuple[dict[str, Any], dict[str, Any]]] = []
+            # Content-dedup within THIS round: two events with an identical
+            # headline but different event_ids (60-min bucket boundary) would
+            # otherwise both classify + ship as separate cards. The persistent
+            # `content:` marker only guards ACROSS rounds (it's written after the
+            # push), so same-round dups need this in-memory guard.
+            seen_sigs: set[str] = set()
             from .utils_time import parse_iso as _parse_iso
             for row in candidates:
                 if len(cards) >= max_cards:
                     break
                 title = str(row.get("title") or "")
+                sig = digest.content_sig(title)
+                if sig and sig in seen_sigs:
+                    log.info("digest: in-round content dup skipped event_id=%s",
+                             row.get("event_id"))
+                    continue
+                if sig:
+                    seen_sigs.add(sig)
                 summary = str(row.get("summary") or "")
                 src_list = [s for s in str(row.get("source_list") or "").split(",") if s]
                 first_seen = _parse_iso(row.get("first_seen_ts"))
@@ -696,6 +709,18 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
                             "sent_ts": iso_utc(now_utc()),
                             "line_status": resp["status"],
                         })
+                        # Content-signature marker: lets a LATER round skip the
+                        # same headline if it resurfaces under a new event_id
+                        # (60-min bucket boundary). route_type="content" so it is
+                        # a dedup key only — delivery_stats ignores it.
+                        csig = digest.content_sig(str(row.get("title") or ""))
+                        if csig:
+                            store.upsert("sent_log", {
+                                "event_id": f"content:{csig}",
+                                "route_type": "content",
+                                "sent_ts": iso_utc(now_utc()),
+                                "line_status": resp["status"],
+                            })
                         try:
                             if "digest" in draft_routes:
                                 a = card["alert"]

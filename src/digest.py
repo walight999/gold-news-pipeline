@@ -4,7 +4,9 @@ Idempotent via sent_log entry keyed `digest|YYYY-MM-DD_HH:MM`.
 """
 from __future__ import annotations
 
+import hashlib
 import logging
+import re
 from typing import Any
 
 from .dedup import Event
@@ -14,6 +16,33 @@ from .utils_time import digest_sent_key
 log = logging.getLogger(__name__)
 
 MAX_EVENTS_DEFAULT = 10
+
+_CONTENT_NORM = re.compile(r"[^a-z0-9]+")
+
+
+def content_sig(title: str) -> str:
+    """Normalized signature of a headline for CONTENT-level dedup.
+
+    The event_id keys on a 60-min time bucket (dedup.CLUSTER_WINDOW_MIN), so the
+    SAME wire headline re-posted across a bucket boundary — even from the same
+    source ~50 min later — gets a FRESH event_id that the event_id-only digest
+    dedup cannot recognize as already-sent. That is how a verbatim story ships
+    twice (confirmed 2026-09-17: "Trump hopes Iran war nearing end…" sent as two
+    cards, cluster_keys identical except T0800 vs T0900).
+
+    Lowercase + collapse every non-alphanumeric run, so verbatim re-posts map to
+    ONE sig while genuinely different headlines (different numbers/places, e.g.
+    "Syzran refinery" vs "Yaroslavl refinery", "PPI INPUT" vs "PPI OUTPUT") keep
+    distinct sigs and are never wrongly merged. Empty title → "" (no dedup)."""
+    t = _CONTENT_NORM.sub(" ", (title or "").lower()).strip()
+    return hashlib.sha256(t.encode("utf-8")).hexdigest()[:16] if t else ""
+
+
+def _content_already_sent(store: Store, sig: str) -> bool:
+    """True if a card with this content signature already went out (any prior
+    round/day), regardless of event_id. Backstops the event_id dedup against the
+    time-bucket-boundary duplicate above."""
+    return bool(sig) and store.get("sent_log", (f"content:{sig}", "content")) is not None
 
 
 def already_sent(store: Store, slot: str) -> bool:
@@ -98,6 +127,10 @@ def collect_window_events(
         if first_seen is None or first_seen < cutoff:
             continue
         if _already_individually_sent(store, str(row.get("event_id") or "")):
+            continue
+        # Content backstop: same headline already sent under a DIFFERENT event_id
+        # (60-min bucket boundary → fresh id the event_id dedup can't see).
+        if _content_already_sent(store, content_sig(title)):
             continue
         out.append((score, first_seen.timestamp(), row))
     out.sort(key=lambda t: (-t[0], -t[1]))
