@@ -68,8 +68,9 @@ def generate(prompt: str, *, api_key: str, size: str | None = None,
         return None
     import httpx
 
-    model = model or os.environ.get("IMAGE_MODEL", DEFAULT_MODEL)
-    size = size or os.environ.get("IMAGE_SIZE", DEFAULT_SIZE)
+    # `or` chain so empty IMAGE_MODEL/IMAGE_SIZE secrets fall back to defaults.
+    model = model or os.environ.get("IMAGE_MODEL") or DEFAULT_MODEL
+    size = size or os.environ.get("IMAGE_SIZE") or DEFAULT_SIZE
     payload = {"model": model, "prompt": prompt, "size": size, "n": 1}
     try:
         with httpx.Client(timeout=120) as c:
