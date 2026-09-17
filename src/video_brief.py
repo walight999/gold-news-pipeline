@@ -120,7 +120,9 @@ def build_payload(scenes: list[dict[str, Any]], *, title: str,
     background (b-roll video / typographic card / gradient text per `visuals`) +
     a `voice` element (Thai TTS). One global `subtitles` element renders
     center-screen karaoke captions from the movie's voices."""
-    voice = voice or os.environ.get("BRIEF_VOICE", DEFAULT_VOICE)
+    # `or` chain (not get's default) so an empty BRIEF_VOICE secret still falls
+    # back to DEFAULT_VOICE instead of sending "".
+    voice = voice or os.environ.get("BRIEF_VOICE") or DEFAULT_VOICE
     movie_scenes = []
     for i, s in enumerate(scenes):
         vis = (visuals[i] if visuals and i < len(visuals)

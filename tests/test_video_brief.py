@@ -66,6 +66,14 @@ def test_build_payload_voice_override(monkeypatch):
     assert voice_el["voice"] == "th-TH-NiwatNeural"
 
 
+def test_build_payload_empty_voice_env_falls_back(monkeypatch):
+    # Empty BRIEF_VOICE secret must fall back to DEFAULT_VOICE, not send "".
+    monkeypatch.setenv("BRIEF_VOICE", "")
+    p = vb.build_payload(vb.parse_scenes(REAL_SCRIPT), title="t")
+    voice_el = next(e for e in p["scenes"][0]["elements"] if e["type"] == "voice")
+    assert voice_el["voice"] == vb.DEFAULT_VOICE
+
+
 def test_extract_card_text():
     assert vb.extract_card_text("การ์ดข้อความ 'US 10Y Yield: 5%'") == "US 10Y Yield: 5%"
     assert vb.extract_card_text('ภาพการ์ด "Fed 92.5%"') == "Fed 92.5%"

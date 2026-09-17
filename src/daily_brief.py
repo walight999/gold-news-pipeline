@@ -180,7 +180,9 @@ def compose_brief(events: list[dict[str, Any]], *, model: str | None = None,
     prompt = (_PROMPT
               .replace("{TAGS}", "#ทองวันนี้ #ข่าวทอง #เทรดทอง #ทองคำ")
               .replace("{HEADLINES}", _headlines_block(events)))
-    model = model or os.environ.get("BRIEF_MODEL", DEFAULT_MODEL)
+    # NB: get(k, DEFAULT) returns "" when the workflow sets BRIEF_MODEL to an
+    # empty secret (present-but-empty), so chain with `or` to reach the default.
+    model = model or os.environ.get("BRIEF_MODEL") or DEFAULT_MODEL
     for attempt in range(2):
         try:
             resp = client.messages.create(

@@ -150,6 +150,26 @@ def test_compose_brief_parses_and_normalizes():
     assert all(t.endswith(TAGS) for t in out["tweets"])
 
 
+def test_compose_brief_empty_model_env_falls_back(monkeypatch):
+    # The workflow sets BRIEF_MODEL to an empty secret → present-but-empty. The
+    # model must fall back to DEFAULT_MODEL, not send "" (Anthropic 400).
+    monkeypatch.setenv("BRIEF_MODEL", "")
+    captured = {}
+
+    class _CapMessages:
+        def create(self, **kw):
+            captured["model"] = kw.get("model")
+            return _FakeResp(json.dumps({"theme": "t", "tweets": ["🔴 a"],
+                                         "fb_article": "x", "video_script": "y"}))
+
+    class _CapClient:
+        messages = _CapMessages()
+
+    ev = [{"headline_th": "h", "impact_th": "i", "tone": "", "source": "CNBC"}]
+    db.compose_brief(ev, client=_CapClient())
+    assert captured["model"] == db.DEFAULT_MODEL
+
+
 def test_compose_brief_none_on_garbage():
     ev = [{"headline_th": "x", "impact_th": "y", "tone": "", "source": ""}]
     assert db.compose_brief(ev, client=_FakeClient("not json")) is None
