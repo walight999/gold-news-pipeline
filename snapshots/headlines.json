@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-09-18T01:22:20Z",
-      "title": "global · Other",
-      "source": "Forexlive",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-09-18T01:22:20Z",
-      "title": "us · Usd Yields",
-      "source": "Forexlive",
+      "ts": "2026-09-18T06:16:01Z",
+      "title": "wgc · Gold Flow",
+      "source": "Fxstreet",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-18T01:22:20Z",
-      "title": "us · Geopolitics · risk off",
-      "source": "Forexlive",
+      "ts": "2026-09-18T06:16:01Z",
+      "title": "wgc · Gold Flow",
+      "source": "Fxstreet",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-18T01:22:20Z",
+      "ts": "2026-09-18T06:16:01Z",
       "title": "global · Other",
       "source": "Fxstreet",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-18T01:22:20Z",
-      "title": "us · Usd Yields · hawkish",
-      "source": "Fxstreet",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-09-18T01:22:20Z",
+      "ts": "2026-09-18T06:16:01Z",
       "title": "fed · Rate Policy · hawkish",
-      "source": "Forexlive",
+      "source": "Fxstreet",
       "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-18T01:22:20Z",
+      "ts": "2026-09-18T06:16:01Z",
+      "title": "wgc · Gold Flow",
+      "source": "Fxstreet",
+      "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-09-18T06:16:01Z",
+      "title": "us · Usd Yields · dovish",
+      "source": "Fxstreet",
+      "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-09-18T06:16:01Z",
+      "title": "global · Other",
+      "source": "Fxstreet",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-09-18T06:16:01Z",
+      "title": "boj · Rate Policy · hawkish",
+      "source": "Fxstreet",
+      "score": 1.5,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-09-18T06:16:01Z",
       "title": "us · Usd Yields",
       "source": "Fxstreet",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-18T01:22:20Z",
-      "title": "fed · Rate Policy",
-      "source": "Forexlive",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-09-18T01:22:20Z",
-      "title": "fed · Rate Policy",
-      "source": "Forexlive, Fxstreet",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-09-18T01:22:20Z",
-      "title": "global · Other",
+      "ts": "2026-09-18T06:16:01Z",
+      "title": "us · Inflation",
       "source": "Fxstreet",
-      "score": 0.1,
+      "score": 1.5,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-09-18T01:23:22.563252Z"
+  "written_at": "2026-09-18T06:21:32.041312Z"
 }
