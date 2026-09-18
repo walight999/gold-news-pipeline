@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-09-18T06:16:01Z",
-      "title": "wgc · Gold Flow",
-      "source": "Fxstreet",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-09-18T06:16:01Z",
-      "title": "wgc · Gold Flow",
-      "source": "Fxstreet",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-09-18T06:16:01Z",
-      "title": "global · Other",
-      "source": "Fxstreet",
+      "ts": "2026-09-18T11:36:36Z",
+      "title": "global · Other · risk off",
+      "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-18T06:16:01Z",
-      "title": "fed · Rate Policy · hawkish",
-      "source": "Fxstreet",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-09-18T06:16:01Z",
-      "title": "wgc · Gold Flow",
-      "source": "Fxstreet",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-09-18T06:16:01Z",
-      "title": "us · Usd Yields · dovish",
-      "source": "Fxstreet",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-09-18T06:16:01Z",
+      "ts": "2026-09-18T11:36:36Z",
       "title": "global · Other",
-      "source": "Fxstreet",
+      "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-18T06:16:01Z",
-      "title": "boj · Rate Policy · hawkish",
-      "source": "Fxstreet",
-      "score": 1.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-09-18T06:16:01Z",
-      "title": "us · Usd Yields",
-      "source": "Fxstreet",
+      "ts": "2026-09-18T11:36:36Z",
+      "title": "russia · Geopolitics",
+      "source": "Bbc World",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-18T06:16:01Z",
-      "title": "us · Inflation",
-      "source": "Fxstreet",
-      "score": 1.5,
+      "ts": "2026-09-18T11:36:36Z",
+      "title": "global · Other",
+      "source": "Cnbc",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-09-18T11:36:36Z",
+      "title": "global · Other",
+      "source": "Cnbc",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-09-18T11:36:36Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-09-18T11:36:36Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-09-18T11:36:36Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-09-18T11:36:36Z",
+      "title": "mideast · Geopolitics",
+      "source": "Bbc World",
+      "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-09-18T11:36:36Z",
+      "title": "global · Other",
+      "source": "Cnbc",
+      "score": 0.1,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-09-18T06:21:32.041312Z"
+  "written_at": "2026-09-18T11:38:23.767301Z"
 }
