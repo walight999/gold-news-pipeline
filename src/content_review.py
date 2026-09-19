@@ -113,6 +113,21 @@ def _ascii_ratio(text: str) -> float:
     return sum(1 for c in letters if c.isascii()) / len(letters)
 
 
+# Uppercase tokens that are LEGITIMATELY caps in a Thai gold headline — currency
+# codes/pairs, central banks, econ indicators. Stripped before the wire_caps
+# check so "EUR/USD … Fed … USD" isn't mistaken for wire-shouting like
+# "EXPEDIA GROUP Q2 EPS". (Self-review false-positive found 2026-09-19.)
+_QC_ALLOWED_CAPS = {
+    "USD", "EUR", "JPY", "GBP", "CHF", "CAD", "AUD", "NZD", "CNY", "CNH",
+    "XAU", "XAG", "BTC", "ETH", "DXY",
+    "FED", "FOMC", "ECB", "BOJ", "BOE", "RBA", "RBNZ", "SNB", "PBOC", "BOC",
+    "IMF", "OPEC", "NATO", "EU", "US", "UK", "UST",
+    "GDP", "CPI", "PPI", "PCE", "NFP", "ISM", "PMI", "Q1", "Q2", "Q3", "Q4",
+}
+_QC_CAPS_ALLOW_RE = re.compile(
+    r"\b(" + "|".join(sorted(_QC_ALLOWED_CAPS, key=len, reverse=True)) + r")\b", re.I)
+
+
 def auto_qc(sent_rows: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
     """Run every check over the week's sent rows. Returns
     {check: {"count": n, "examples": [headline, ...]}} for checks that hit."""
@@ -146,8 +161,11 @@ def auto_qc(sent_rows: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
         if "—" in blob:
             _hit("em_dash", head)
         # Wire-format leftover: EXPEDIA GROUP Q2 EPS $4.14 style — mostly
-        # uppercase ASCII survived into the "Thai" headline.
-        ascii_letters = [c for c in head if c.isalpha() and c.isascii()]
+        # uppercase ASCII survived into the "Thai" headline. Strip legit caps
+        # tokens (currency pairs, central banks, indicators) first so a normal
+        # "EUR/USD … Fed …" headline doesn't trip the check.
+        head_no_tickers = _QC_CAPS_ALLOW_RE.sub("", head)
+        ascii_letters = [c for c in head_no_tickers if c.isalpha() and c.isascii()]
         if (len(ascii_letters) > 10
                 and sum(1 for c in ascii_letters if c.isupper()) / len(ascii_letters) > 0.7):
             _hit("wire_caps", head)

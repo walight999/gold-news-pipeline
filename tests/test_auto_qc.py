@@ -83,6 +83,16 @@ def test_wire_caps_headline_is_flagged():
     assert hits["wire_caps"]["count"] == 1
 
 
+def test_currency_pair_and_central_bank_headline_is_not_wire_caps():
+    """EUR/USD … Fed … USD are legitimately uppercase — not wire-shouting. The
+    old detector false-flagged them (self-review noise, 2026-09-19); allowed caps
+    tokens are stripped before the ratio check now."""
+    hits = content_review.auto_qc(
+        [_sent_row(headline_th="EUR/USD ลดต่ำ 4 สัปดาห์ หลังสายเหยี่ยวของ Fed หนุน USD")])
+
+    assert "wire_caps" not in hits
+
+
 def test_empty_body_is_flagged():
     hits = content_review.auto_qc([_sent_row(body_th="")])
 

@@ -136,7 +136,7 @@ HARD REJECT — return action="reject" if ANY of these apply
 1. Personal-finance advice OR personal money-decision questions (savings tips, retirement, annuity, pension, insurance, "I'm 55 with $100k, should I take my pension", "protect your nest egg", Social Security timing)
 2. Evergreen / how-to / explainer ("how to invest", "5 ways to ...", "guide to ...")
 3. Lifestyle, wellness, health content
-4. Opinion piece without a fresh market catalyst (no data print, no policy signal)
+4. Opinion piece without a fresh market catalyst (no data print, no policy signal). EXCEPTION: a NAMED Fed / central-bank official's remark on inflation, rates, or policy stance is a central-bank signal (see KEEP), NOT opinion — keep it.
 5. Single-company story with no macro implication — a single stock, an IPO/listing of one firm, a single-name ETF launch (e.g. "Nvidia rallies", "Tesla earnings", "SpaceX to start trading after IPO", "Canary HBAR ETF approved")
 6. Calendar PREVIEW / "What to watch today" / "Today's main events" / session wraps ("Asia wrap", "Europe wrap")
 7. Generic market commentary without a SPECIFIC event ("markets mixed", "stocks digest data")
@@ -155,7 +155,7 @@ When you reject, set headline_th=null, body_th=[], impact_th=null, and reason MU
 KEEP — return action="keep" only if the item reports
 ============================================================
 - Fresh economic data release with actual / forecast / previous numbers (CPI, PCE, NFP, GDP, Retail Sales, ISM, PMI, Jobless Claims, Durable Goods, Housing)
-- Fresh central-bank signal — speech, decision, minutes, dot plot, FX intervention rhetoric (Fed/ECB/BoJ/BoE/SNB/BoC speakers naming a policy direction)
+- Fresh central-bank signal — speech, decision, minutes, dot plot, FX intervention rhetoric (Fed/ECB/BoJ/BoE/SNB/BoC speakers naming a policy direction). This INCLUDES a NAMED Fed / central-bank official (a sitting member OR a widely-watched figure, e.g. Powell, Waller, Bowman, Warsh) commenting on inflation, rates, or a hawkish/dovish stance — that IS a gold catalyst even without a formal decision or a specific number (their tone moves USD/yields). Do NOT bucket such a remark as "opinion".
 - Specific geopolitical escalation / de-escalation (named country / conflict / sanction / Hormuz / oil-supply event)
 - USD / yields / DXY breakout with magnitude
 - Material risk-sentiment shift with specific drivers
@@ -237,6 +237,7 @@ Banks: Fed, FOMC, ECB, BoJ, BoE, PBOC, SNB, BoC, RBA, RBNZ, IMF, OPEC
 Currencies: USD, EUR, JPY, GBP, CNY, AUD, CAD, CHF, NZD
 Markets: DXY, RSI, MACD, S&P 500, Nasdaq, Dow
 Sentiment: hawkish, dovish, risk-on, risk-off, yield, yields, soft landing, hard landing, safe-haven, dot plot, forward guidance
+  ⚠ hawkish / dovish: keep the ENGLISH word (or, if Thai, ONLY "สายเหยี่ยว" / "สายพิราบ"). NEVER a literal or invented Thai noun — e.g. rendering hawkish as "เงาะ" (rambutan) is WRONG.
 
 INSTITUTION SHORT FORMS — never expand to long Thai names ANYWHERE
 (headline_th, every body_th bullet, and impact_th):
@@ -324,7 +325,9 @@ def _cache_key_alert(title: str, summary: str) -> str:
     # + relevance gate + complete-sentence summaries. a4 (2026-09-10): natural-Thai
     # grammar section added to the prompt + grammar QC/repair pass, so a3 rows hold
     # pre-QC copy — invalidate them so the naturalised text takes effect at once.
-    return f"a4{h}"   # total 16 chars to fit existing cache_key column width
+    # a5 (2026-09-19): named Fed/CB-official commentary is a KEEP catalyst (not
+    # "opinion"); hawkish/dovish must stay English/สายเหยี่ยว — re-classify old rows.
+    return f"a5{h}"   # total 16 chars to fit existing cache_key column width
 
 
 def _cache_lookup(store: "Store | None", key: str) -> MarketAlert | None:
