@@ -22,9 +22,17 @@ from tenacity import RetryError, retry, stop_after_attempt, wait_exponential
 log = logging.getLogger(__name__)
 
 _PUSH_URL = "https://api.line.me/v2/bot/message/push"
+_QUOTA_URL = "https://api.line.me/v2/bot/message/quota"
+_QUOTA_CONSUMPTION_URL = "https://api.line.me/v2/bot/message/quota/consumption"
 
-# LINE free-tier limit. Counter resets on the 1st of every month (Asia/Bangkok).
+# Fallback monthly cap when LINE's own quota API hasn't been fetched yet. The
+# REAL limit + usage come from refresh_line_quota_from_api (LINE is authoritative);
+# this 500 is only used before the first successful API refresh. Counter resets on
+# the 1st of every month (Asia/Bangkok).
 LINE_FREE_TIER_QUOTA = 500
+# How long a fetched LINE-API quota reading stays authoritative before
+# get_line_quota_status falls back to the local estimate.
+_QUOTA_API_FRESH_HOURS = 6
 LINE_PUSH_SOURCE_ID = "_line_push"
 
 
@@ -99,26 +107,86 @@ def record_line_outcome(store, resp) -> None:
     store.upsert("source_state", row)
 
 
-def get_line_quota_status(store) -> dict[str, int | str]:
-    """Returns {"month": "YYYY-MM", "count": N, "limit": 500, "pct": int}.
-    Used by watchdog + EOD recap. Empty dict if no row yet."""
+def refresh_line_quota_from_api(store, token: str, timeout: float = 10.0) -> None:
+    """Cache LINE's AUTHORITATIVE monthly quota + usage in the _line_push row so
+    the health alert + quota gate reflect what LINE actually bills — not a local
+    per-recipient estimate against a hardcoded 500.
+
+    The local counter (record_line_outcome) can't match LINE in either direction:
+    a push to a group is billed by LINE per member, and it never knew the real
+    plan cap. That mismatch fired line_quota_high at "708/500 (141%)" while LINE's
+    own API reported ~68% of a 35,000 plan. Best-effort — any error leaves the
+    previously-cached values (or the local fallback) in place."""
+    if store is None or not token:
+        return
     import json as _json
+    from .utils_time import iso_utc, now_utc
+    headers = {"Authorization": f"Bearer {token}"}
+    try:
+        with httpx.Client(timeout=timeout) as c:
+            q = c.get(_QUOTA_URL, headers=headers); q.raise_for_status()
+            u = c.get(_QUOTA_CONSUMPTION_URL, headers=headers); u.raise_for_status()
+        qd, ud = q.json(), u.json()
+    except (httpx.HTTPError, ValueError) as e:  # network / auth / bad JSON
+        log.warning("line quota API refresh failed: %s", e)
+        return
+    # type "limited" → value is the cap; "none" → unlimited plan (never alarm).
+    limit = int(qd.get("value", 0)) if qd.get("type") == "limited" else 0
+    usage = int(ud.get("totalUsage", 0))
+    row = store.get("source_state", (LINE_PUSH_SOURCE_ID,)) or {"source_id": LINE_PUSH_SOURCE_ID}
+    counters: dict = {}
+    blob = row.get("items_last_hour")
+    if blob:
+        try:
+            d = _json.loads(blob)
+            if isinstance(d, dict):
+                counters = d
+        except (_json.JSONDecodeError, TypeError, ValueError):
+            counters = {}
+    counters["api_limit"] = limit
+    counters["api_usage"] = usage
+    counters["api_ts"] = iso_utc(now_utc())
+    row["source_id"] = LINE_PUSH_SOURCE_ID
+    row["items_last_hour"] = _json.dumps(counters)
+    row["updated_at"] = iso_utc(now_utc())
+    store.upsert("source_state", row)
+
+
+def get_line_quota_status(store) -> dict[str, int | str]:
+    """Returns {"month", "count", "limit", "pct", "source"}. Prefers LINE's own
+    quota API reading (cached by refresh_line_quota_from_api, `source="api"`) and
+    falls back to the local per-recipient estimate vs LINE_FREE_TIER_QUOTA
+    (`source="local"`) when no fresh API reading exists. Empty dict if no row."""
+    import json as _json
+    from datetime import timedelta
+
+    from .utils_time import now_utc, parse_iso
     if store is None:
         return {}
     row = store.get("source_state", (LINE_PUSH_SOURCE_ID,)) or {}
     blob = row.get("items_last_hour")
     if not blob:
-        return {"month": "", "count": 0, "limit": LINE_FREE_TIER_QUOTA, "pct": 0}
+        return {"month": "", "count": 0, "limit": LINE_FREE_TIER_QUOTA, "pct": 0, "source": "local"}
     try:
         d = _json.loads(blob)
         if not isinstance(d, dict):
             return {}
     except (_json.JSONDecodeError, TypeError, ValueError):
         return {}
+    # Authoritative path: a recent LINE-API reading.
+    api_ts = parse_iso(d.get("api_ts"))
+    if api_ts and (now_utc() - api_ts) < timedelta(hours=_QUOTA_API_FRESH_HOURS):
+        usage = int(d.get("api_usage") or 0)
+        limit = int(d.get("api_limit") or 0)
+        if limit <= 0:   # "none" = unlimited plan → never alarm
+            return {"month": d.get("month", ""), "count": usage, "limit": 0, "pct": 0, "source": "api"}
+        pct = int(usage / limit * 100)
+        return {"month": d.get("month", ""), "count": usage, "limit": limit, "pct": pct, "source": "api"}
+    # Fallback: local per-recipient estimate against the assumed free tier.
     count = int(d.get("count", 0))
     pct = int(count / LINE_FREE_TIER_QUOTA * 100) if LINE_FREE_TIER_QUOTA else 0
     return {"month": d.get("month", ""), "count": count,
-            "limit": LINE_FREE_TIER_QUOTA, "pct": pct}
+            "limit": LINE_FREE_TIER_QUOTA, "pct": pct, "source": "local"}
 
 
 # Quota-aware sender priority. LOWER number = higher value = shed LAST. The

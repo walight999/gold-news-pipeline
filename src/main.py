@@ -2547,6 +2547,14 @@ async def run_watchdog() -> int:
     store.connect()
     store.load_all()
 
+    # Refresh the AUTHORITATIVE LINE quota (real plan cap + usage from LINE's own
+    # API) before the health check reads it — otherwise line_quota_high compares a
+    # local per-recipient estimate against a hardcoded 500 and false-alarms (it
+    # read 708/500 = 141% while LINE's API said ~68% of a 35,000 plan). Best-effort;
+    # get_line_quota_status falls back to the local estimate if this didn't run.
+    from .line_client import refresh_line_quota_from_api
+    refresh_line_quota_from_api(store, os.environ.get("LINE_CHANNEL_TOKEN", ""))
+
     warnings = health.check_pipeline_health(store)
 
     # Surface classifier token cost in the run log (no card) so model spend is
