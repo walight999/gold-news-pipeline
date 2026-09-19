@@ -369,10 +369,13 @@ def check_pipeline_health(
         pct = qs.get("pct", 0)
         if pct >= 80:
             count = qs.get("count")
+            limit = qs.get("limit") or LINE_FREE_TIER_QUOTA
             month = qs.get("month") or "this month"
+            # `limit`/usage come from LINE's own quota API when available (source
+            # "api") — so this reflects the REAL plan cap, not a hardcoded 500.
             out.append(("line_quota_high",
-                        f"LINE free-tier usage {count}/{LINE_FREE_TIER_QUOTA} ({pct}%) for {month} "
-                        "— upgrading to Light plan recommended."))
+                        f"LINE usage {count}/{limit} ({pct}%) for {month} "
+                        "— approaching the monthly message cap."))
 
     # Telegram/news-bot push health. Telegram is the primary channel while LINE
     # quota is exhausted, so a silent worker outage drops everything. Row is
