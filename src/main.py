@@ -1143,6 +1143,19 @@ async def run_daily_brief() -> int:
         return 0
     store = Store.from_env()
     store.connect()
+
+    # Idempotency: once a brief exists for today it must not be rebuilt. The
+    # dispatcher (cron-job.org exact-time) can fire alongside the throttled
+    # native schedule / a retry; without this guard that double-creates the
+    # Notion page + log row. A row is only written after a successful Notion
+    # post, so a failed run leaves no row and correctly retries next fire.
+    date_label = to_ict(now_utc()).strftime("%d %b %Y")
+    _, _log_rows = store.read_feed(daily_brief.LOG_TAB)
+    if daily_brief.already_built_for(_log_rows, date_label):
+        log.info("daily_brief: already built for %s — skipping (idempotent)",
+                 date_label)
+        return 0
+
     events = daily_brief.collect_brief_events(store)
     if not events:
         log.info("daily_brief: no breaking/alert events in window — nothing to do")
@@ -1152,7 +1165,6 @@ async def run_daily_brief() -> int:
         log.warning("daily_brief: compose returned nothing — skipping")
         return 0
 
-    date_label = to_ict(now_utc()).strftime("%d %b %Y")
     title = f"{daily_brief.BRIEF_ICON} Gold Daily Brief — {date_label} (@tradetongkam)"
     n_ev = len(events)
 
@@ -1215,6 +1227,11 @@ async def run_video_brief() -> int:
         log.info("video_brief: no daily_brief_log rows — nothing to do")
         return 0
     row = rows[-1]                                  # newest brief
+    # Idempotency: if this row already has a rendered MP4, don't re-render (the
+    # dispatcher may fire again alongside the throttled native schedule).
+    if "video_url" in headers and str(row.get("video_url") or "").strip():
+        log.info("video_brief: latest brief already rendered — skipping (idempotent)")
+        return 0
     script = str(row.get("video_script") or "").strip()
     if not script:
         log.info("video_brief: latest brief has no video_script")

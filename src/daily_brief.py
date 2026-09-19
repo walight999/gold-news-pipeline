@@ -419,6 +419,13 @@ LOG_HEADERS = ["date", "page_id", "page_url", "fb_article", "video_script",
                "tweets", "tweets_posted", "notes"]
 
 
+def already_built_for(rows: list[dict[str, Any]], date_label: str) -> bool:
+    """True if daily_brief_log already has a row for `date_label` — the
+    idempotency check that stops the dispatcher from double-creating a brief."""
+    dl = (date_label or "").strip()
+    return any(str(r.get("date") or "").strip() == dl for r in (rows or []))
+
+
 def log_brief(store, *, date_label: str, page_id: str, page_url: str,
               brief: dict[str, Any]) -> bool:
     """Append one row to daily_brief_log so `--mode fb_post` / `reel_post` /
