@@ -133,7 +133,11 @@ def refresh_line_quota_from_api(store, token: str, timeout: float = 10.0) -> Non
     # type "limited" → value is the cap; "none" → unlimited plan (never alarm).
     limit = int(qd.get("value", 0)) if qd.get("type") == "limited" else 0
     usage = int(ud.get("totalUsage", 0))
-    row = store.get("source_state", (LINE_PUSH_SOURCE_ID,)) or {"source_id": LINE_PUSH_SOURCE_ID}
+    # COPY the row before mutating — store.get() hands back the LIVE dict in
+    # store.data, and Store.upsert's no-op guard compares the incoming row to
+    # that same object. Mutating it in place makes the guard see "no change", so
+    # flush() skips the tab and the reading never persists (the #78 trap, 2026-08-13).
+    row = dict(store.get("source_state", (LINE_PUSH_SOURCE_ID,)) or {"source_id": LINE_PUSH_SOURCE_ID})
     counters: dict = {}
     blob = row.get("items_last_hour")
     if blob:
