@@ -90,6 +90,32 @@ the filename and the schedule change.
 | EOD recap | `eod_recap.yml` | `16:00`, **Mon–Fri** |
 | Weekly preview | `weekly_preview.yml` | `23:00`, **Fri** |
 
+### 3b. The @tradetongkam content pipeline (daily brief → social)
+
+Same URL pattern / headers / `{"ref":"main"}` body. `daily-brief` is exact-time
+(once/day); the post modes are intervals that pick up the operator's Notion
+approvals through the day. **All are idempotent** so external + native + a retry
+never double-act:
+
+- `daily_brief` skips if `daily_brief_log` already has today's row
+  (`already_built_for`) — no duplicate Notion page.
+- `video_brief` skips if the latest row already has a `video_url` (no re-render).
+- `tweet_post` / `fb_post` / `reel_post` only act on ticked-but-unposted rows and
+  stamp state, so re-firing is a no-op.
+
+| Job | URL (`…/workflows/<FILE>/dispatches`) | Schedule |
+|-----|----------------------------------------|----------|
+| Daily brief | `daily_brief.yml` | `00:30` UTC (07:30 ICT), daily |
+| Video brief | `video_brief.yml` | `00:50` UTC, daily |
+| Tweet post | `tweet_post.yml` | every 30 min (or hourly) |
+| FB post | `fb_post.yml` | every 30 min (or hourly) |
+| Reel post | `reel_post.yml` | every 30 min (or hourly) |
+
+> The 3 post jobs on an interval are cheap: each is a no-op (one Sheet read + a
+> Notion checkbox read) until you tick an approval, so a 30-min cadence is fine.
+> `daily_brief`/`video_brief` MUST be exact-time (not interval) — the idempotency
+> guard makes a stray double-fire safe, but an interval would still waste calls.
+
 **Safe to run alongside the native `schedule:` block** — both modes are
 idempotent: `eod_recap` guards on `sent_log` key `eod:<date>` (once/day) and
 `weekly_preview` on the week-of key (once/week), so a duplicate trigger (external

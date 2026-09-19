@@ -100,6 +100,15 @@ def test_clean_source_collapses_x_relays_keeps_publications():
     assert "Deitaone" not in db._headlines_block(ev)
 
 
+def test_already_built_for():
+    rows = [{"date": "17 Sep 2026", "page_id": "a"},
+            {"date": "18 Sep 2026", "page_id": "b"}]
+    assert db.already_built_for(rows, "18 Sep 2026") is True
+    assert db.already_built_for(rows, "19 Sep 2026") is False   # new day → build
+    assert db.already_built_for([], "18 Sep 2026") is False     # first ever
+    assert db.already_built_for(rows, " 18 Sep 2026 ") is True  # tolerates spaces
+
+
 def test_clean_page_id():
     uid = "34d9defb-9529-812b-a397-0027bf073d97"
     assert db._clean_page_id(uid) == uid
