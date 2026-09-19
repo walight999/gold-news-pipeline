@@ -251,3 +251,48 @@ def test_refresh_quota_is_noop_without_token(store):
     from src.line_client import refresh_line_quota_from_api
     refresh_line_quota_from_api(store, "")
     assert store.get("source_state", (LINE_PUSH_SOURCE_ID,)) is None
+
+
+def test_refresh_quota_actually_persists_with_real_store(monkeypatch):
+    """The api reading must DIRTY the row. store.get() returns the live dict and
+    Store.upsert's no-op guard compares against it, so mutating in place would
+    silently skip the flush (the #78 trap — the watchdog fetched 200 OK but the
+    _line_push row's updated_at never moved). FakeStore has no guard, so this uses
+    the REAL Store."""
+    import json
+
+    from src import line_client
+    from src import store as store_mod
+
+    s = store_mod.Store(sheet_id="x", creds_json="{}")
+    s._sh = object()               # truthy; we never flush to a real sheet here
+    s.data = {t: {} for t in store_mod.SCHEMAS}
+    s.dirty = {t: set() for t in store_mod.SCHEMAS}
+    full = {c: "" for c in store_mod.SCHEMAS["source_state"]}
+    full["source_id"] = line_client.LINE_PUSH_SOURCE_ID
+    full["items_last_hour"] = json.dumps({"month": "2026-09", "count": 708})
+    s.data["source_state"][line_client.LINE_PUSH_SOURCE_ID] = full
+    s.dirty["source_state"].clear()
+
+    class _Resp:
+        def __init__(self, d): self._d = d
+        def raise_for_status(self): pass
+        def json(self): return self._d
+
+    class _Client:
+        def __init__(self, *a, **k): pass
+        def __enter__(self): return self
+        def __exit__(self, *a): return False
+        def get(self, url, headers=None):
+            return _Resp({"totalUsage": 23962}) if url.endswith("/consumption") \
+                else _Resp({"type": "limited", "value": 35000})
+
+    monkeypatch.setattr(line_client.httpx, "Client", _Client)
+    line_client.refresh_line_quota_from_api(s, "tok")
+
+    # Would be empty if the row were mutated in place (no-op guard skips it).
+    assert line_client.LINE_PUSH_SOURCE_ID in s.dirty["source_state"]
+    qs = line_client.get_line_quota_status(s)
+    assert qs["source"] == "api"
+    assert qs["limit"] == 35000
+    assert qs["pct"] == 68
