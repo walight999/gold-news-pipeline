@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-09-18T16:55:50Z",
-      "title": "global · Other · risk off",
-      "source": "Bbc World",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-09-18T16:55:50Z",
-      "title": "global · Other",
-      "source": "Bbc World",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-09-18T16:55:50Z",
-      "title": "russia · Geopolitics",
-      "source": "Bbc World",
+      "ts": "2026-09-20T17:56:24Z",
+      "title": "mideast · Geopolitics · risk off",
+      "source": "Investing General",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-18T16:55:50Z",
-      "title": "global · Other",
-      "source": "Yahoo Finance",
-      "score": 0.1,
+      "ts": "2026-09-20T17:56:24Z",
+      "title": "fed · Rate Policy · hawkish",
+      "source": "Fxstreet, Investing Commodities",
+      "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-18T16:55:50Z",
-      "title": "global · Other",
-      "source": "Bbc World",
-      "score": 0.1,
+      "ts": "2026-09-20T17:56:24Z",
+      "title": "fed · Rate Policy",
+      "source": "Cnbc",
+      "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-18T16:55:50Z",
-      "title": "global · Other",
-      "source": "Bbc World",
-      "score": 0.1,
+      "ts": "2026-09-20T17:56:24Z",
+      "title": "fed · Rate Policy",
+      "source": "Cnbc",
+      "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-18T16:55:50Z",
-      "title": "mideast · Geopolitics",
-      "source": "Bbc World",
-      "score": 0.3,
+      "ts": "2026-09-20T17:56:24Z",
+      "title": "fed · Rate Policy · hawkish",
+      "source": "Cnbc",
+      "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-18T16:55:50Z",
-      "title": "global · Other",
-      "source": "Bbc World",
-      "score": 0.1,
+      "ts": "2026-09-20T17:56:24Z",
+      "title": "fed · Rate Policy · hawkish",
+      "source": "Marketwatch",
+      "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-18T16:55:50Z",
-      "title": "global · Other",
-      "source": "Yahoo Finance",
-      "score": 0.1,
+      "ts": "2026-09-20T17:56:24Z",
+      "title": "us · Inflation",
+      "source": "Marketwatch",
+      "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-18T16:55:50Z",
-      "title": "global · Other",
-      "source": "Yahoo Finance",
-      "score": 0.1,
+      "ts": "2026-09-20T17:56:24Z",
+      "title": "us · Inflation",
+      "source": "Fxstreet",
+      "score": 0.5,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-09-20T17:56:24Z",
+      "title": "us · Inflation · dovish",
+      "source": "Fxstreet",
+      "score": 0.5,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-09-20T17:56:24Z",
+      "title": "boj · Rate Policy · hawkish",
+      "source": "Fxstreet",
+      "score": 0.5,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-09-20T14:32:03.750545Z"
+  "written_at": "2026-09-20T18:00:23.229542Z"
 }
