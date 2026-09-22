@@ -110,6 +110,12 @@ def test_build_payload_visual_branches():
     assert any(e["type"] == "text" and e["text"] == "US 10Y 5%"
                for e in s1["elements"])                 # card → text
     assert any(e["type"] == "text" and e["text"] == "c3" for e in s2["elements"])
+    # Text settings must be REAL CSS keys — `color` (not `font-color`, which
+    # JSON2Video silently ignores) and a unit-bearing `font-size`.
+    card_txt = next(e for e in s1["elements"] if e["type"] == "text")
+    assert "font-color" not in card_txt["settings"]
+    assert card_txt["settings"]["color"] == "#FFD34D"
+    assert card_txt["settings"]["font-size"].endswith("px")
     # every scene still carries its TTS voice
     for sc in p["scenes"]:
         assert any(e["type"] == "voice" for e in sc["elements"])
