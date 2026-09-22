@@ -134,15 +134,19 @@ def build_payload(scenes: list[dict[str, Any]], *, title: str,
                              "resize": "cover", "muted": True, "volume": 0})
         elif vis.get("type") == "card":
             bg = "#0B1F3A"
+            # A text element's `settings` are REAL CSS property names applied
+            # as-is (JSON2Video docs) — so it's `color` not `font-color`, and
+            # `font-size` needs a unit; unknown keys are silently ignored (the
+            # card would render in the default colour).
             elements.append({"type": "text", "text": vis.get("value", ""),
                              "position": "top-center",
-                             "settings": {"font-size": "72", "font-color": "#FFD34D",
+                             "settings": {"font-size": "72px", "color": "#FFD34D",
                                           "font-family": "Sarabun"}})
         else:
             bg = "#0B1F3A"
             elements.append({"type": "text", "text": vis.get("value", s["cue"]),
                              "position": "top-center",
-                             "settings": {"font-size": "42", "font-color": "#8AA0BF"}})
+                             "settings": {"font-size": "42px", "color": "#8AA0BF"}})
         elements.append({"type": "voice", "text": s["narration"], "voice": voice})
         movie_scenes.append({
             "comment": f"ฉาก {s['n']}: {s['cue']}"[:120],
