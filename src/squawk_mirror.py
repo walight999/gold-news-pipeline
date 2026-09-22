@@ -25,9 +25,15 @@ Nothing here raises to the scheduler.
 from __future__ import annotations
 
 import logging
+import os
 import re
 from functools import lru_cache
 from typing import Any, Callable
+
+# Public auto-posts, no human review → fluent Thai matters. Sonnet by default
+# (Haiku garbles free-standing Thai — the daily_brief lesson); override via
+# config `squawk.model` or the SQUAWK_MODEL env.
+DEFAULT_COMPOSE_MODEL = "claude-sonnet-4-6"
 
 from . import apify_source, social_feed, tweet_writer
 from .utils_time import iso_utc, now_utc, parse_iso, to_ict
@@ -110,13 +116,13 @@ def _seen_and_today_count(rows: list[dict[str, Any]], today_ict: str) -> tuple[s
     return seen, today
 
 
-def _compose(text: str, composer: Callable[..., str | None]) -> str | None:
+def _compose(text: str, composer: Callable[..., str | None], model: str) -> str | None:
     """Re-express a First Squawk English headline as a @tradetongkam Thai tweet.
     Returns None if the composer is unavailable — we then skip (never post the
     raw English line)."""
     try:
         return composer(headline_th=None, body_th=None, impact_th=None,
-                        category=None, en_title=text, en_summary=None)
+                        category=None, en_title=text, en_summary=None, model=model)
     except Exception:  # noqa: BLE001 — composer is best-effort
         log.exception("squawk_mirror: compose failed")
         return None
@@ -140,6 +146,7 @@ def mirror(store, *, token: str, cfg: dict[str, Any] | None = None,
     since_minutes = int(cfg.get("since_minutes", 20))
     max_items = int(cfg.get("max_items", 5))
     keywords = [str(k).lower() for k in (cfg.get("keywords") or DEFAULT_KEYWORDS)]
+    model = str(cfg.get("model") or os.environ.get("SQUAWK_MODEL") or DEFAULT_COMPOSE_MODEL)
 
     now = now or now_utc()
     today_ict = to_ict(now).strftime("%Y-%m-%d")
@@ -177,7 +184,7 @@ def mirror(store, *, token: str, cfg: dict[str, Any] | None = None,
             log.debug("squawk_mirror: drop (off-topic): %s", text[:100])
             continue
         n_relevant += 1
-        tweet = _compose(text, composer)
+        tweet = _compose(text, composer, model)
         if not tweet:
             # No composer / model down — don't post the raw English headline.
             n_compose_fail += 1

@@ -35,14 +35,36 @@ Study these REAL @tradetongkam tweets. Copy the STYLE and rhythm, never the cont
 สหรัฐฯ โจมตีเรดาร์ชายฝั่งอิหร่าน หลังยิงสกัดโดรนได้ 4 ลำ ที่ถูกมองว่ามุ่งเป้าการเดินเรือในช่องแคบฮอร์มุซ จุดสำคัญคือ แม้ทรัมป์บอกว่าศักยภาพโดรนและขีปนาวุธอิหร่านถูกทำลายไปมาก แต่อิหร่านยังมีไพ่เหลืออยู่
 ---
 
-VOICE RULES (follow exactly):
-- Open with the actor + action, directly: e.g. "ทรัมป์กดดัน...", "สหรัฐฯ โจมตี...", "เฟดส่งสัญญาณ...", "จีนเพิ่มทุนสำรองทอง...". No preamble, no "วันนี้มีข่าวว่า", no "ล่าสุด".
-- Then explain the SIGNIFICANCE / tension analytically with connectors like "เหตุผลคือ", "ปัญหาคือ", "ประเด็นสำคัญคือ", "จุดที่ต้องจับตาคือ", "เพราะ...".
-- Do NOT blurt "ทองขึ้น" / "ทองลง". Explain the situation and let the reader connect it to gold. You MAY weave in safe-haven / ดอลลาร์ / บอนด์ยีลด์ / เฟด when it genuinely fits.
-- Confident trader Thai. Tight. No hype, no clickbait, no question marks, no quotes from the article.
-- NO emoji anywhere. NO links. NO source names. NO em-dash (—).
-- Keep the ENTIRE tweet including the hashtag line under 270 Thai characters.
+HOW TO WRITE (this is the whole point — read it):
+You are a Thai market analyst, NOT a translator. Write natural Thai that a Thai
+reader understands in ONE read. Never translate English word-for-word.
+
+Each post answers these three, IN THIS ORDER — but only the ones that actually apply:
+1) เกิดอะไรขึ้น — the fact, said directly.
+2) ตลาดควรสนใจประเด็นใด — what the market will watch or price in.
+3) เกี่ยวกับทองคำอย่างไร — the gold / safe-haven / ดอลลาร์ / บอนด์ยีลด์ / เฟด angle, IF a real one exists.
+
+RULES:
+- ประโยคสั้น กระชับ: ประธาน + กริยา + นัยต่อตลาด. เลี่ยงประโยคซ้อนหลายชั้น. รวม 2-4 ประโยค.
+- อย่าใช้โครงประโยคซ้ำเดิมทุกโพสต์. โดยเฉพาะ อย่าเปิดประโยคที่สองด้วย "เหตุผลคือ" /
+  "ประเด็นสำคัญคือ" / "จุดที่ต้องจับตาคือ" เป็นสูตรตายตัว — บางโพสต์ไม่ต้องอธิบายเหตุผลเลย.
+- สลับวิธีเปิดเรื่องในแต่ละโพสต์: บางอันเปิดด้วยผู้กระทำ+การกระทำ ("ทรัมป์ประกาศ…"),
+  บางอันเปิดด้วยธีม ("จับตาอิหร่าน–จีน หลัง…"), บางอันเปิดด้วยความเสี่ยง
+  ("ความเสี่ยงภูมิรัฐศาสตร์เพิ่มอีกจุด หลัง…").
+- อย่าอธิบายสิ่งที่ผู้อ่านเข้าใจอยู่แล้ว. อย่าตีความข่าวชิ้นเดียวให้เป็น narrative ใหญ่
+  (เช่น "สหรัฐฯ อาจหันไปนโยบายแยกตัว") เว้นแต่ต้นทางระบุชัดเจน.
+- อย่า blurt "ทองขึ้น"/"ทองลง" ให้ผู้อ่านเชื่อมโยงเอง. ถ้าข่าวไม่กระทบทองอย่างมีนัยสำคัญ
+  ให้บอกสั้นๆ ว่า "ผลต่อทองจำกัด" แทนการฝืนเชื่อมโยง.
+- ห้ามคำ/วลีแปลตรงตัวที่คนไทยไม่พูด (เช่น "ขจัดสถานการณ์ข่มขี่", "การรีบาลานซ์อำนาจชาติ",
+  "เป็นตัวจริง", "สำเร็จการศึกษา"). ไม่มั่นใจว่าคำไหนฟังธรรมชาติ ให้ตัดทิ้งแล้วเขียนใหม่ด้วยคำง่ายๆ.
+- Confident trader Thai. ไม่มี hype, ไม่ clickbait, ไม่มีเครื่องหมายคำถาม, ไม่ยกคำพูดตรงจากข่าว.
+- NO emoji. NO links. NO source names. NO em-dash (—).
+- สาระมาก่อน แล้วปิดท้ายด้วยบรรทัดแฮชแท็ก. Keep the ENTIRE post incl. hashtags under 270 Thai characters.
 - End with exactly this final line: {TAGS}
+
+FINAL CHECK before you return: อ่านทุกประโยคแล้วถามตัวเองว่า "คนไทยอ่านครั้งเดียวเข้าใจไหม?"
+ถ้าไม่ ให้เขียนใหม่ด้วยภาษาที่ง่ายกว่า. เกณฑ์คุณภาพ: 5 วินาที รู้ว่าเกิดอะไร ·
+10 วินาที รู้ว่ากระทบตลาด/ทองยังไง · ไม่ต้องอ่านซ้ำ.
 
 NEWS CONTEXT:
 Category: {category}
@@ -51,7 +73,7 @@ Thai detail: {body}
 English title: {en_title}
 English summary: {en_summary}
 
-Return ONLY JSON, nothing else: {"tweet": "<full tweet text including the hashtag line>"}"""
+Return ONLY JSON, nothing else: {"tweet": "<full post text including the hashtag line>"}"""
 
 
 def _extract_json(text: str) -> dict | None:
@@ -101,11 +123,20 @@ def _fit(tweet: str) -> str:
     return clipped + "…\n" + TAGS
 
 
+DEFAULT_MODEL = "claude-haiku-4-5-20251001"
+
+
 def compose_tweet(*, headline_th: str | None, body_th: list[str] | None,
                   impact_th: str | None, category: str | None,
-                  en_title: str | None, en_summary: str | None) -> str | None:
+                  en_title: str | None, en_summary: str | None,
+                  model: str = DEFAULT_MODEL) -> str | None:
     """Return a @tradetongkam-voice Thai tweet, or None if Claude is unavailable
-    or the call fails (caller falls back to the simple template)."""
+    or the call fails (caller falls back to the simple template).
+
+    `model` defaults to Haiku (cheap, high-volume social_feed drafts). Public
+    auto-posted channels (squawk_mirror) pass Sonnet: Haiku garbles Thai in
+    free-standing copy (the daily_brief lesson — เญาปี่/สำเร็จการศึกษา), and these
+    posts ship with no human review, so fluent Thai matters more than the cents."""
     client = _get_anthropic_client()
     if not client:
         return None
@@ -124,7 +155,7 @@ def compose_tweet(*, headline_th: str | None, body_th: list[str] | None,
     for attempt in range(2):
         try:
             resp = client.messages.create(
-                model="claude-haiku-4-5-20251001",
+                model=model,
                 max_tokens=400,
                 messages=[{"role": "user", "content": prompt}],
             )

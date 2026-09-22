@@ -64,6 +64,8 @@ squawk:
                               # once the re-voicing quality is confirmed. X = $0.015/post.
   max_items: 5                # scrape at most this many per run (cost guard)
   since_minutes: 20           # look back this far each run (> cron gap for overlap)
+  model: claude-sonnet-4-6    # re-voice model. Sonnet (not Haiku) for fluent Thai —
+                              # these auto-post with no human review. Override w/ SQUAWK_MODEL.
   # Gold-mover filter: a headline is mirrored only if it contains one of these
   # (case-insensitive). Omit to use the module's DEFAULT_KEYWORDS (gold / USD /
   # Fed / yields / inflation / BoJ+ECB / safe-haven). Add terms to widen.
