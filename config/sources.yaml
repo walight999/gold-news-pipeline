@@ -59,9 +59,9 @@ x_accounts:
 squawk:
   enabled: true
   handle: FirstSquawk
-  cap_per_day: 3              # FIRST-RUN SAFETY (2026-09-22): start at 3 so White
-                              # can eyeball the first real Thai posts; raise to ~20
-                              # once the re-voicing quality is confirmed. X = $0.015/post.
+  cap_per_day: 6              # TEMP (2026-09-22): bumped 3→6 to post ~3 fresh
+                              # Sonnet+new-prompt samples for White to compare vs the
+                              # first 3. Set to ~20 once the voice is confirmed. X = $0.015/post.
   max_items: 5                # scrape at most this many per run (cost guard)
   since_minutes: 20           # look back this far each run (> cron gap for overlap)
   model: claude-sonnet-4-6    # re-voice model. Sonnet (not Haiku) for fluent Thai —
