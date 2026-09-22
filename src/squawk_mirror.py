@@ -189,6 +189,9 @@ def mirror(store, *, token: str, cfg: dict[str, Any] | None = None,
             continue
         seen.add(fid)
         posted += 1
+        # Audit line: the posted Thai text (a public tweet) so a run is reviewable
+        # from the Actions log without opening X (which blocks unauthenticated reads).
+        log.info("squawk_mirror: POSTED %s | %s", url, " ".join(tweet.split())[:150])
         # Log immediately after each post (crash-safe: a crash mid-loop can't make
         # an already-posted headline re-post next run).
         row = [iso_utc(now), to_ict(now).strftime("%Y-%m-%d %H:%M:%S"),
