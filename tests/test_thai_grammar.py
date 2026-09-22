@@ -46,8 +46,42 @@ def test_clean_desk_thai_has_no_warnings():
         "ทองอ่อนตัว หลังดอลลาร์แข็งค่าก่อนตัวเลข CPI",
         "Core CPI ญี่ปุ่นชะลอเหลือ 1.4% y/y ต่ำกว่าคาด",
         "ราคาทองปรับขึ้นระหว่างวันหลังตัวเลขจ้างงานอ่อนแอ",
+        # kept-English acronyms sit ADJACENT to Thai with a space — must stay clean
+        "ตลาดจับตา DXY และ S&P 500 ก่อน FOMC",
+        "ทองแตะ 4400 ดอลลาร์ หลัง ETF inflows เพิ่มขึ้น",
+        # legitimate tone marks (each attached to its consonant) — no false garble
+        "ทองพุ่งแตะจุดสูงสุดใหม่ ท่ามกลางความไม่แน่นอน",
     ]:
         assert tg.grammar_warnings(s) == [], s
+
+
+# ---------------- structural garble (new high-precision detectors) ----------------
+
+def test_flags_orphan_combining_mark():
+    # A tone/upper mark with no base consonant before it = rendering corruption.
+    assert "malformed_thai" in tg.grammar_warnings("ทองปรับขึ้น ่ตลาด")   # tone after space
+    assert "malformed_thai" in tg.grammar_warnings("ั ทองอ่อนตัว")          # upper vowel at start
+
+
+def test_flags_stacked_tone_marks():
+    assert "malformed_thai" in tg.grammar_warnings("ทองร่้วงหนัก")          # ่ + ้ stacked
+
+
+def test_flags_consonant_stutter():
+    assert "stutter" in tg.grammar_warnings("ทองงงปรับขึ้น")                # ง x3
+    # two identical consonants across a boundary is legitimate → NOT flagged
+    assert "stutter" not in tg.grammar_warnings("นกกระจอกบินผ่าน")
+
+
+def test_flags_latin_embedded_in_thai_word():
+    assert "latin_in_thai" in tg.grammar_warnings("ทองassetไหลเข้า")         # latin glued both sides
+    # spaced kept-English is fine
+    assert "latin_in_thai" not in tg.grammar_warnings("ทอง asset ไหลเข้า")
+
+
+def test_flags_more_english_verb_leaks():
+    assert "english_leak" in tg.grammar_warnings("ทองปรับขึ้น eyeing ตัวเลข")
+    assert "english_leak" in tg.grammar_warnings("ดอลลาร์ roiling ตลาดทอง")
 
 
 def test_alert_grammar_warnings_aggregates_across_fields():
