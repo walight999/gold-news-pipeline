@@ -1,33 +1,43 @@
 name: keepalive-dispatcher
 
-# Backup dispatcher for the Thai-morning dead-zone.
+# Backup dispatcher — 24/7 safety net for a dead external dispatcher.
 #
 # The real cadence comes from an external scheduler (cron-job.org) hitting
-# workflow_dispatch — see docs/DISPATCHER-CRON.md. When that dispatcher is dead
-# (the GAS-era 22:00-06:00 UTC dead-zone, or cron-job.org down), GitHub's native
-# `schedule:` cron is throttled to ~1 run/2-4h and the 6 digest rounds arrive
-# hours late with few candidates.
+# workflow_dispatch — see docs/DISPATCHER-CRON.md. When that dispatcher dies
+# (cron-job.org job disabled, PAT expired, or the old GAS 22:00-06:00 UTC
+# dead-zone), GitHub's native `schedule:` cron is throttled to ~1 run/2-4h and
+# the 6 digest rounds arrive hours late with few candidates. The 2026-09-22
+# outage proved the old dead-zone-only guard left a gap: cron-job.org stopped at
+# 08:30 UTC during ACTIVE hours, so keepalive (21:00-06:00 UTC only) never fired
+# and the channel sat silent behind the throttled schedule for hours.
 #
 # This workflow fills that gap WITHOUT a PAT / external service: a native-cron
-# job that, only while the real dispatcher is silent, runs `--mode cron` every
-# 5 min until the dead-zone ends. It is a no-op the moment the real dispatcher
-# is alive again (see the dispatcher_alive check below), so it never competes
-# with cron-job.org once that is set up.
+# job that, ONLY while the real dispatcher is silent, runs `--mode cron` every
+# 5 min for a ~5.5h rolling window, at ANY hour of day. It is a no-op the moment
+# the real dispatcher is alive again (see dispatcher_alive below), so it never
+# competes with cron-job.org once that is restored — the schedule fires, the
+# alive-check sees a fresh workflow_dispatch, and the job exits in one step.
+#
+# Coverage caveat: GitHub throttles the schedule triggers below, so the loop may
+# START up to a few hours after the dispatcher dies — but once started it holds
+# 5-min cadence for ~5.5h, so a single start bridges most of a throttle window.
 #
 # Safety:
 #   - SAME concurrency group as news-cron (cancel-in-progress: false) → it can
 #     never run the pipeline concurrently with a real news-cron run, so there is
 #     no Google-Sheets clobber. Overlaps queue; they never cancel a real run.
 #   - dispatcher_alive(): if news_cron had a workflow_dispatch in the last 20
-#     min, the real dispatcher is up → exit immediately and yield the slot.
-#   - HARD-STOP at 06:00 UTC + active-hours guard → never bleeds into trading
-#     hours to block real-time dispatched runs.
+#     min, the real dispatcher is up → exit immediately and yield the slot. This
+#     is the SOLE gate now, and it is what keeps the 24/7 schedule from competing
+#     during normal operation.
 
 on:
   schedule:
-    - cron: "0 22 * * *"    # 05:00 ICT — start of the dead-zone
-    - cron: "30 0 * * *"    # 07:30 ICT — mid dead-zone refill
-    - cron: "30 3 * * *"    # 10:30 ICT — late dead-zone refill
+    # 24/7 coverage: every 2h + offset refills. GitHub throttles these hard, but
+    # each start holds 5-min cadence for ~5.5h, so >=1 getting through per window
+    # bridges a dead dispatcher at ANY hour. No-op when cron-job.org is alive.
+    - cron: "0 */2 * * *"              # every even hour
+    - cron: "30 1,5,9,13,17,21 * * *"  # offset refills to raise start probability
   workflow_dispatch: {}
 
 concurrency:
@@ -63,19 +73,15 @@ jobs:
           python-version: "3.11"
           cache: pip
       - run: pip install -r requirements.txt
-      - name: dead-zone keepalive loop
+      - name: keepalive loop (24/7 while dispatcher is dead)
         run: |
           set +e
           FRESH_MIN=20          # a real dispatch newer than this = dispatcher alive
-          # active-hours guard: only run inside the dead-zone (21:00-06:00 UTC).
-          h=$(date -u +%H)
-          if [ "$h" -ge 6 ] && [ "$h" -lt 21 ]; then
-            echo "[keepalive] $(date -u +%H:%M) UTC is active hours — nothing to do"
-            exit 0
-          fi
-          # hard stop = the next 06:00 UTC.
-          STOP=$(date -u -d 'today 06:00' +%s)
-          [ "$(date -u +%s)" -ge "$STOP" ] && STOP=$(date -u -d 'tomorrow 06:00' +%s)
+          # No active-hours guard (24/7): dispatcher_alive() below is the SOLE gate —
+          # it yields instantly whenever cron-job.org is delivering, so running at
+          # any hour is safe. Hard stop = a ~5.5h rolling window (under the 350-min
+          # runner timeout); the next scheduled trigger restarts the loop if needed.
+          STOP=$(( $(date -u +%s) + 340 * 60 ))
 
           dispatcher_alive() {
             local ts age
@@ -93,10 +99,10 @@ jobs:
               echo "[keepalive] real dispatcher is alive (recent workflow_dispatch) — yielding"
               exit 0
             fi
-            echo "[keepalive] $(date -u +%H:%M:%S) UTC dead-zone — running cron pipeline"
+            echo "[keepalive] $(date -u +%H:%M:%S) UTC dispatcher silent — running cron pipeline"
             python -m src.main --mode cron || echo "[keepalive] pipeline run failed, continuing"
             # don't sleep past the hard stop
             [ "$(( $(date -u +%s) + 300 ))" -ge "$STOP" ] && break
             sleep 300
           done
-          echo "[keepalive] reached dead-zone end (06:00 UTC) — exiting"
+          echo "[keepalive] reached rolling-window end (~5.5h) — exiting; next scheduled trigger resumes if still needed"
