@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-09-22T11:33:49Z",
-      "title": "mideast · Geopolitics · risk off",
-      "source": "Bbc World",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-09-22T11:33:49Z",
-      "title": "global · Other",
-      "source": "Investing Cb",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-09-22T11:33:49Z",
+      "ts": "2026-09-22T15:40:29Z",
       "title": "global · Other",
       "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-22T11:33:49Z",
-      "title": "global · Other",
-      "source": "Investing Cb",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-09-22T11:33:49Z",
-      "title": "russia · Geopolitics",
-      "source": "Bbc World",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-09-22T11:33:49Z",
+      "ts": "2026-09-22T15:40:29Z",
       "title": "us · Inflation",
       "source": "Investing Cb",
       "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-22T11:33:49Z",
-      "title": "russia · Geopolitics",
-      "source": "Bbc World",
-      "score": 0.3,
+      "ts": "2026-09-22T15:40:29Z",
+      "title": "ecb · Rate Policy",
+      "source": "Ecb",
+      "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-22T11:33:49Z",
+      "ts": "2026-09-22T15:40:29Z",
       "title": "mideast · Geopolitics",
       "source": "Bbc World",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-22T11:33:49Z",
+      "ts": "2026-09-22T15:40:29Z",
+      "title": "global · Other",
+      "source": "Ecb, Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-09-22T15:40:29Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-09-22T15:40:29Z",
       "title": "global · Other",
       "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-22T11:33:49Z",
-      "title": "global · Other · risk off",
+      "ts": "2026-09-22T15:40:29Z",
+      "title": "mideast · Geopolitics · risk off",
       "source": "Bbc World",
+      "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-09-22T15:40:29Z",
+      "title": "global · Other",
+      "source": "Bbc World, Investing Cb",
       "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-09-22T15:40:29Z",
+      "title": "us · Inflation",
+      "source": "Investing Cb",
+      "score": 0.5,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-09-22T12:23:16.872412Z"
+  "written_at": "2026-09-22T17:09:16.806401Z"
 }
