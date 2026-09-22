@@ -1,0 +1,179 @@
+"""First Squawk live mirror → @tradetongkam Thai tweets (`--mode squawk_mirror`).
+
+White wants the brand's X posts to ride on First Squawk (@FirstSquawk), a
+real-time financial squawk that breaks macro headlines the SECOND they happen
+(e.g. "*FED RAISES RATES 25BPS"). Mirroring the live wire fixes the two problems
+of the once-a-day daily_brief: staleness, and the "did it happen or is it
+expected" ambiguity — a live headline states the actual event.
+
+Scope (White, 2026-09-22): GOLD-RELEVANT ONLY (gold / USD / Fed / yields), runs
+ALONGSIDE daily_brief (does not replace it), AUTO-post with a per-day cap.
+
+Editorial line (no-ai-slop): we take the FACTS in a First Squawk headline and
+re-express them in @tradetongkam's own analytical Thai voice with a gold angle —
+we never copy their wording. Facts (a rate decision, a data print) are public and
+reported by everyone; the expression is ours. No FS attribution on the tweet (the
+brand's X is its own channel), no link, no emoji.
+
+Env-gated + best-effort, like the rest of the pipeline:
+  - APIFY_TOKEN unset  → no scrape → no-op (exit 0)
+  - ANTHROPIC unset    → composer returns None → nothing posts (we never post the
+                         raw English headline)
+  - X creds unset      → poster raises → row left unposted, retried next run
+Nothing here raises to the scheduler.
+"""
+from __future__ import annotations
+
+import logging
+import re
+from typing import Any, Callable
+
+from . import apify_source, social_feed, tweet_writer
+from .utils_time import iso_utc, now_utc, parse_iso, to_ict
+
+log = logging.getLogger("squawk_mirror")
+
+MIRROR_TAB = "squawk_log"
+MIRROR_HEADERS = ["ts_utc", "ts_ict", "fs_id", "fs_text", "tweet_text", "posted"]
+
+DEFAULT_HANDLE = "FirstSquawk"
+
+# Gold-mover relevance filter (White: ทอง/USD/Fed/yields). A First Squawk
+# headline is kept only if it contains one of these (case-insensitive). Tunable
+# via config `squawk.keywords`. Deliberately gold-centric — First Squawk covers
+# ALL macro/geopolitics, most of which is off-brand for a gold channel.
+DEFAULT_KEYWORDS = [
+    # gold itself
+    "gold", "xau", "bullion", "precious metal",
+    # the Fed / rate policy
+    "fed", "fomc", "powell", "rate hike", "rate cut", "rate decision",
+    "interest rate", "rates", "basis point", "bps", "hawkish", "dovish",
+    "dot plot", "monetary policy",
+    # the dollar / yields
+    "dollar", "greenback", "dxy", "yield", "yields", "treasury", "treasuries",
+    "10-year", "10y", "bond",
+    # inflation / data that moves the Fed
+    "inflation", "cpi", "pce", "ppi", "payroll", "payrolls", "nfp",
+    "jobless", "unemployment",
+    # other central banks that move gold via USD/JPY & EUR
+    "boj", "bank of japan", "ecb", "lagarde",
+    # safe-haven drivers
+    "safe haven", "safe-haven",
+]
+
+_STATUS_RE = re.compile(r"/status/(\d+)")
+
+
+def is_relevant(text: str, keywords: list[str]) -> bool:
+    """True if the headline mentions any gold-mover keyword (case-insensitive)."""
+    t = (text or "").lower()
+    return any(k in t for k in keywords)
+
+
+def _fs_id(entry: dict[str, Any]) -> str:
+    """A stable per-headline id for dedup: the tweet's snowflake id from its URL,
+    or the URL itself as a fallback."""
+    url = str(entry.get("url") or "")
+    m = _STATUS_RE.search(url)
+    return m.group(1) if m else url
+
+
+def _seen_and_today_count(rows: list[dict[str, Any]], today_ict: str) -> tuple[set[str], int]:
+    """(ids already mirrored, count mirrored *today* in ICT) from squawk_log."""
+    seen: set[str] = set()
+    today = 0
+    for r in rows:
+        fid = str(r.get("fs_id") or "").strip()
+        if fid:
+            seen.add(fid)
+        ts = str(r.get("ts_ict") or "")
+        if ts[:10] == today_ict and str(r.get("posted") or "").strip():
+            today += 1
+    return seen, today
+
+
+def _compose(text: str, composer: Callable[..., str | None]) -> str | None:
+    """Re-express a First Squawk English headline as a @tradetongkam Thai tweet.
+    Returns None if the composer is unavailable — we then skip (never post the
+    raw English line)."""
+    try:
+        return composer(headline_th=None, body_th=None, impact_th=None,
+                        category=None, en_title=text, en_summary=None)
+    except Exception:  # noqa: BLE001 — composer is best-effort
+        log.exception("squawk_mirror: compose failed")
+        return None
+
+
+def mirror(store, *, token: str, cfg: dict[str, Any] | None = None,
+           composer: Callable[..., str | None] = tweet_writer.compose_tweet,
+           poster: Callable[[str], str] = social_feed.x_post,
+           now=None) -> int:
+    """Scrape First Squawk, keep gold-relevant + unseen headlines up to the daily
+    cap, re-voice each into Thai, post to X, and log it. Returns count posted.
+
+    Best-effort throughout: a scrape/compose/post failure on one item never stops
+    the others and never raises to the scheduler."""
+    if not token:
+        log.info("squawk_mirror: no APIFY_TOKEN — skipping")
+        return 0
+    cfg = cfg or {}
+    handle = str(cfg.get("handle") or DEFAULT_HANDLE)
+    cap = int(cfg.get("cap_per_day", 20))
+    since_minutes = int(cfg.get("since_minutes", 20))
+    max_items = int(cfg.get("max_items", 5))
+    keywords = [str(k).lower() for k in (cfg.get("keywords") or DEFAULT_KEYWORDS)]
+
+    now = now or now_utc()
+    today_ict = to_ict(now).strftime("%Y-%m-%d")
+    try:
+        _, rows = store.read_feed(MIRROR_TAB)
+    except Exception:  # noqa: BLE001
+        log.exception("squawk_mirror: read squawk_log failed")
+        rows = []
+    seen, today_count = _seen_and_today_count(rows, today_ict)
+    if today_count >= cap:
+        log.info("squawk_mirror: daily cap %d already reached (%d) — skipping",
+                 cap, today_count)
+        return 0
+
+    entries = apify_source.fetch_tweets(token, [handle],
+                                        since_minutes=since_minutes,
+                                        max_per_handle=max_items)
+    # Oldest-first so the daily cap fills in chronological order. Undated entries
+    # fall back to `now` (sorted last) — and never break the sort on a None.
+    entries.sort(key=lambda e: e.get("published_ts") or now)
+
+    posted = 0
+    for e in entries:
+        if today_count + posted >= cap:
+            log.info("squawk_mirror: hit daily cap %d — stopping", cap)
+            break
+        fid = _fs_id(e)
+        if not fid or fid in seen:
+            continue
+        text = str(e.get("title") or "").strip()
+        if not text or not is_relevant(text, keywords):
+            continue
+        tweet = _compose(text, composer)
+        if not tweet:
+            # No composer / model down — don't post the raw English headline.
+            continue
+        try:
+            url = poster(tweet)
+        except Exception:  # noqa: BLE001 — one bad post must not stop the rest
+            log.exception("squawk_mirror: X post failed for fs_id=%s", fid)
+            continue
+        seen.add(fid)
+        posted += 1
+        # Log immediately after each post (crash-safe: a crash mid-loop can't make
+        # an already-posted headline re-post next run).
+        row = [iso_utc(now), to_ict(now).strftime("%Y-%m-%d %H:%M:%S"),
+               fid, text[:280], tweet, url or "posted"]
+        try:
+            store.append_feed(MIRROR_TAB, MIRROR_HEADERS, [row])
+        except Exception:  # noqa: BLE001
+            log.exception("squawk_mirror: log append failed (tweet WAS posted: %s)", url)
+
+    log.info("squawk_mirror: posted %d (cap %d, today was %d) from %d scraped",
+             posted, cap, today_count, len(entries))
+    return posted

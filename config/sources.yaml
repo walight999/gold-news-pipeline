@@ -47,6 +47,58 @@ x_accounts:
     - NodeWire                # macro/geo squawk (relay-overlap w/ DeItaone/FirstSquawk)
     - MarketsCapApp           # macro/rates/geo squawk (dup of NodeWire copy)
 
+# First Squawk live mirror (2026-09-22, White) — `--mode squawk_mirror`. Scrapes
+# @FirstSquawk (already in x_accounts above for the news pipeline) and mirrors its
+# GOLD-RELEVANT headlines DIRECTLY to @tradetongkam as Thai tweets, re-voiced by
+# the Claude tweet_writer (facts only, our words, no FS attribution, no link). A
+# separate, realtime, auto-post path that runs ALONGSIDE daily_brief — bypasses
+# the score threshold + the manual `approved` gate of social_feed. Its own dedup
+# + daily cap live in the `squawk_log` sheet tab. Env-gated: APIFY_TOKEN (scrape)
+# + ANTHROPIC (re-voice) + X creds (post); any unset ⇒ safe no-op. Cost: Apify
+# ~cents + $0.015/posted tweet, hard-bounded by cap_per_day.
+squawk:
+  enabled: true
+  handle: FirstSquawk
+  cap_per_day: 3              # FIRST-RUN SAFETY (2026-09-22): start at 3 so White
+                              # can eyeball the first real Thai posts; raise to ~20
+                              # once the re-voicing quality is confirmed. X = $0.015/post.
+  max_items: 5                # scrape at most this many per run (cost guard)
+  since_minutes: 20           # look back this far each run (> cron gap for overlap)
+  # Gold-mover filter: a headline is mirrored only if it contains one of these
+  # (case-insensitive). Omit to use the module's DEFAULT_KEYWORDS (gold / USD /
+  # Fed / yields / inflation / BoJ+ECB / safe-haven). Add terms to widen.
+  keywords:
+    - gold
+    - xau
+    - bullion
+    - fed
+    - fomc
+    - powell
+    - rate hike
+    - rate cut
+    - rate decision
+    - rates
+    - basis point
+    - hawkish
+    - dovish
+    - dot plot
+    - dollar
+    - dxy
+    - yield
+    - yields
+    - treasury
+    - bond
+    - inflation
+    - cpi
+    - pce
+    - payroll
+    - nfp
+    - boj
+    - bank of japan
+    - ecb
+    - lagarde
+    - safe haven
+
 # Truth Social (2026-09-10) — Trump posts (tariffs / Fed pressure / geopolitics)
 # move gold intraday and appear in NO RSS feed. Posts become tier-2 wire entries
 # in the SAME pool as tweets. OPT-IN: third-party actor output shapes differ, so

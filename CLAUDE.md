@@ -70,7 +70,12 @@ throttle on the T-15 window; cron-job.org now drives `calendar_check` every
 `digest` · `eod_recap` (23:00 ICT) · `weekly_preview` (Sat) · `verify_sources`
 (weekly health probe) · `maintain` (purge) · `watchdog` (self-monitor) ·
 `social_post` (post approved drafts to X, cron */20) · `social_seed` (append one
-test draft) · `daily_brief` (one pool → 3 @tradetongkam artifacts [tweets/FB
+test draft) · `squawk_mirror` (mirror @FirstSquawk's LIVE gold-relevant headlines
+→ @tradetongkam Thai tweets, re-voiced by tweet_writer; realtime auto-post that
+runs ALONGSIDE daily_brief, bypasses the score+approval gate; gold-only filter +
+per-day cap + own `squawk_log` dedup tab; env-gated APIFY_TOKEN+ANTHROPIC+X creds;
+cron */15; config `sources.yaml → squawk:` — see `docs/SQUAWK-MIRROR.md`) ·
+`daily_brief` (one pool → 3 @tradetongkam artifacts [tweets/FB
 article/video script] → one Notion review page, cron 07:30 ICT; env-gated on
 `NOTION_TOKEN`+`NOTION_BRIEF_PARENT`, dry-run writes `snapshots/daily_brief_*.md`;
 uses Sonnet `BRIEF_MODEL` for fluent Thai — see `docs/DAILY-BRIEF.md`) ·

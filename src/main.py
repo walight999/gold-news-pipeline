@@ -1125,6 +1125,25 @@ async def run_social_post() -> int:
     return 0
 
 
+async def run_squawk_mirror() -> int:
+    """Mirror First Squawk's live gold-relevant headlines to @tradetongkam as
+    Thai tweets (`--mode squawk_mirror`). Runs alongside daily_brief. Gold-only
+    filter + per-day cap + auto-post. Env-gated on APIFY_TOKEN (scrape) +
+    ANTHROPIC (re-voice) + X creds (post); any unset ⇒ safe no-op. Config lives
+    under `squawk:` in sources.yaml."""
+    from . import squawk_mirror
+    cfg = (_load_yaml("sources.yaml") or {}).get("squawk") or {}
+    if cfg.get("enabled") is False:
+        log.info("squawk_mirror: disabled in sources.yaml — skipping")
+        return 0
+    store = Store.from_env()
+    store.connect()
+    token = os.environ.get("APIFY_TOKEN", "")
+    n = squawk_mirror.mirror(store, token=token, cfg=cfg)
+    log.info("squawk_mirror: posted %d tweet(s)", n)
+    return 0
+
+
 async def run_daily_brief() -> int:
     """Daily brief: the day's curated social_feed events → 3 @tradetongkam
     artifacts (tweets / FB article / video script) → one Notion review page.
@@ -2973,7 +2992,7 @@ def main(argv: list[str] | None = None) -> int:
         "watchdog", "social_post", "social_seed", "daily_brief", "fb_post",
         "video_brief", "reel_post", "artwork", "tweet_post", "backfill_xau",
         "precision_report", "scorecard", "macro", "content_review", "apify_probe",
-        "weekly_report",
+        "weekly_report", "squawk_mirror",
     ), default="cron")
     p.add_argument("--event-duration-min", type=int, default=30)
     p.add_argument("--event-sleep-sec", type=int, default=60)
@@ -3000,6 +3019,8 @@ def main(argv: list[str] | None = None) -> int:
         return asyncio.run(run_watchdog())
     if args.mode == "social_post":
         return asyncio.run(run_social_post())
+    if args.mode == "squawk_mirror":
+        return asyncio.run(run_squawk_mirror())
     if args.mode == "social_seed":
         return asyncio.run(run_social_seed())
     if args.mode == "daily_brief":
