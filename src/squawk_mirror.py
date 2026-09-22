@@ -144,19 +144,25 @@ def mirror(store, *, token: str, cfg: dict[str, Any] | None = None,
     entries.sort(key=lambda e: e.get("published_ts") or now)
 
     posted = 0
+    n_dup = n_irrelevant = n_relevant = n_compose_fail = 0
     for e in entries:
         if today_count + posted >= cap:
             log.info("squawk_mirror: hit daily cap %d — stopping", cap)
             break
         fid = _fs_id(e)
         if not fid or fid in seen:
+            n_dup += 1
             continue
         text = str(e.get("title") or "").strip()
         if not text or not is_relevant(text, keywords):
+            n_irrelevant += 1
+            log.debug("squawk_mirror: drop (off-topic): %s", text[:100])
             continue
+        n_relevant += 1
         tweet = _compose(text, composer)
         if not tweet:
             # No composer / model down — don't post the raw English headline.
+            n_compose_fail += 1
             continue
         try:
             url = poster(tweet)
@@ -174,6 +180,13 @@ def mirror(store, *, token: str, cfg: dict[str, Any] | None = None,
         except Exception:  # noqa: BLE001
             log.exception("squawk_mirror: log append failed (tweet WAS posted: %s)", url)
 
-    log.info("squawk_mirror: posted %d (cap %d, today was %d) from %d scraped",
-             posted, cap, today_count, len(entries))
+    log.info("squawk_mirror: posted %d (cap %d, today was %d) from %d scraped "
+             "[dup=%d off-topic=%d relevant=%d compose_fail=%d]",
+             posted, cap, today_count, len(entries),
+             n_dup, n_irrelevant, n_relevant, n_compose_fail)
+    # When nothing posted, surface what we saw so the filter/compose can be judged
+    # from the run log (FS posts are public tweets — safe to log).
+    if posted == 0 and entries:
+        for e in entries[:12]:
+            log.info("squawk_mirror:   saw | %s", str(e.get("title") or "")[:120])
     return posted
