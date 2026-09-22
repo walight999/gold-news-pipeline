@@ -32,6 +32,33 @@ def _client_returning(tweet_text):
     return _FakeClient(json.dumps({"tweet": tweet_text}))
 
 
+class _CapturingClient:
+    """Records the kwargs passed to messages.create so we can assert the model."""
+    def __init__(self, captured, text):
+        def _create(_self, **kw):
+            captured.update(kw)
+            return _FakeResp(text)
+        self.messages = type("M", (), {"create": _create})()
+
+
+def test_compose_tweet_defaults_to_haiku(monkeypatch):
+    cap = {}
+    monkeypatch.setattr(tw, "_get_anthropic_client",
+                        lambda: _CapturingClient(cap, json.dumps({"tweet": "hi\n" + tw.TAGS})))
+    tw.compose_tweet(headline_th=None, body_th=None, impact_th=None,
+                     category=None, en_title="Fed hikes", en_summary=None)
+    assert cap["model"] == tw.DEFAULT_MODEL == "claude-haiku-4-5-20251001"
+
+
+def test_compose_tweet_honours_model_override(monkeypatch):
+    cap = {}
+    monkeypatch.setattr(tw, "_get_anthropic_client",
+                        lambda: _CapturingClient(cap, json.dumps({"tweet": "hi\n" + tw.TAGS})))
+    tw.compose_tweet(headline_th=None, body_th=None, impact_th=None, category=None,
+                     en_title="Fed hikes", en_summary=None, model="claude-sonnet-4-6")
+    assert cap["model"] == "claude-sonnet-4-6"
+
+
 def test_compose_tweet_none_without_client(monkeypatch):
     monkeypatch.setattr(tw, "_get_anthropic_client", lambda: None)
     assert tw.compose_tweet(headline_th="x", body_th=[], impact_th=None,

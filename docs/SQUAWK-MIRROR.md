@@ -52,7 +52,20 @@ Facts are public and reported by everyone; the expression is ours.
 | `cap_per_day` | `20` | hard ceiling on tweets/day (X is $0.015/post) |
 | `max_items` | `5` | scrape at most this many per run (Apify cost guard) |
 | `since_minutes` | `20` | look-back per run (> cron gap so nothing is missed) |
-| `keywords` | (list) | gold-mover filter; omit to use module `DEFAULT_KEYWORDS` |
+| `model` | `claude-sonnet-4-6` | re-voice model (Sonnet for fluent Thai; these auto-post unreviewed). Override via `SQUAWK_MODEL` |
+| `keywords` | (list) | gold-mover filter (gold/USD/Fed/yields **+ geopolitics/safe-haven**); omit to use module `DEFAULT_KEYWORDS` |
+
+## Editorial quality bar (the composer prompt enforces this)
+
+The re-voicing is done by `tweet_writer.compose_tweet` on **Sonnet** (Haiku
+garbles free-standing Thai). The prompt writes as a Thai market analyst, not a
+translator, and each post answers only what applies: (1) เกิดอะไรขึ้น (2) ตลาด
+ควรสนใจอะไร (3) เกี่ยวกับทองอย่างไร. It **varies sentence structure** (no
+"เหตุผลคือ / ประเด็นสำคัญคือ / จุดที่ต้องจับตาคือ" template every post), does **not
+extrapolate** one headline into a grand narrative, says "ผลต่อทองจำกัด" instead of
+forcing a gold link, bans literal-translation Thai, and self-checks "คนไทยอ่าน
+ครั้งเดียวเข้าใจไหม?" before returning. Target: 5s know what happened, 10s know the
+market/gold impact, no re-read.
 
 ## Env / secrets (all already set on the repo)
 
