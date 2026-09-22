@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import logging
 import re
+from functools import lru_cache
 from typing import Any, Callable
 
 from . import apify_source, social_feed, tweet_writer
@@ -57,17 +58,34 @@ DEFAULT_KEYWORDS = [
     "jobless", "unemployment",
     # other central banks that move gold via USD/JPY & EUR
     "boj", "bank of japan", "ecb", "lagarde",
-    # safe-haven drivers
-    "safe haven", "safe-haven",
+    # geopolitics / safe-haven drivers (a top gold catalyst — and @tradetongkam's
+    # own voice leans heavily on these). "war" is deliberately omitted: as a
+    # word-prefix it would catch "warning"/"warehouse"; the concept is covered by
+    # conflict/military/missile/sanction/nuclear + the actor & country names.
+    "safe haven", "safe-haven", "geopolit", "conflict", "military", "missile",
+    "sanction", "nuclear", "tariff", "oil", "opec", "iran", "israel", "gaza",
+    "ukraine", "russia", "hormuz", "tehran", "trump", "middle east",
 ]
 
 _STATUS_RE = re.compile(r"/status/(\d+)")
 
 
+@lru_cache(maxsize=32)
+def _kw_pattern(keywords: tuple[str, ...]) -> re.Pattern:
+    """Compile the keyword list into ONE case-insensitive regex. Each keyword must
+    start at a word boundary (`\\b`) but needn't END on one, so a singular stem
+    also matches its plural (`yield`→`yields`, `sanction`→`sanctions`,
+    `basis point`→`basis points`) while mid-word noise is rejected (`war` would
+    never match `toward`/`forward`)."""
+    alt = "|".join(re.escape(k) for k in keywords)
+    return re.compile(r"\b(?:" + alt + r")", re.IGNORECASE)
+
+
 def is_relevant(text: str, keywords: list[str]) -> bool:
-    """True if the headline mentions any gold-mover keyword (case-insensitive)."""
-    t = (text or "").lower()
-    return any(k in t for k in keywords)
+    """True if the headline mentions any gold-mover keyword at a word boundary."""
+    if not keywords:
+        return False
+    return bool(_kw_pattern(tuple(keywords)).search(text or ""))
 
 
 def _fs_id(entry: dict[str, Any]) -> str:
