@@ -97,7 +97,28 @@ squawk:
     - bank of japan
     - ecb
     - lagarde
+    # geopolitics / safe-haven — a top gold driver + @tradetongkam's core voice.
+    # Matched at a word boundary, so "oil"/"iran" won't fire on unrelated words.
+    # "war" intentionally left out (would catch "warning"/"warehouse").
     - safe haven
+    - geopolit
+    - conflict
+    - military
+    - missile
+    - sanction
+    - nuclear
+    - tariff
+    - oil
+    - opec
+    - iran
+    - israel
+    - gaza
+    - ukraine
+    - russia
+    - hormuz
+    - tehran
+    - trump
+    - middle east
 
 # Truth Social (2026-09-10) — Trump posts (tariffs / Fed pressure / geopolitics)
 # move gold intraday and appear in NO RSS feed. Posts become tier-2 wire entries

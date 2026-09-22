@@ -38,9 +38,23 @@ def test_is_relevant_keeps_gold_movers_and_drops_offtopic():
     assert sq.is_relevant("*FED RAISES RATES 25BPS", kw)
     assert sq.is_relevant("Gold slips as US 10-year yield hits 5%", kw)
     assert sq.is_relevant("BOJ hikes to 1.25%", kw)
+    # geopolitics / safe-haven — now in scope (a top gold catalyst)
+    assert sq.is_relevant("TRUMP SAYS HE URGED IRAN TO NEGOTIATE", kw)
+    assert sq.is_relevant("UNITED NATIONS-TRUMP: IRAN WILL NEVER HAVE A NUCLEAR WEAPON", kw)
+    assert sq.is_relevant("OIL PRICES WILL PLUMMET AFTER CONFLICT IS OVER", kw)
     # off-brand for a gold channel
     assert not sq.is_relevant("Apple unveils new iPhone in Cupertino", kw)
     assert not sq.is_relevant("Champions League final kicks off tonight", kw)
+
+
+def test_is_relevant_word_boundary_and_plurals():
+    kw = [k.lower() for k in sq.DEFAULT_KEYWORDS]
+    # word-boundary: "war" is not a keyword, and mid-word noise never fires
+    assert not sq.is_relevant("Retailer issues a profit warning toward year-end", kw)
+    assert not sq.is_relevant("Steady forward guidance from the boardroom", kw)  # no 'fed' here
+    # singular stems still catch the plural
+    assert sq.is_relevant("US Treasury yields climb", kw)          # yield→yields
+    assert sq.is_relevant("New sanctions on Tehran announced", kw)  # sanction→sanctions
 
 
 def test_fs_id_from_url_and_fallback():
