@@ -57,6 +57,16 @@ def test_is_relevant_word_boundary_and_plurals():
     assert sq.is_relevant("New sanctions on Tehran announced", kw)  # sanction→sanctions
 
 
+def test_is_relevant_gold_is_whole_word_not_goldman():
+    kw = [k.lower() for k in sq.DEFAULT_KEYWORDS]
+    # "gold" must not fire on "Goldman"/"golden" (bank/name, not the metal)
+    assert not sq.is_relevant("UBS faces extra capital, GOLDMAN SAYS - BBG", kw)
+    assert not sq.is_relevant("Golden Globes ceremony tonight", kw)
+    # but the metal itself still matches
+    assert sq.is_relevant("Gold slips to 4,300", kw)
+    assert sq.is_relevant("Spot gold rebounds", kw)
+
+
 def test_fs_id_from_url_and_fallback():
     assert sq._fs_id({"url": "https://x.com/FirstSquawk/status/1234"}) == "1234"
     assert sq._fs_id({"url": "https://firstsquawk.com/x"}) == "https://firstsquawk.com/x"

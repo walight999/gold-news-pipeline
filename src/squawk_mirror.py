@@ -76,15 +76,24 @@ DEFAULT_KEYWORDS = [
 _STATUS_RE = re.compile(r"/status/(\d+)")
 
 
+# Terms that must match as a WHOLE word, not a prefix — short stems that would
+# otherwise swallow an unrelated word. "gold" is the big one: as a prefix it
+# matches "Goldman" (Sachs) and "golden", pulling bank stories into a gold feed.
+_WHOLE_WORD_ONLY = {"gold"}
+
+
 @lru_cache(maxsize=32)
 def _kw_pattern(keywords: tuple[str, ...]) -> re.Pattern:
-    """Compile the keyword list into ONE case-insensitive regex. Each keyword must
-    start at a word boundary (`\\b`) but needn't END on one, so a singular stem
-    also matches its plural (`yield`→`yields`, `sanction`→`sanctions`,
-    `basis point`→`basis points`) while mid-word noise is rejected (`war` would
-    never match `toward`/`forward`)."""
-    alt = "|".join(re.escape(k) for k in keywords)
-    return re.compile(r"\b(?:" + alt + r")", re.IGNORECASE)
+    """Compile the keyword list into ONE case-insensitive regex. Each keyword
+    starts at a word boundary (`\\b`); by default it needn't END on one, so a
+    singular stem also matches its plural (`yield`→`yields`, `sanction`→
+    `sanctions`, `basis point`→`basis points`) while mid-word noise is rejected
+    (`war` never matches `toward`/`forward`). Terms in `_WHOLE_WORD_ONLY` get a
+    trailing `(?![a-z])` so they match the exact word only (`gold` ✓, but not
+    `goldman`/`golden`)."""
+    parts = [re.escape(k) + (r"(?![a-z])" if k in _WHOLE_WORD_ONLY else "")
+             for k in keywords]
+    return re.compile(r"\b(?:" + "|".join(parts) + r")", re.IGNORECASE)
 
 
 def is_relevant(text: str, keywords: list[str]) -> bool:
