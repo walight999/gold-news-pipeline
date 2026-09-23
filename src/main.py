@@ -804,7 +804,10 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
     # min-interval guard (source_state `_squawk`) throttles it to
     # squawk.min_interval_min so it doesn't scrape on every 5-min tick. Best-effort
     # + env-gated; the standalone squawk_mirror.yml stays as the throttled fallback.
-    if mode in ("cron", "event") and os.environ.get("APIFY_TOKEN"):
+    # Gate on X creds too: without them the mirror would scrape (Apify $) +
+    # compose (Sonnet $) and only THEN fail to post — pure waste. Skip up front.
+    if (mode in ("cron", "event") and os.environ.get("APIFY_TOKEN")
+            and os.environ.get("X_API_KEY")):
         sq_cfg = src_cfg.get("squawk") or {}
         if sq_cfg.get("enabled") is not False and _apify_due(
                 store, "_squawk", int(sq_cfg.get("min_interval_min", 15))):

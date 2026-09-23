@@ -26,6 +26,13 @@ jobs:
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       # Optional — Apify X/Twitter fast-news scraper. No-op when unset.
       APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
+      # X posting creds — the squawk_mirror piggyback (run_once → First Squawk
+      # live mirror) posts to @tradetongkam from inside this cron. Without these
+      # the mirror scrapes + composes but the post raises KeyError and is skipped.
+      X_API_KEY: ${{ secrets.X_API_KEY }}
+      X_API_SECRET: ${{ secrets.X_API_SECRET }}
+      X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
+      X_ACCESS_TOKEN_SECRET: ${{ secrets.X_ACCESS_TOKEN_SECRET }}
       # Off-GAS CHUM News Bot (Telegram). Env-gated: no-op when unset.
       NEWS_BOT_WEBHOOK_URL: ${{ secrets.NEWS_BOT_WEBHOOK_URL }}
       NEWS_BOT_SECRET: ${{ secrets.NEWS_BOT_SECRET }}
