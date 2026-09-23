@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-09-22T23:05:20Z",
-      "title": "mideast · Geopolitics · risk off",
-      "source": "Forexlive",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-09-22T23:05:20Z",
-      "title": "fed · Rate Policy",
-      "source": "Forexlive",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-09-22T23:05:20Z",
-      "title": "us · Geopolitics · risk off",
-      "source": "Forexlive",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-09-22T23:05:20Z",
+      "ts": "2026-09-23T01:37:15Z",
       "title": "global · Other",
-      "source": "Forexlive",
+      "source": "Yahoo Finance",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-22T23:05:20Z",
+      "ts": "2026-09-23T01:37:15Z",
+      "title": "wgc · Gold Flow",
+      "source": "Yahoo Finance",
+      "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-09-23T01:37:15Z",
+      "title": "mideast · Geopolitics",
+      "source": "Yahoo Finance",
+      "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-09-23T01:37:15Z",
       "title": "us · Usd Yields",
-      "source": "Fxstreet",
+      "source": "Yahoo Finance",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-22T23:05:20Z",
-      "title": "us · Geopolitics · hawkish",
-      "source": "Fxstreet",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-09-22T23:05:20Z",
-      "title": "fed · Rate Policy",
-      "source": "Forexlive",
+      "ts": "2026-09-23T01:37:15Z",
+      "title": "us · Inflation",
+      "source": "Yahoo Finance",
       "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-22T23:05:20Z",
-      "title": "fed · Rate Policy · hawkish",
-      "source": "Forexlive",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-09-22T23:05:20Z",
-      "title": "us · Geopolitics · risk off",
-      "source": "Forexlive",
+      "ts": "2026-09-23T01:37:15Z",
+      "title": "us · Usd Yields",
+      "source": "Yahoo Finance",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-22T23:05:20Z",
-      "title": "us · Geopolitics · risk off",
-      "source": "Fxstreet",
+      "ts": "2026-09-23T01:37:15Z",
+      "title": "global · Other",
+      "source": "Yahoo Finance",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-09-23T01:37:15Z",
+      "title": "us · Inflation",
+      "source": "Investing Cb",
+      "score": 0.5,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-09-23T01:37:15Z",
+      "title": "global · Other",
+      "source": "Investing Cb",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-09-23T01:37:15Z",
+      "title": "ukraine · Geopolitics",
+      "source": "Yahoo Finance",
       "score": 0.3,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-09-22T23:09:15.951955Z"
+  "written_at": "2026-09-23T01:39:07.221597Z"
 }
