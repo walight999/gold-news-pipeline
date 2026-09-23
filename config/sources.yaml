@@ -62,7 +62,10 @@ squawk:
   cap_per_day: 20             # hard ceiling on tweets/day (X is $0.015/post ⇒ ≤$0.30/day).
                               # Confirmed 2026-09-22 after White approved the Sonnet+new-prompt voice.
   max_items: 5                # scrape at most this many per run (cost guard)
-  since_minutes: 20           # look back this far each run (> cron gap for overlap)
+  min_interval_min: 15        # piggybacks the 5-min news cron (run_once) — this guard
+                              # throttles the scrape to ~15 min so no separate cron-job.org
+                              # job is needed. The standalone squawk_mirror.yml is the fallback.
+  since_minutes: 20           # look back this far each run (> min_interval for overlap)
   model: claude-sonnet-4-6    # re-voice model. Sonnet (not Haiku) for fluent Thai —
                               # these auto-post with no human review. Override w/ SQUAWK_MODEL.
   # Gold-mover filter: a headline is mirrored only if it contains one of these

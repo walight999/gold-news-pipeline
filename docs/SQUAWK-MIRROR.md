@@ -83,11 +83,20 @@ hard-bounded by `cap_per_day`. At the default cap of 20 that's ≤ $0.30/day of 
 spend. When the day's cap is already reached the run skips the scrape entirely,
 so it doesn't even pay Apify.
 
-## Schedule
+## Schedule — no cron-job.org job needed
 
-`.github/workflows/squawk_mirror.yml` — `*/15` cron + `workflow_dispatch`.
-GitHub throttles `schedule:` to ~1 run / 2-4h; for true 15-min cadence add a
-cron-job.org `workflow_dispatch` job (see `docs/DISPATCHER-CRON.md`).
+**Primary: it piggybacks the 5-min news cron.** `run_once` (mode `cron`/`event`),
+which the cron-job.org dispatcher already fires every 5 min, calls
+`squawk_mirror.mirror` at the end — guarded by a `min_interval_min` (15) cost gate
+in `source_state._squawk`, so it actually scrapes ~every 15 min, not every tick.
+This is the same trick as the `content_review` weekend piggyback: **on-time
+cadence via the dispatcher that already runs, with zero new cron-job.org jobs.**
+
+**Fallback:** the standalone `.github/workflows/squawk_mirror.yml` (`*/15` +
+`workflow_dispatch`) still exists as a throttled backstop / manual trigger. Both
+paths share the same `squawk_log` dedup + daily cap, so they never double-post
+(the piggyback additionally rate-limits itself via the `_squawk` interval guard;
+the standalone relies on GitHub's own throttle + the shared cap).
 
 ## Go-live / test
 

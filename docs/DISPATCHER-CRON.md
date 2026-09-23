@@ -111,6 +111,12 @@ never double-act:
 | FB post | `fb_post.yml` | every 30 min (or hourly) |
 | Reel post | `reel_post.yml` | every 30 min (or hourly) |
 
+> **`squawk_mirror` needs NO job here.** It piggybacks the every-5-min `news_cron`
+> (`run_once` calls it at the end, throttled to ~15 min by the `_squawk` interval
+> guard), so the existing News dispatcher already drives it on time. The
+> standalone `squawk_mirror.yml` is only a throttled fallback. See
+> `docs/SQUAWK-MIRROR.md`.
+
 > The 3 post jobs on an interval are cheap: each is a no-op (one Sheet read + a
 > Notion checkbox read) until you tick an approval, so a 30-min cadence is fine.
 > `daily_brief`/`video_brief` MUST be exact-time (not interval) — the idempotency
