@@ -798,6 +798,24 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
     if n_content:
         log.info("content_log: appended %d row(s)", n_content)
 
+    # 8c. First Squawk live mirror — piggyback the 5-min news cron (which the
+    # cron-job.org dispatcher already fires) so it needs NO separate dispatcher
+    # job (same trick as the content_review weekend piggyback). Its own
+    # min-interval guard (source_state `_squawk`) throttles it to
+    # squawk.min_interval_min so it doesn't scrape on every 5-min tick. Best-effort
+    # + env-gated; the standalone squawk_mirror.yml stays as the throttled fallback.
+    if mode in ("cron", "event") and os.environ.get("APIFY_TOKEN"):
+        sq_cfg = src_cfg.get("squawk") or {}
+        if sq_cfg.get("enabled") is not False and _apify_due(
+                store, "_squawk", int(sq_cfg.get("min_interval_min", 15))):
+            try:
+                from . import squawk_mirror
+                n_sq = squawk_mirror.mirror(
+                    store, token=os.environ.get("APIFY_TOKEN", ""), cfg=sq_cfg)
+                _mark_apify(store, "_squawk", n_sq)
+            except Exception:  # noqa: BLE001 — mirror is best-effort, never block the run
+                log.exception("run_once: squawk_mirror piggyback failed")
+
     # 9. Flush state
     store.flush()
     cs = news_alert.run_cache_stats()
