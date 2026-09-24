@@ -68,6 +68,10 @@ squawk:
   since_minutes: 20           # look back this far each run (> min_interval for overlap)
   model: claude-sonnet-4-6    # re-voice model. Sonnet (not Haiku) for fluent Thai —
                               # these auto-post with no human review. Override w/ SQUAWK_MODEL.
+  dup_similarity: 0.7         # near-dup guard: skip a headline whose content-token
+                              # containment vs one already mirrored today >= this
+                              # (FS re-posts the same story in different words). Lower
+                              # = more aggressive de-duping.
   # Gold-mover filter: a headline is mirrored only if it contains one of these
   # (case-insensitive). Omit to use the module's DEFAULT_KEYWORDS (gold / USD /
   # Fed / yields / inflation / BoJ+ECB / safe-haven). Add terms to widen.

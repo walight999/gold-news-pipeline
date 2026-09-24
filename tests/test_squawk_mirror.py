@@ -87,6 +87,38 @@ def test_seen_and_today_count_only_counts_posted_today():
 # mirror orchestration
 # --------------------------------------------------------------------------
 
+def test_is_near_dup_catches_reposts_not_distinct():
+    # near-verbatim FS repost of the same story → duplicate
+    assert sq._is_near_dup(
+        "TRUMP SAYS OIL PRICES WILL COME DOWN",
+        ["TRUMP: OIL PRICES ARE GOING TO COME DOWN SOON"], 0.7)
+    # shorter repost mostly contained in a longer one → duplicate
+    assert sq._is_near_dup(
+        "Fed Musalem backs gradual rate hikes",
+        ["Fed's Musalem backs gradual rate hikes, cites sticky inflation"], 0.7)
+    # genuinely different Fed stories → NOT a duplicate
+    assert not sq._is_near_dup(
+        "Fed Powell signals another rate hike ahead",
+        ["Fed Collins backs a rate cut on growth risks"], 0.7)
+    # too-short headline is never called a dup
+    assert not sq._is_near_dup("Gold up", ["Gold up sharply today on safe haven"], 0.7)
+
+
+def test_mirror_skips_near_dup_before_composing(monkeypatch):
+    # An earlier identical-story headline is already in today's squawk_log.
+    rows = [{"fs_id": "900", "ts_ict": "2026-09-22 09:00:00", "posted": "http://x/9",
+             "fs_text": "TRUMP: OIL PRICES ARE GOING TO COME DOWN SOON"}]
+    entries = [_entry("901", "TRUMP SAYS OIL PRICES WILL COME DOWN", 10)]
+    monkeypatch.setattr(sq.apify_source, "fetch_tweets", lambda *a, **k: list(entries))
+    composed = []
+    store = FakeStore(rows)
+    n = sq.mirror(store, token="T",
+                  composer=lambda **k: composed.append(k) or ("ทอง: x"),
+                  poster=lambda t: "http://x/new", now=NOW)
+    assert n == 0                 # near-dup dropped
+    assert composed == []         # and dropped BEFORE composing (no Sonnet spend)
+
+
 def test_mirror_no_token_is_noop():
     assert sq.mirror(FakeStore(), token="") == 0
 
@@ -119,8 +151,15 @@ def test_mirror_posts_relevant_only_and_dedups_on_rerun(monkeypatch):
 
 
 def test_mirror_respects_daily_cap(monkeypatch):
-    entries = [_entry(str(200 + i), f"Fed official {i} backs rate hike", i)
-               for i in range(5)]
+    # Distinct stories (so the near-dup guard doesn't interfere with the cap test).
+    headlines = [
+        "Fed Powell signals another rate hike ahead",
+        "US 10-year Treasury yield jumps to 5%",
+        "Gold slides on a stronger dollar",
+        "BOJ holds policy, yen weakens past 157",
+        "Iran tensions lift safe-haven demand",
+    ]
+    entries = [_entry(str(200 + i), h, i) for i, h in enumerate(headlines)]
     monkeypatch.setattr(sq.apify_source, "fetch_tweets", lambda *a, **k: list(entries))
     store = FakeStore()
     n = sq.mirror(store, token="T", cfg={"cap_per_day": 2},

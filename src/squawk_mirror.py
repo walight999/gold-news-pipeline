@@ -111,6 +111,42 @@ def _fs_id(entry: dict[str, Any]) -> str:
     return m.group(1) if m else url
 
 
+# --- near-duplicate detection -------------------------------------------------
+# First Squawk often re-posts the same headline seconds apart in slightly
+# different words ("*TRUMP: OIL PRICES WILL COME DOWN" then "TRUMP SAYS OIL WILL
+# DROP"). fs_id dedup treats those as distinct, so both would post. This catches
+# them on CONTENT: high token containment (the shorter headline mostly inside the
+# longer) ⇒ near-duplicate. Checked BEFORE compose, so a dup never costs a Sonnet
+# call.
+_STOP = {"the", "a", "an", "to", "of", "in", "on", "for", "and", "or", "is",
+         "are", "be", "will", "has", "have", "had", "says", "say", "said", "after",
+         "as", "at", "by", "from", "with", "its", "it", "that", "this", "was",
+         "were", "not", "no", "we", "our", "us", "he", "she", "they", "his", "her"}
+_WORD_RE = re.compile(r"[a-z0-9]+")
+
+
+def _content_tokens(text: str) -> set[str]:
+    return {t for t in _WORD_RE.findall((text or "").lower())
+            if t not in _STOP and len(t) > 1}
+
+
+def _is_near_dup(text: str, recent: list[str], threshold: float = 0.7) -> bool:
+    """True if `text` shares ≥`threshold` token-containment with any recent
+    headline (intersection / smaller set). Needs ≥3 content tokens on both sides
+    to judge — too-short headlines are never called duplicates."""
+    a = _content_tokens(text)
+    if len(a) < 3:
+        return False
+    for r in recent:
+        b = _content_tokens(r)
+        if len(b) < 3:
+            continue
+        inter = len(a & b)
+        if inter and inter / min(len(a), len(b)) >= threshold:
+            return True
+    return False
+
+
 def _seen_and_today_count(rows: list[dict[str, Any]], today_ict: str) -> tuple[set[str], int]:
     """(ids already mirrored, count mirrored *today* in ICT) from squawk_log."""
     seen: set[str] = set()
@@ -156,6 +192,7 @@ def mirror(store, *, token: str, cfg: dict[str, Any] | None = None,
     max_items = int(cfg.get("max_items", 5))
     keywords = [str(k).lower() for k in (cfg.get("keywords") or DEFAULT_KEYWORDS)]
     model = str(cfg.get("model") or os.environ.get("SQUAWK_MODEL") or DEFAULT_COMPOSE_MODEL)
+    dup_threshold = float(cfg.get("dup_similarity", 0.7))
 
     now = now or now_utc()
     today_ict = to_ict(now).strftime("%Y-%m-%d")
@@ -165,6 +202,10 @@ def mirror(store, *, token: str, cfg: dict[str, Any] | None = None,
         log.exception("squawk_mirror: read squawk_log failed")
         rows = []
     seen, today_count = _seen_and_today_count(rows, today_ict)
+    # Today's already-mirrored headlines — the near-dup guard compares against
+    # these (cross-run) and against ones posted earlier in this run.
+    recent_texts = [str(r.get("fs_text") or "") for r in rows
+                    if str(r.get("ts_ict") or "")[:10] == today_ict]
     if today_count >= cap:
         log.info("squawk_mirror: daily cap %d already reached (%d) — skipping",
                  cap, today_count)
@@ -178,7 +219,7 @@ def mirror(store, *, token: str, cfg: dict[str, Any] | None = None,
     entries.sort(key=lambda e: e.get("published_ts") or now)
 
     posted = 0
-    n_dup = n_irrelevant = n_relevant = n_compose_fail = 0
+    n_dup = n_irrelevant = n_relevant = n_compose_fail = n_neardup = 0
     for e in entries:
         if today_count + posted >= cap:
             log.info("squawk_mirror: hit daily cap %d — stopping", cap)
@@ -192,6 +233,13 @@ def mirror(store, *, token: str, cfg: dict[str, Any] | None = None,
             n_irrelevant += 1
             log.debug("squawk_mirror: drop (off-topic): %s", text[:100])
             continue
+        # Content near-dup (FS re-post in different words) — before compose so a
+        # dup never costs a Sonnet call.
+        if _is_near_dup(text, recent_texts, dup_threshold):
+            n_neardup += 1
+            seen.add(fid)  # don't reconsider this fs_id next run
+            log.info("squawk_mirror: near-dup skip: %s", text[:80])
+            continue
         n_relevant += 1
         tweet = _compose(text, composer, model)
         if not tweet:
@@ -204,6 +252,7 @@ def mirror(store, *, token: str, cfg: dict[str, Any] | None = None,
             log.exception("squawk_mirror: X post failed for fs_id=%s", fid)
             continue
         seen.add(fid)
+        recent_texts.append(text)   # so a later dup in THIS run is caught too
         posted += 1
         # Audit line: the posted Thai text (a public tweet) so a run is reviewable
         # from the Actions log without opening X (which blocks unauthenticated reads).
@@ -218,9 +267,9 @@ def mirror(store, *, token: str, cfg: dict[str, Any] | None = None,
             log.exception("squawk_mirror: log append failed (tweet WAS posted: %s)", url)
 
     log.info("squawk_mirror: posted %d (cap %d, today was %d) from %d scraped "
-             "[dup=%d off-topic=%d relevant=%d compose_fail=%d]",
+             "[dup=%d off-topic=%d near-dup=%d relevant=%d compose_fail=%d]",
              posted, cap, today_count, len(entries),
-             n_dup, n_irrelevant, n_relevant, n_compose_fail)
+             n_dup, n_irrelevant, n_neardup, n_relevant, n_compose_fail)
     # When nothing posted, surface what we saw so the filter/compose can be judged
     # from the run log (FS posts are public tweets — safe to log).
     if posted == 0 and entries:
