@@ -2,70 +2,70 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-09-25T15:25:51Z",
+      "ts": "2026-09-25T16:55:55Z",
       "title": "global · Other",
       "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-25T15:25:51Z",
+      "ts": "2026-09-25T16:55:55Z",
       "title": "global · Other",
       "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-25T15:25:51Z",
+      "ts": "2026-09-25T16:55:55Z",
       "title": "global · Other",
       "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-25T15:25:51Z",
+      "ts": "2026-09-25T16:55:55Z",
       "title": "russia · Geopolitics",
       "source": "Bbc World",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-25T15:25:51Z",
+      "ts": "2026-09-25T16:55:55Z",
       "title": "global · Other",
       "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-25T15:25:51Z",
+      "ts": "2026-09-25T16:55:55Z",
       "title": "global · Other",
       "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-25T15:25:51Z",
+      "ts": "2026-09-25T16:55:55Z",
       "title": "global · Other",
       "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-25T15:25:51Z",
+      "ts": "2026-09-25T16:55:55Z",
       "title": "israel · Geopolitics",
       "source": "Bbc World",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-25T15:25:51Z",
+      "ts": "2026-09-25T16:55:55Z",
       "title": "global · Other",
       "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-25T15:25:51Z",
+      "ts": "2026-09-25T16:55:55Z",
       "title": "global · Other",
       "source": "Bbc World",
       "score": 0.1,
@@ -73,5 +73,5 @@
     }
   ],
   "count": 10,
-  "written_at": "2026-09-25T15:26:15.218472Z"
+  "written_at": "2026-09-25T19:26:52.395835Z"
 }
