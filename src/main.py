@@ -2589,7 +2589,8 @@ async def run_calendar_check() -> int:
             if fred_key:
                 # Pass the release time so a stale FRED observation (not yet
                 # updated for this print) is rejected → FF/directional fallback.
-                result = fred.fetch_actual(ev.title, fred_key, release_dt=ev.dt_utc)
+                result = fred.fetch_actual(ev.title, fred_key, release_dt=ev.dt_utc,
+                                           country=ev.country)
                 if result:
                     actual_text = result.actual_text
                     actual_value = result.actual_value

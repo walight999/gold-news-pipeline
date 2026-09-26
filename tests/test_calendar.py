@@ -92,9 +92,10 @@ def test_pre_release_bubble_shape():
     b = pre_release_bubble(events[0], 15)
     assert b["type"] == "bubble"
     assert b["header"]["backgroundColor"] == "#DC2626"
-    # Batch M: 3-pill (ECU/USD/XAU) currency-impact row.
+    # 2026-09-27: scenario map (above / below forecast), each a 3-pill
+    # (ECU/counter/XAU) row, replacing the single forecast-vs-previous row.
     body_texts = _all_texts(b["body"])
-    assert any("Currency Impact" in t for t in body_texts)
+    assert "ถ้าออกสูงกว่าคาด" in body_texts and "ถ้าออกต่ำกว่าคาด" in body_texts
     # USD-event → ECU=USD + counter=EUR + XAU
     assert any(t.startswith("USD") for t in body_texts)
     assert any(t.startswith("EUR") for t in body_texts)
@@ -244,7 +245,8 @@ def test_post_release_bubble_with_fred_actual():
                             verdict="🔴 Bearish gold")
     texts = _all_texts(b["body"])
     assert any("+0.5%" in t for t in texts)
-    assert any("BEAT" in t for t in texts)
+    assert any("สูงกว่าคาด" in t for t in texts)
+    assert not any("BEAT" in t for t in texts)
     # Verdict rendered as a colored XAU↓ pill (post-Batch-K). The pill
     # text is "XAU ↓" — check for the down arrow so we don't depend on
     # the exact character spacing.
