@@ -360,10 +360,39 @@ def _source_link(src_name: str, age: str, url: str | None) -> dict[str, Any]:
             "alignItems": "center", "contents": contents}
 
 
+_BIAS_TH = {"bullish": ("🟢", "หนุนทอง", "#047857"),
+            "bearish": ("🔴", "กดดันทอง", "#B91C1C"),
+            "mixed":   ("🟡", "ผลต่อทองไม่ชัด", "#92400E")}
+_CONF_TH = {"high": "มั่นใจสูง", "medium": "มั่นใจกลาง", "low": "มั่นใจต่ำ"}
+
+
+def _gold_call_row(alert: MarketAlert | None,
+                   xau_now: tuple[float, float] | None) -> dict[str, Any] | None:
+    """One line tying the story to the tape: the classifier's gold call (+
+    confidence) and XAU at send time. None when there's nothing to show."""
+    parts: list[dict[str, Any]] = []
+    bias = (alert.gold_bias if alert else "") or ""
+    if bias in _BIAS_TH:
+        emoji, text, fg = _BIAS_TH[bias]
+        conf = _CONF_TH.get((alert.gold_confidence if alert else "") or "", "")
+        parts.append({"type": "text", "text": f"{emoji} {text}" + (f" · {conf}" if conf else ""),
+                      "size": "xs", "weight": "bold", "color": fg, "flex": 0})
+    if xau_now:
+        last, pct = xau_now
+        sign = "+" if pct >= 0 else ""
+        parts.append({"type": "text", "text": f"XAU {last:,.1f} ({sign}{pct:.2f}% วันนี้)",
+                      "size": "xs", "color": "#6B7280", "align": "end"})
+    if not parts:
+        return None
+    return {"type": "box", "layout": "horizontal", "spacing": "md", "margin": "md",
+            "alignItems": "center", "contents": parts}
+
+
 def _event_bubble(label: str, color: str, ev: Event, score: float, kw_cfg: dict[str, Any],
                   alert: MarketAlert | None = None,
                   title_th: str | None = None,
-                  summary_th: str | None = None) -> dict[str, Any]:
+                  summary_th: str | None = None,
+                  xau_now: tuple[float, float] | None = None) -> dict[str, Any]:
     """Breaking / Alert body.
 
     Preferred input is a `MarketAlert` from news_alert.classify_and_rewrite(),
@@ -437,6 +466,9 @@ def _event_bubble(label: str, color: str, ev: Event, score: float, kw_cfg: dict[
             "size": "xs", "wrap": True, "color": "#6B7280", "margin": "sm",
             "weight": "bold",
         })
+    call_row = _gold_call_row(alert if (alert and alert.should_send) else None, xau_now)
+    if call_row:
+        body_contents.append(call_row)
     body_contents.append({"type": "separator", "margin": "lg"})
     body_contents.append(_source_link(src_name, age, article_url))
 
@@ -452,17 +484,21 @@ def _event_bubble(label: str, color: str, ev: Event, score: float, kw_cfg: dict[
 def breaking_bubble(ev: Event, score: float, kw_cfg: dict[str, Any],
                     alert: MarketAlert | None = None,
                     title_th: str | None = None,
-                    summary_th: str | None = None) -> dict[str, Any]:
+                    summary_th: str | None = None,
+                    xau_now: tuple[float, float] | None = None) -> dict[str, Any]:
     return _event_bubble("⚡ Breaking", COLOR["breaking"], ev, score, kw_cfg,
-                          alert=alert, title_th=title_th, summary_th=summary_th)
+                          alert=alert, title_th=title_th, summary_th=summary_th,
+                          xau_now=xau_now)
 
 
 def alert_bubble(ev: Event, score: float, kw_cfg: dict[str, Any],
                  alert: MarketAlert | None = None,
                  title_th: str | None = None,
-                 summary_th: str | None = None) -> dict[str, Any]:
+                 summary_th: str | None = None,
+                    xau_now: tuple[float, float] | None = None) -> dict[str, Any]:
     return _event_bubble("🔔 Alert", COLOR["alert"], ev, score, kw_cfg,
-                          alert=alert, title_th=title_th, summary_th=summary_th)
+                          alert=alert, title_th=title_th, summary_th=summary_th,
+                          xau_now=xau_now)
 
 
 # ---------- news update (digest) ----------
@@ -1099,6 +1135,33 @@ def _forecast_previous_inline(forecast: str, previous: str) -> dict[str, Any] | 
     }
 
 
+def _thai_bar_row(bar) -> dict[str, Any] | None:
+    """สมาคมค้าทองคำ 96.5% bar: sell / buy + change vs previous day's last."""
+    if bar is None:
+        return None
+    ch = bar.change_day
+    if ch > 0:
+        ch_text, ch_color = f"▲{ch:,.0f}", "#047857"
+    elif ch < 0:
+        ch_text, ch_color = f"▼{abs(ch):,.0f}", "#B91C1C"
+    else:
+        ch_text, ch_color = "คงที่", "#6B7280"
+    as_of = f" · {bar.as_of_ict:%d/%m %H:%M}" if bar.as_of_ict else ""
+    return {
+        "type": "box", "layout": "horizontal", "spacing": "sm", "margin": "md",
+        "alignItems": "center",
+        "contents": [
+            {"type": "text", "text": "ทองแท่งสมาคม", "size": "xxs", "color": "#6B7280", "flex": 0},
+            {"type": "text", "text": f"ขาย {bar.sell:,.0f} · ซื้อ {bar.buy:,.0f}",
+             "size": "xs", "weight": "bold", "color": "#111827", "flex": 0},
+            {"type": "text", "text": ch_text, "size": "xs", "weight": "bold",
+             "color": ch_color, "flex": 0},
+            {"type": "text", "text": as_of.lstrip(" ·") or " ", "size": "xxs",
+             "color": "#9CA3AF", "align": "end"},
+        ],
+    }
+
+
 def calendar_day_bubble(
     events: list[CalEvent],
     date_label: str,
@@ -1107,6 +1170,7 @@ def calendar_day_bubble(
     hui_snapshot: tuple[float, float] | None = None,
     gld_snapshot: tuple[float, float] | None = None,
     thb_snapshot: tuple[float, float] | None = None,
+    thai_bar: "Any | None" = None,                      # thai_gold.ThaiBarPrice
 ) -> dict[str, Any] | None:
     """One long bubble listing today's events chronologically.
 
@@ -1148,6 +1212,10 @@ def calendar_day_bubble(
             "type": "box", "layout": "horizontal", "spacing": "md",
             "contents": cells,
         })
+    bar_row = _thai_bar_row(thai_bar)
+    if bar_row:
+        body_contents.append(bar_row)
+    if cells or bar_row:
         body_contents.append({"type": "separator", "margin": "md"})
 
     from .calendar import forecast_vs_previous_effect
@@ -1447,5 +1515,39 @@ def pre_release_bubble(event: CalEvent, minutes_to_release: int,
 
 # ---------- alt text ----------
 
-def alt_text_for_event(label: str, ev: Event, score: float) -> str:
+def alt_text_for_event(label: str, ev: Event, score: float,
+                       headline_th: str | None = None) -> str:
+    """Notification / chat-list preview. The alt text is what traders see on
+    the lock screen, so lead with the Thai headline when the classifier wrote
+    one; the English title + raw score is only the fallback."""
+    if headline_th and headline_th.strip():
+        return _trim(f"{label} {headline_th.strip()}", 380)
     return _trim(f"{label} {score:.1f} {ev.representative_title}", 380)
+
+
+def alt_text_for_digest(slot: str, headlines: list[str], degraded: bool = False) -> str:
+    """Digest preview: the top story's Thai headline + how many more follow."""
+    heads = [h.strip() for h in headlines if h and h.strip()]
+    if not heads:
+        text = f"📰 News Update {slot}"
+    else:
+        more = f" (+{len(heads) - 1} ข่าว)" if len(heads) > 1 else ""
+        text = f"📰 {slot} · {heads[0]}{more}"
+    if degraded:
+        text += " [โหมดสำรอง]"
+    return _trim(text, 380)
+
+
+def alt_text_for_release(ev: "CalEvent", actual_text: str | None,
+                         verdict: str | None) -> str:
+    """Released-News preview: the print vs consensus and the gold read, so the
+    notification alone answers "what came out and which way for gold"."""
+    head = f"📊 {ev.country} {ev.title}"
+    if actual_text:
+        head += f" {actual_text}"
+        if ev.forecast:
+            head += f" vs คาด {ev.forecast}"
+    v = (verdict or "").strip()
+    if v:
+        head += f" · {v.split(' — ')[0]}"
+    return _trim(head, 380)
