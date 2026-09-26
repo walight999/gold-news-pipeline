@@ -38,6 +38,7 @@ from .line_flex import (
     _source_label,
     alert_bubble,
     alt_text_for_digest,
+    append_note,
     alt_text_for_event,
     alt_text_for_release,
     breaking_bubble,
@@ -2455,6 +2456,19 @@ def _push_calendar_groups(line, target, pending, sched_cfg, store, *,
         groups.setdefault(item["ev"].dt_utc, []).append(item)
     delivered = 0
     for _, items in sorted(groups.items(), key=lambda kv: kv[0]):
+        # Learned composite call for everything that printed this minute
+        # (src/release_stats.py) — only when its confidence gate passes.
+        prints = [i["print"] for i in items if i.get("print")]
+        if prints:
+            try:
+                from .release_stats import minute_call_line_th
+                note = minute_call_line_th(prints)
+            except Exception:   # best-effort decoration — never blocks the card
+                log.exception("release_stats minute call failed")
+                note = None
+            if note:
+                for i in items:
+                    append_note(i["bubble"], note)
         for k in range(0, len(items), _CAROUSEL_MAX):
             chunk = items[k:k + _CAROUSEL_MAX]
             if len(chunk) == 1:
@@ -2671,7 +2685,9 @@ async def run_calendar_check() -> int:
                     "xau_return_60m": "",
                 }
             pending_post.append({"ev": ev, "sent_key": sent_key, "bubble": bubble,
-                                 "alt": alt, "on_delivered": cal_row})
+                                 "alt": alt, "on_delivered": cal_row,
+                                 "print": (ev.country, ev.title, actual_text or "",
+                                           ev.forecast or "")})
             # Telegram is independent of LINE — push regardless of the LINE result.
             # detail_th (Thai LINE rewrite) is omitted; the worker renders English.
             if tg_news:

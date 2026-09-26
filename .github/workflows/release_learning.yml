@@ -1,0 +1,49 @@
+name: release-learning
+
+# Weekly re-learning of "how do assets react to economic releases".
+# research/refresh.py appends last/this month's new ForexFactory releases to
+# research/dataset.csv (priced from Dukascopy), re-runs the walk-forward
+# learner and rewrites config/release_stats.json — the table the Released /
+# T-15 cards read their "ย้อนหลัง … ทองไปตามทิศนี้ X%" line from.
+# Saturday: markets closed, the week's prints are all in.
+
+on:
+  schedule:
+    - cron: "15 6 * * 6"      # Sat 06:15 UTC = 13:15 ICT
+  workflow_dispatch: {}
+
+concurrency:
+  group: release-learning
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  learn:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60       # Dukascopy is slow (~10-20 s per day file)
+    env:
+      PYTHONUNBUFFERED: "1"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements.txt numpy
+      - name: Refresh dataset + re-learn
+        run: python -m research.refresh
+      - name: Commit if changed
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if [ -n "$(git status --porcelain research/dataset.csv config/release_stats.json)" ]; then
+            git add research/dataset.csv config/release_stats.json
+            git commit -m "chore(learning): weekly release-reaction refresh [skip ci]"
+            git push
+          else
+            echo "No new releases — skip commit."
+          fi
