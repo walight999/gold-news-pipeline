@@ -176,9 +176,13 @@ def _compose(text: str, composer: Callable[..., str | None], model: str) -> str 
 def mirror(store, *, token: str, cfg: dict[str, Any] | None = None,
            composer: Callable[..., str | None] = tweet_writer.compose_tweet,
            poster: Callable[[str], str] = social_feed.x_post,
-           now=None) -> int:
+           now=None, entries: list[dict[str, Any]] | None = None) -> int:
     """Scrape First Squawk, keep gold-relevant + unseen headlines up to the daily
     cap, re-voice each into Thai, post to X, and log it. Returns count posted.
+
+    `entries`: First Squawk tweets the caller ALREADY scraped (the news cron's
+    x_accounts scrape includes the handle) — used as-is, no Apify call. None ⇒
+    scrape here (standalone mode). Either way at most `max_items` post per run.
 
     Best-effort throughout: a scrape/compose/post failure on one item never stops
     the others and never raises to the scheduler."""
@@ -211,9 +215,12 @@ def mirror(store, *, token: str, cfg: dict[str, Any] | None = None,
                  cap, today_count)
         return 0
 
-    entries = apify_source.fetch_tweets(token, [handle],
-                                        since_minutes=since_minutes,
-                                        max_per_handle=max_items)
+    if entries is None:
+        entries = apify_source.fetch_tweets(token, [handle],
+                                            since_minutes=since_minutes,
+                                            max_per_handle=max_items)
+    else:
+        entries = list(entries)
     # Oldest-first so the daily cap fills in chronological order. Undated entries
     # fall back to `now` (sorted last) — and never break the sort on a None.
     entries.sort(key=lambda e: e.get("published_ts") or now)
@@ -223,6 +230,9 @@ def mirror(store, *, token: str, cfg: dict[str, Any] | None = None,
     for e in entries:
         if today_count + posted >= cap:
             log.info("squawk_mirror: hit daily cap %d — stopping", cap)
+            break
+        if posted >= max_items:
+            log.info("squawk_mirror: hit per-run limit %d — rest next run", max_items)
             break
         fid = _fs_id(e)
         if not fid or fid in seen:

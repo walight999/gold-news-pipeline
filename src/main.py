@@ -154,7 +154,8 @@ def _mark_apify(store, key: str, n: int) -> None:
                                   "last_success_ts": ts, "items_last_hour": n})
 
 
-def _collect_apify_entries(store, src_cfg, mode: str) -> list[dict[str, Any]]:
+def _collect_apify_entries(store, src_cfg, mode: str,
+                           meta: dict[str, Any] | None = None) -> list[dict[str, Any]]:
     """Every Apify-sourced entry for this run, RSS-shaped and ready for the
     normal pool: X/Twitter (with event-mode burst), Truth Social, and
     Cloudflare-recovered feeds. Each sub-source is independently cost-gated and
@@ -164,18 +165,33 @@ def _collect_apify_entries(store, src_cfg, mode: str) -> list[dict[str, Any]]:
     window actually bursts (X ~every 3 min) instead of sitting on the 12-min
     guard, and can widen to `event_extra_handles`. That concentrates the Apify
     spend on the minutes gold actually moves rather than smearing it flat."""
+    meta = meta if meta is not None else {}
     token = os.environ.get("APIFY_TOKEN", "")
     if not token:
         return []
-    from . import apify_source
+    from . import apify_budget, apify_source
     event = (mode == "event")
     out: list[dict[str, Any]] = []
+
+    # Budget pacing (config `apify_budget`): fit the fixed monthly Apify limit.
+    # exhausted ⇒ skip every call (it would only 403); tight/weekend ⇒ stretch
+    # the intervals. Event bursts keep their cadence unless over pace — those
+    # minutes are where the spend is worth it.
+    bcfg = src_cfg.get("apify_budget") or {}
+    level = apify_budget.current_level(store, token, bcfg)
+    meta["budget_level"] = level
+    if level == apify_budget.EXHAUSTED:
+        log.warning("apify: budget exhausted for this billing cycle — skipping all Apify sources")
+        return []
+    mult = apify_budget.interval_multiplier(level, bcfg)
+    if event and level != apify_budget.TIGHT:
+        mult = 1.0
 
     # --- X / Twitter (the original source; kaitoeasyapi) ---
     xc = src_cfg.get("x_accounts") or {}
     if xc.get("enabled") and xc.get("handles"):
-        interval = int(xc.get("event_min_interval_min", 3) if event
-                       else xc.get("min_interval_min", 12))
+        interval = int(round(int(xc.get("event_min_interval_min", 3) if event
+                                 else xc.get("min_interval_min", 12)) * mult))
         if _apify_due(store, "_apify", interval):
             handles = list(xc.get("handles") or [])
             if event:
@@ -183,11 +199,15 @@ def _collect_apify_entries(store, src_cfg, mode: str) -> list[dict[str, Any]]:
                             if h not in handles]
             since = int(xc.get("event_since_minutes", interval + 2) if event
                         else xc.get("since_minutes", 20))
+            # A stretched interval needs a matching lookback or tweets fall in the gap.
+            since = max(since, interval + 2)
             tweets = apify_source.fetch_tweets(
                 token, handles, since_minutes=since,
                 max_per_handle=int(xc.get("max_per_handle", 8)),
                 tier=int(xc.get("tier", 2)))
             out.extend(tweets)
+            meta["x_scraped"] = True
+            meta["x_handles"] = [h.lower() for h in handles]
             _mark_apify(store, "_apify", len(tweets))
             log.info("apify X: +%d entries (mode=%s interval=%dm handles=%d)",
                      len(tweets), mode, interval, len(handles))
@@ -195,8 +215,8 @@ def _collect_apify_entries(store, src_cfg, mode: str) -> list[dict[str, Any]]:
     # --- Truth Social (opt-in; needs actor_id + one apify_probe validation) ---
     tc = src_cfg.get("truth_social") or {}
     if tc.get("enabled") and tc.get("actor_id") and tc.get("handles"):
-        interval = int(tc.get("event_min_interval_min", 5) if event
-                       else tc.get("min_interval_min", 15))
+        interval = int(round(int(tc.get("event_min_interval_min", 5) if event
+                                 else tc.get("min_interval_min", 15)) * mult))
         if _apify_due(store, "_apify_truth", interval):
             posts = apify_source.fetch_truth_social(
                 token, str(tc["actor_id"]), list(tc.get("handles") or []),
@@ -215,7 +235,7 @@ def _collect_apify_entries(store, src_cfg, mode: str) -> list[dict[str, Any]]:
     # --- Cloudflare-recovered RSS (parse_feed handles the recovered body) ---
     rc = src_cfg.get("apify_recover") or {}
     if rc.get("enabled") and rc.get("actor_id") and rc.get("feeds"):
-        interval = int(rc.get("min_interval_min", 10))
+        interval = int(round(int(rc.get("min_interval_min", 10)) * mult))
         for feed in rc.get("feeds") or []:
             if not feed.get("url"):
                 continue
@@ -324,7 +344,9 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
     # 2b. Apify fast-news — X/Twitter (+ event-mode burst), Truth Social, and
     # Cloudflare-recovered feeds. All best-effort + independently cost-gated;
     # see _collect_apify_entries. Feeds the SAME pool (reaches LINE + social).
-    raw_entries.extend(_collect_apify_entries(store, src_cfg, mode))
+    apify_meta: dict[str, Any] = {}
+    apify_entries = _collect_apify_entries(store, src_cfg, mode, apify_meta)
+    raw_entries.extend(apify_entries)
 
     items = normalize(raw_entries)
     log.info("items normalized: %d (from %d entries)", len(items), len(raw_entries))
@@ -806,15 +828,35 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
     # + env-gated; the standalone squawk_mirror.yml stays as the throttled fallback.
     # Gate on X creds too: without them the mirror would scrape (Apify $) +
     # compose (Sonnet $) and only THEN fail to post — pure waste. Skip up front.
+    #
+    # Shared scrape (2026-09-27, Apify budget): @FirstSquawk is ALREADY one of
+    # the x_accounts handles, so when this tick's X scrape ran we hand its
+    # FirstSquawk tweets to the mirror instead of paying for a second Apify call
+    # on the same account. Only when the handle is NOT in the news scrape does
+    # the mirror fall back to its own interval-gated scrape.
     if (mode in ("cron", "event") and os.environ.get("APIFY_TOKEN")
-            and os.environ.get("X_API_KEY")):
+            and os.environ.get("X_API_KEY")
+            and apify_meta.get("budget_level") != "exhausted"):
         sq_cfg = src_cfg.get("squawk") or {}
-        if sq_cfg.get("enabled") is not False and _apify_due(
-                store, "_squawk", int(sq_cfg.get("min_interval_min", 15))):
+        sq_handle = str(sq_cfg.get("handle") or "FirstSquawk").lower()
+        xc = src_cfg.get("x_accounts") or {}
+        shared = bool(xc.get("enabled")) and sq_handle in [
+            str(h).lower() for h in (xc.get("handles") or [])]
+        run_sq, sq_entries = False, None
+        if sq_cfg.get("enabled") is not False:
+            if shared:
+                if apify_meta.get("x_scraped"):
+                    run_sq = True
+                    sq_entries = [e for e in apify_entries
+                                  if e.get("source_id") == f"x_{sq_handle}"]
+            elif _apify_due(store, "_squawk", int(sq_cfg.get("min_interval_min", 15))):
+                run_sq = True
+        if run_sq:
             try:
                 from . import squawk_mirror
                 n_sq = squawk_mirror.mirror(
-                    store, token=os.environ.get("APIFY_TOKEN", ""), cfg=sq_cfg)
+                    store, token=os.environ.get("APIFY_TOKEN", ""), cfg=sq_cfg,
+                    entries=sq_entries)
                 _mark_apify(store, "_squawk", n_sq)
             except Exception:  # noqa: BLE001 — mirror is best-effort, never block the run
                 log.exception("run_once: squawk_mirror piggyback failed")
@@ -2585,6 +2627,8 @@ def _watchdog_source_id(warning_type: str) -> str:
         return "_line_push"
     if warning_type == "telegram_push_failing":
         return "_telegram_health"
+    if warning_type in ("apify_budget_exhausted", "apify_budget_high"):
+        return "_apify_budget"
     if warning_type.startswith("source_noisy:"):
         return f"_class:{warning_type.split(':', 1)[1][:30]}"
     return health.HEARTBEAT_SOURCE_ID
@@ -2652,6 +2696,10 @@ async def run_watchdog() -> int:
                          f"{len(wf_disabled)} critical workflow(s) disabled: "
                          + "; ".join(wf_disabled[:3])))
 
+    # Apify spend pacing (cached by run_once) — the 2026-09-25 budget blow-out
+    # silenced the squawk mirror for days behind green workflows.
+    warnings.extend(health.check_apify_budget(store))
+
     warning_types = {wt for wt, _ in warnings}
 
     line = None
@@ -2665,7 +2713,8 @@ async def run_watchdog() -> int:
     static_types = ("watchdog_silence", "watchdog_no_items", "ff_scraper_dead",
                     "classifier_degraded", "workflow_failure", "workflow_disabled",
                     "macro_push_dead", "line_push_failing", "line_quota_high",
-                    "telegram_push_failing")
+                    "telegram_push_failing", "apify_budget_exhausted",
+                    "apify_budget_high")
     for warning_type in static_types:
         if warning_type in warning_types:
             continue

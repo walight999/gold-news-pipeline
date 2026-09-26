@@ -11,6 +11,7 @@ unless it was resolved, then re-fired.
 """
 from __future__ import annotations
 
+import json
 import logging
 from datetime import datetime, timedelta
 from typing import Any
@@ -130,6 +131,7 @@ CRITICAL_WARNINGS: set[str] = {
     "line_push_failing",            # LINE channel failing 5x
     "telegram_push_failing",        # CHUM news-bot worker failing 5x (primary channel!)
     "macro_push_dead",              # alert-bot macro feed silent
+    "apify_budget_exhausted",       # Apify cycle limit hit → X scrape + squawk tweets dark
 }
 
 
@@ -542,3 +544,29 @@ def check_source_health(
         if (not last_item or (now - last_item) > timedelta(minutes=threshold)):
             out.append((sid, "tier2_no_item"))
     return out
+
+
+def check_apify_budget(store: Store) -> list[tuple[str, str]]:
+    """Alert on the Apify spend pacing level cached by run_once (row
+    `_apify_budget`, see apify_budget.py) — no Apify token needed here.
+
+    `apify_budget_exhausted` (CRITICAL): the cycle limit is spent, every Apify
+    call would 403, so the X scrape and the @tradetongkam squawk mirror are dark
+    until the cycle resets. This is the 2026-09-25 silent outage, now loud.
+    `apify_budget_high` (routine, Telegram-mirrored): spend is ahead of the
+    straight-line pace; run_once is already stretching intervals."""
+    from . import apify_budget
+    row = store.get("source_state", (apify_budget.STATE_KEY,)) or {}
+    level = row.get("last_status") or ""
+    try:
+        u = json.loads(row.get("items_last_hour") or "{}")
+        spend = f"${float(u['usage']):.2f} / ${float(u['limit']):.2f}, cycle ends {str(u['cycle_end'])[:10]}"
+    except (TypeError, ValueError, KeyError):
+        spend = "usage unknown"
+    if level == apify_budget.EXHAUSTED:
+        return [("apify_budget_exhausted",
+                 f"Apify monthly limit reached ({spend}) — X scrape + squawk tweets paused")]
+    if level == apify_budget.TIGHT:
+        return [("apify_budget_high",
+                 f"Apify spend ahead of pace ({spend}) — scrape intervals stretched")]
+    return []

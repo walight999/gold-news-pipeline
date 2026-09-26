@@ -32,6 +32,7 @@ SUMMARY_LIMIT       = 200
 
 # Human-readable source names. Falls back to id.title() if not listed.
 SOURCE_NAMES: dict[str, str] = {
+    "_apify_budget":        "Apify budget",
     "fed":                  "Federal Reserve",
     "bls":                  "BLS",
     "ecb":                  "ECB",
@@ -72,6 +73,8 @@ WARNING_MESSAGES: dict[str, str] = {
     "line_quota_high":             "LINE free-tier usage above 80% this month — consider Light plan",
     "macro_push_dead":             "Macro push silent — Pillar-C tagging going null; check macro_push.yml / cron-job.org",
     "workflow_disabled":           "A critical workflow is disabled_manually — re-enable with `gh workflow enable`",
+    "apify_budget_exhausted":      "Apify monthly limit reached — X scrape + @tradetongkam squawk tweets paused until reset",
+    "apify_budget_high":           "Apify spend ahead of monthly pace — scrape intervals stretched",
     # source_noisy:<source_id> is dynamic — handled by _format_warning.
 }
 
