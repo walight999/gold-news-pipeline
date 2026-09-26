@@ -71,6 +71,19 @@ def _quiet_hours_cfg(sched_cfg):
     return sched_cfg.get("quiet_hours") or {}
 
 
+def _persisted_first_seen(store, ev):
+    """Earliest first-seen time for `ev`: this run's anchor, or an earlier one
+    already recorded in event_state / calibration_log for the same event_id."""
+    from .utils_time import parse_iso
+    best = ev.first_seen_ts
+    for tab in ("event_state", "calibration_log"):
+        row = store.get(tab, (ev.event_id,)) or {}
+        ts = parse_iso(row.get("first_seen_ts"))
+        if ts is not None and ts < best:
+            best = ts
+    return best
+
+
 def _push_or_skip(line, target, alt, bubble, sched_cfg, label="", bypass_quiet=False,
                    store=None, priority=0):
     """LINE push wrapped in the quota + quiet-hours gates. Returns the response
@@ -379,10 +392,18 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
 
     for d in decisions:
         ev = d.event
-        store.upsert("event_state", dedup.serialize_event_for_store(ev, d.score, d.route.value))
+        # first_seen must survive across runs. normalize() stamps every item
+        # with the CURRENT run's time, so without this carry-forward the
+        # stored first_seen_ts was reset on every 5-min cron (measured: equal
+        # to last_seen_ts on 2538/2538 rows) — defeating the classifier's
+        # stale gate, the digest window and the calibration anchor.
+        first_seen = _persisted_first_seen(store, ev)
+        es_row = dedup.serialize_event_for_store(ev, d.score, d.route.value)
+        es_row["first_seen_ts"] = iso_utc(first_seen)
+        store.upsert("event_state", es_row)
         # calibration log: every event with score >= 2
         if d.score >= 2.0:
-            cal = dedup.serialize_event_for_store(ev, d.score, d.route.value)
+            cal = dict(es_row)
             # Carry measured columns forward instead of blanking them.
             # A live cluster keeps the SAME event_id for as long as new items
             # land in its 60-min bucket (dedup.cluster_key_for), so this line
@@ -411,7 +432,7 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
             # Classify + rewrite into a structured Thai market alert. Skips
             # the push entirely when the classifier rejects the item
             # (personal finance / evergreen / opinion / stale).
-            earliest = ev.first_seen_ts if ev.items else None
+            earliest = first_seen if ev.items else None
             from datetime import timezone as _tz
             age_hours = None
             if earliest:
@@ -2607,7 +2628,45 @@ async def run_calendar_check() -> int:
 
     log.info("calendar_check pushes: pre=%d post=%d", pre_pushed, post_pushed)
     store.flush()
+    if _calendar_daily_needs_catchup(store, now_ict(), events, cal_cfg):
+        # The 04:40 ICT daily card is driven by ONE dispatch; when that run is
+        # cancelled (shared-lock pile-up — 2026-09-22/23/24) or fails, the day
+        # used to go without a calendar card. calendar_check fires every 10 min,
+        # so it re-attempts the send inside the catch-up window. Idempotent: the
+        # daily run re-checks sent_log itself.
+        log.info("calendar_daily main slot not sent yet — catching up from calendar_check")
+        try:
+            await run_calendar_daily()
+        except Exception:
+            log.exception("calendar_daily catch-up failed")
     return 0
+
+
+# calendar_daily's main slot is 04:40 ICT; start catching up a little after so
+# the normal run gets its chance first, and stop before the card is pointless.
+_CAL_DAILY_CATCHUP_START = (4, 55)
+_CAL_DAILY_CATCHUP_END = (11, 0)
+
+
+def _calendar_daily_needs_catchup(store, ict_now, events, cal_cfg) -> bool:
+    """True when today's main daily card should have gone out but hasn't.
+    Mirrors the daily run's own skip conditions (no qualifying events today,
+    quota gate shedding briefings) so a legitimately-skipped day doesn't make
+    every calendar_check re-run the whole daily job until 11:00."""
+    hm = (ict_now.hour, ict_now.minute)
+    if not (_CAL_DAILY_CATCHUP_START <= hm < _CAL_DAILY_CATCHUP_END):
+        return False
+    sent_key = f"cal_daily:{ict_now.strftime('%Y-%m-%d')}:main"
+    if store.get("sent_log", (sent_key, "calendar_daily")):
+        return False
+    countries = tuple(cal_cfg.get("daily_currencies", cal.DEFAULT_DAILY_COUNTRIES))
+    impacts = tuple(cal_cfg.get("daily_impacts", cal.DEFAULT_DAILY_IMPACTS))
+    todays = cal.filter_by_impact(
+        cal.filter_by_country(cal.filter_today_ict(events, ict_now), countries), impacts)
+    if not todays:
+        return False
+    ok, _ = quota_allows(store, PRIORITY_BRIEFING)
+    return ok
 
 
 def _watchdog_source_id(warning_type: str) -> str:
