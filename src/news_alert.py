@@ -57,6 +57,11 @@ class MarketAlert:
     headline_th: str | None = None
     body_th: list[str] = field(default_factory=list)
     impact_th: str | None = None
+    # Structured gold call (2026-09-27): the card showed tone (hawkish/dovish)
+    # and left the trader to convert it into a gold direction. "" = not
+    # provided (older cached results, fallback path) → no pill is rendered.
+    gold_bias: str = ""          # "bullish" | "bearish" | "mixed" | ""
+    gold_confidence: str = ""    # "high" | "medium" | "low" | ""
     reason: str = ""
     is_fallback: bool = False    # True = permissive Google-translate accept (Claude down)
     # Transient (NOT serialized): grammar-QC issue labels found on this rewrite,
@@ -79,6 +84,8 @@ class MarketAlert:
             "headline_th": self.headline_th,
             "body_th": self.body_th,
             "impact_th": self.impact_th,
+            "gold_bias": self.gold_bias,
+            "gold_confidence": self.gold_confidence,
             "reason": self.reason,
         }, ensure_ascii=False)
 
@@ -98,10 +105,26 @@ class MarketAlert:
                 headline_th=d.get("headline_th"),
                 body_th=list(d.get("body_th") or [])[:3],
                 impact_th=d.get("impact_th"),
+                gold_bias=_norm_bias(d.get("gold_bias")),
+                gold_confidence=_norm_conf(d.get("gold_confidence")),
                 reason=str(d.get("reason") or ""),
             )
         except (json.JSONDecodeError, TypeError, ValueError):
             return None
+
+
+_BIASES = ("bullish", "bearish", "mixed")
+_CONFS = ("high", "medium", "low")
+
+
+def _norm_bias(v) -> str:
+    v = str(v or "").strip().lower()
+    return v if v in _BIASES else ""
+
+
+def _norm_conf(v) -> str:
+    v = str(v or "").strip().lower()
+    return v if v in _CONFS else ""
 
 
 _REJECTED_NO_TITLE = MarketAlert(action="reject", reason="empty title")
@@ -173,6 +196,8 @@ OUTPUT — strict JSON, one object, NO surrounding prose or fence
   "headline_th": "...",
   "body_th": ["...", "..."],
   "impact_th": "...",
+  "gold_bias": "bullish | bearish | mixed",
+  "gold_confidence": "high | medium | low",
   "reason": "..."
 }
 
@@ -182,6 +207,8 @@ REWRITE CONSTRAINTS — only when action="keep"
 - headline_th MUST be ≤ 90 Thai characters. Lead with the entity + the result. A reader sees this FIRST and must grasp the story from it alone. No clickbait, no question marks, no mid-thought cut-offs.
 - body_th: 1-2 COMPLETE, self-contained Thai sentences (each ≤ 150 chars). The reader must FULLY UNDERSTAND the story from headline + body WITHOUT opening the link. Each sentence is a whole thought with its figures and context — NOT chopped keyword fragments, NOT a phrase that ends mid-idea. Include the actual numbers (with units / %) when present.
 - impact_th: ONE clear sentence on the XAU/USD/JPY/yields impact. If genuinely unclear: "ผลกระทบต่อทองคำยังไม่ชัดเจน".
+- gold_bias: the net direction this news pushes XAU/USD right now — "bullish", "bearish", or "mixed" when the drivers conflict or the effect is unclear. MUST agree with impact_th.
+- gold_confidence: how clear that transmission is — "high" (direct: Fed/CPI/NFP surprise, major escalation), "medium" (indirect or partly priced in), "low" (speculative, second-order). Use "low" rather than overstating.
 - NO restating the exact headline in the body — the body ADDS detail (the numbers, the why, the next thing to watch).
 - NO "ในซื้อขายวันศุกร์" / "ดึงเอียง" / "ผลกระทบของการเดินทาง" / awkward direct translations. Use natural Thai trading desk language.
 - ใช้ตัวย่อไทยมาตรฐานเพื่อประหยัดพื้นที่การ์ด: ประธานาธิบดี→ปธน., นายกรัฐมนตรี→นายกฯ, รัฐมนตรีว่าการกระทรวง→รมว., รัฐมนตรี→รมต., สหรัฐอเมริกา→สหรัฐฯ. ใช้เฉพาะตัวย่อที่ผู้อ่านไทยเข้าใจทันที.
@@ -523,7 +550,9 @@ def _repair_grammar_llm(alert: "MarketAlert", issues: list[str]) -> "MarketAlert
         action=alert.action, news_type=alert.news_type,
         relevance_to_gold=alert.relevance_to_gold, freshness=alert.freshness,
         tone=alert.tone, category=alert.category,
-        headline_th=headline, body_th=body, impact_th=impact, reason=alert.reason)
+        headline_th=headline, body_th=body, impact_th=impact,
+        gold_bias=alert.gold_bias, gold_confidence=alert.gold_confidence,
+        reason=alert.reason)
 
 
 def _apply_grammar_qc(alert: "MarketAlert") -> "MarketAlert":
@@ -876,6 +905,8 @@ def _alert_from_text(text: str) -> MarketAlert | None:
         headline_th=d.get("headline_th"),
         body_th=list(d.get("body_th") or [])[:3],
         impact_th=d.get("impact_th"),
+        gold_bias=_norm_bias(d.get("gold_bias")),
+        gold_confidence=_norm_conf(d.get("gold_confidence")),
         reason=str(d.get("reason") or ""),
     )
     if alert.action == "keep" and not alert.headline_th:
