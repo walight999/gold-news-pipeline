@@ -36,7 +36,7 @@ log = logging.getLogger(__name__)
 # `line_quota_high` — normally ROUTINE (it must NOT cost a LINE flex at 80%,
 # exactly when quota is scarce) but it is the early warning that would have
 # prevented the 2026-07-18 exhaustion, and Telegram costs nothing.
-_ALWAYS_MIRROR: set[str] = {"line_quota_high"}
+_ALWAYS_MIRROR: set[str] = {"line_quota_high", "apify_budget_high"}
 
 
 def _config() -> tuple[str, str] | None:

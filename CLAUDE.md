@@ -157,6 +157,14 @@ with no 15m bar show as ⏳ pending, not wrong.
   drives all three; **event mode bursts X to 3-min cadence + `event_extra_handles`**.
   Validate opt-in sources cheaply with `--mode apify_probe --target x|truth|recover:<id>`
   (one actor call; prints raw keys + mapped entries) BEFORE flipping `enabled: true`.
+- `apify_budget.py` — **Apify spend pacing (2026-09-27)**: reads Apify's own
+  usage counter (`/v2/users/me/limits`, free) every 30 min → `source_state`
+  row `_apify_budget` → level ok / tight (intervals ×2) / exhausted (skip ALL
+  Apify calls). Weekend (Sat 05:00→Mon 05:00 ICT) intervals ×3. Watchdog raises
+  CRITICAL `apify_budget_exhausted` / routine `apify_budget_high`. Config
+  `sources.yaml → apify_budget`. Rule (White): fit the fixed plan limit, never
+  raise it. Truth Social is OFF (it was 83% of the 2026-09 spend for ~0 news).
+  squawk_mirror reuses the news X scrape's @FirstSquawk tweets (no 2nd call).
 - `news_alert.py` — Claude Haiku classify + Thai rewrite for LINE. **Do not
   repurpose for social** — keep LINE and social independent. Also owns
   `explain_calendar_release()` — short Thai "what this print means for gold"

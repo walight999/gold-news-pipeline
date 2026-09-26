@@ -47,6 +47,24 @@ x_accounts:
     - NodeWire                # macro/geo squawk (relay-overlap w/ DeItaone/FirstSquawk)
     - MarketsCapApp           # macro/rates/geo squawk (dup of NodeWire copy)
 
+# Apify spend pacing (2026-09-27, White: use the fixed plan limit efficiently,
+# never raise it). src/apify_budget.py reads Apify's own usage counter (free API)
+# every `refresh_min` and paces every Apify source against a straight-line
+# spend for the billing cycle:
+#   ok        → configured intervals
+#   tight     → intervals × tight_multiplier (spend is ahead of pace)
+#   exhausted → skip ALL Apify calls until the cycle resets (they'd only 403);
+#               the watchdog raises the CRITICAL `apify_budget_exhausted` alert
+# While gold is shut (Sat 05:00 → Mon 05:00 ICT) intervals × weekend_multiplier.
+# Event-mode bursts keep their cadence unless tight — that's where spend pays.
+apify_budget:
+  enabled: true
+  refresh_min: 30
+  reserve_pct: 5          # keep 5% of the limit unspent as end-of-cycle buffer
+  slack_pct: 5            # tolerate 5% of the limit above the pace line first
+  tight_multiplier: 2
+  weekend_multiplier: 3
+
 # First Squawk live mirror (2026-09-22, White) — `--mode squawk_mirror`. Scrapes
 # @FirstSquawk (already in x_accounts above for the news pipeline) and mirrors its
 # GOLD-RELEVANT headlines DIRECTLY to @tradetongkam as Thai tweets, re-voiced by
@@ -62,6 +80,9 @@ squawk:
   cap_per_day: 20             # hard ceiling on tweets/day (X is $0.015/post ⇒ ≤$0.30/day).
                               # Confirmed 2026-09-22 after White approved the Sonnet+new-prompt voice.
   max_items: 5                # scrape at most this many per run (cost guard)
+  # 2026-09-27: when `handle` is also in x_accounts.handles (it is), the mirror
+  # REUSES that scrape's tweets — no second Apify call. min_interval_min /
+  # since_minutes below then only apply to the standalone fallback workflow.
   min_interval_min: 15        # piggybacks the 5-min news cron (run_once) — this guard
                               # throttles the scrape to ~15 min so no separate cron-job.org
                               # job is needed. The standalone squawk_mirror.yml is the fallback.
@@ -135,7 +156,13 @@ squawk:
 # (costs one actor call), fix `field_map` if the probe extracts 0, THEN flip
 # enabled: true. Gated by APIFY_TOKEN like everything Apify.
 truth_social:
-  enabled: true   # 2026-09-10: VALIDATED via local probe — parsebird returns 201 +
+  enabled: false  # 2026-09-27 OFF (Apify budget): parsebird bills $0.017 PER CALL
+                  # even when empty, 1 call/handle → 1,499 calls = $24.16 = 83% of the
+                  # whole $29 cycle by day 22, which 403'd every Apify call and silenced
+                  # the squawk mirror. Yield: ~5 of 2,875 content_log rows. Gold-moving
+                  # Trump posts reach DeItaone/FirstSquawk within minutes anyway. If
+                  # ever re-enabled: realDonaldTrump only + min_interval_min ≥ 60.
+                  # History — 2026-09-10: VALIDATED via local probe — parsebird returns 201 +
                   # maps posts correctly (the earlier prod 400 was transient). Content
                   # is mostly political/personal noise; RT/reply/link-only are pre-
                   # filtered (apify_source._truth_to_entry) and the classifier rejects
