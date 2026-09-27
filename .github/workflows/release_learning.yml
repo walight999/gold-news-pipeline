@@ -43,7 +43,12 @@ jobs:
           if [ -n "$(git status --porcelain research/dataset.csv config/release_stats.json)" ]; then
             git add research/dataset.csv config/release_stats.json
             git commit -m "chore(learning): weekly release-reaction refresh [skip ci]"
-            git push
+            # main moves while this runs (snapshot bot every 30 min): rebase + retry.
+            for i in 1 2 3 4 5; do
+              git pull --rebase origin main && git push && exit 0
+              sleep $((i * 10))
+            done
+            exit 1
           else
             echo "No new releases — skip commit."
           fi

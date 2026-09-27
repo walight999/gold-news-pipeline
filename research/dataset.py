@@ -99,7 +99,7 @@ def build(limit: int | None = None) -> int:
     pb = PriceBook(years)
     n = 0
     with open(OUT_CSV, "w", newline="", encoding="utf-8") as fh:
-        w = csv.DictWriter(fh, fieldnames=FIELDS)
+        w = csv.DictWriter(fh, fieldnames=FIELDS, lineterminator="\n")   # LF like git stores it
         w.writeheader()
         for i, e in enumerate(events):
             row = row_for(e, pb)
