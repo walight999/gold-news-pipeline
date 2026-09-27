@@ -74,7 +74,7 @@ def refresh(now: datetime | None = None) -> int:
     kept = [r for r in existing if r["event_uid"] not in replaced]
     merged = sorted(kept + rows, key=lambda r: (r["dt_utc"], str(r["event_uid"])))
     with open(ds.OUT_CSV, "w", newline="", encoding="utf-8") as f:
-        w = csv.DictWriter(f, fieldnames=fields)
+        w = csv.DictWriter(f, fieldnames=fields, lineterminator="\n")   # LF: no whole-file diff in CI
         w.writeheader()
         w.writerows(merged)
     log.info("appended %d releases", len(rows))
