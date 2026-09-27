@@ -23,7 +23,7 @@ from typing import Any
 import yaml
 
 from . import calendar as cal
-from . import content_log, daily_brief, thai_gold, dedup, delivery_stats, digest, drive_upload, fb_publish, fred, health, image_gen, macro_push, news_alert, ops_alert, price_feed, scorecard, scorer, social_feed, telegram_news, translator, video_brief, weekly_report
+from . import content_log, daily_brief, speech_watch, thai_gold, dedup, delivery_stats, digest, drive_upload, fb_publish, fred, health, image_gen, macro_push, news_alert, ops_alert, price_feed, scorecard, scorer, social_feed, telegram_news, translator, video_brief, weekly_report
 from .fetcher import fetch_all, plan_fetch
 from .line_client import (
     PRIORITY_BRIEFING,
@@ -369,6 +369,14 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
 
     items = normalize(raw_entries)
     log.info("items normalized: %d (from %d entries)", len(items), len(raw_entries))
+    # Speech / statement windows (FOMC, Fed Chair, Trump, ECB…): keep the live
+    # quote headlines while a window is open — calendar_check reads them.
+    try:
+        n_q = speech_watch.collect(store, items, now_utc())
+        if n_q:
+            log.info("speech_watch: +%d live quote(s)", n_q)
+    except Exception:
+        log.exception("speech_watch collect failed")
 
     # 3. Cluster + score
     events = dedup.cluster(items, kw_cfg)
@@ -2524,6 +2532,22 @@ async def run_calendar_check() -> int:
 
     relevant = cal.filter_by_impact(cal.filter_by_country(events, countries), impacts)
 
+    # Speech / statement windows: publish what to listen for (news-cron collects
+    # the quotes). Previously-published windows are kept until their cards are
+    # due, so a window closing between runs still gets its final card.
+    try:
+        from datetime import datetime, timedelta
+        sp_cfg = speech_watch.cfg_from(sched_cfg)
+        if sp_cfg.get("enabled", True):
+            now_ = now_utc()
+            fresh = {w["id"]: w for w in speech_watch.plan_windows(events, now_, sp_cfg)}
+            for w in speech_watch.stored_windows(store):
+                if w["id"] not in fresh and now_ <= datetime.fromisoformat(w["end"]) + timedelta(hours=3):
+                    fresh[w["id"]] = w
+            speech_watch.publish_windows(store, list(fresh.values()))
+    except Exception:
+        log.exception("speech_watch planning failed")
+
     # News-event entry gate: push the soonest HIGH-impact release to the alert-bot so it
     # suppresses NEW entries around the print. Env-gated (MACRO_WEBHOOK_*), best-effort,
     # independent of LINE → never blocks the calendar run.
@@ -2704,6 +2728,20 @@ async def run_calendar_check() -> int:
         post_pushed = _push_calendar_groups(
             line, target, pending_post, sched_cfg, store,
             route_type="calendar_post", priority=PRIORITY_CORE)
+
+    # Speech / statement cards (mid-way + final) from the collected quotes.
+    try:
+        sp_line = LineClient.from_env()
+        n_sp = speech_watch.run(
+            store, sp_line, target, sched_cfg, now_utc(),
+            push=lambda alt, bubble: _push_or_skip(sp_line, target, alt, bubble, sched_cfg,
+                                                   label="speech", store=store,
+                                                   priority=PRIORITY_CORE),
+            delivered=_delivered)
+        if n_sp:
+            log.info("speech_watch: sent %d card(s)", n_sp)
+    except Exception:
+        log.exception("speech_watch run failed")
 
     log.info("calendar_check pushes: pre=%d post=%d", pre_pushed, post_pushed)
     store.flush()

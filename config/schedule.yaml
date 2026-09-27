@@ -161,3 +161,20 @@ calendar:
   # historical price, so a late-delivered card is still accurate.
   post_release_window_low_min:  -180
   post_release_window_high_min:    0
+
+speech:
+  # Speech / statement watcher (src/speech_watch.py): FOMC statement + press
+  # conference, Fed Chair / FOMC members, President Trump, ECB / BOE / BOJ
+  # governors. No number is released, so the pipeline reads the live quote
+  # headlines (X squawk + wires) during the event and Claude judges the tone
+  # and the gold impact. Cards: one mid-way (after mid_after_min, if at least
+  # min_quotes quotes) + one final when the window closes. Final calls are
+  # graded by the scorecard (calibration_log routed_as "speech").
+  enabled: true
+  currencies: ["USD", "EUR", "GBP", "JPY"]
+  impacts: ["High", "Medium"]
+  mid_after_min: 20
+  min_quotes: 3
+  # Current Fed Chair's surname: added to the keywords of FOMC events so
+  # "WARSH:" headlines during the press conference are captured.
+  fed_chair: "Warsh"
