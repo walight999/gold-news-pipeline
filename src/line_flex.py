@@ -379,8 +379,8 @@ def _gold_call_row(alert: MarketAlert | None,
                       "size": "xs", "weight": "bold", "color": fg, "flex": 0})
     if xau_now:
         last, pct = xau_now
-        sign = "+" if pct >= 0 else ""
-        parts.append({"type": "text", "text": f"XAU {last:,.1f} ({sign}{pct:.2f}% วันนี้)",
+        chg = "" if pct is None else f" ({'+' if pct >= 0 else ''}{pct:.2f}% วันนี้)"
+        parts.append({"type": "text", "text": f"XAU {last:,.1f}{chg}",
                       "size": "xs", "color": "#6B7280", "align": "end"})
     if not parts:
         return None
@@ -1101,19 +1101,18 @@ def _price_cell(label: str, snap: tuple[float, float] | None,
     if not snap:
         return None
     last, pct = snap
-    color = "#059669" if pct > 0 else "#DC2626" if pct < 0 else "#374151"
-    sign = "+" if pct > 0 else ""
-    return {
-        "type": "box", "layout": "vertical", "flex": 1,
-        "contents": [
-            {"type": "text", "text": label, "size": "xxs",
-             "color": "#9CA3AF", "align": "center"},
-            {"type": "text", "text": value_fmt(last), "size": "xs",
-             "weight": "bold", "color": "#111827", "align": "center"},
-            {"type": "text", "text": f"{sign}{pct:.2f}%", "size": "xxs",
-             "color": color, "align": "center"},
-        ],
-    }
+    contents = [
+        {"type": "text", "text": label, "size": "xxs",
+         "color": "#9CA3AF", "align": "center"},
+        {"type": "text", "text": value_fmt(last), "size": "xs",
+         "weight": "bold", "color": "#111827", "align": "center"},
+    ]
+    if pct is not None:                    # unknown day change → no fake 0.00%
+        color = "#059669" if pct > 0 else "#DC2626" if pct < 0 else "#374151"
+        sign = "+" if pct > 0 else ""
+        contents.append({"type": "text", "text": f"{sign}{pct:.2f}%", "size": "xxs",
+                         "color": color, "align": "center"})
+    return {"type": "box", "layout": "vertical", "flex": 1, "contents": contents}
 
 
 def _forecast_previous_inline(forecast: str, previous: str) -> dict[str, Any] | None:

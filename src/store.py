@@ -323,6 +323,16 @@ class Store:
 
     # ---------- batch flush ----------
 
+    def delete(self, tab: str, key_values: tuple[str, ...]) -> bool:
+        """Remove one row (the next flush rewrites the tab without it)."""
+        rk = "|".join(str(v) for v in key_values)
+        if rk not in self.data.get(tab, {}):
+            return False
+        del self.data[tab][rk]
+        self._clean.get(tab, {}).pop(rk, None)
+        self.dirty.setdefault(tab, set()).add("__purge__")
+        return True
+
     def purge_older_than(self, tab: str, days: int, ts_col: str = "updated_at") -> int:
         """Drop rows from `tab` whose `ts_col` is older than `days` days.
         Returns the number of rows removed. Rows with missing/unparseable

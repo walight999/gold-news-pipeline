@@ -2481,6 +2481,26 @@ async def run_calendar_daily() -> int:
 
 
 _CAROUSEL_MAX = 12   # LINE Flex carousel hard limit
+# LINE also caps a carousel at 50 KB; a rich Released bubble is ~4.6 KB
+# compact / ~6 KB as sent (Thai escaped), so 12 of them can exceed it — and
+# one rejected push would drop every card in the group. Budget by size.
+_CAROUSEL_BYTES = 40_000
+
+
+def _carousel_chunks(items: list[dict[str, Any]]) -> list[list[dict[str, Any]]]:
+    chunks: list[list[dict[str, Any]]] = []
+    cur: list[dict[str, Any]] = []
+    size = 0
+    for it in items:
+        b = len(json.dumps(it["bubble"], ensure_ascii=True, separators=(",", ":")))
+        if cur and (len(cur) >= _CAROUSEL_MAX or size + b > _CAROUSEL_BYTES):
+            chunks.append(cur)
+            cur, size = [], 0
+        cur.append(it)
+        size += b
+    if cur:
+        chunks.append(cur)
+    return chunks
 
 
 def _push_calendar_groups(line, target, pending, sched_cfg, store, *,
@@ -2507,8 +2527,7 @@ def _push_calendar_groups(line, target, pending, sched_cfg, store, *,
             if note:
                 for i in items:
                     append_note(i["bubble"], note)
-        for k in range(0, len(items), _CAROUSEL_MAX):
-            chunk = items[k:k + _CAROUSEL_MAX]
+        for chunk in _carousel_chunks(items):
             if len(chunk) == 1:
                 contents, alt = chunk[0]["bubble"], chunk[0]["alt"]
             else:
@@ -2529,6 +2548,56 @@ def _push_calendar_groups(line, target, pending, sched_cfg, store, *,
     return delivered
 
 
+def _speech_plan(store, events, sched_cfg) -> None:
+    """Publish speech listening windows (see speech_watch). Previously
+    published windows are kept until their cards are due; buffers of windows
+    that have aged out are deleted so source_state doesn't grow forever."""
+    from datetime import datetime, timedelta
+    sp_cfg = speech_watch.cfg_from(sched_cfg)
+    if not sp_cfg.get("enabled", True):
+        return
+    now_ = now_utc()
+    fresh = {w["id"]: w for w in speech_watch.plan_windows(events, now_, sp_cfg)}
+    for w in speech_watch.stored_windows(store):
+        if w["id"] in fresh:
+            continue
+        if now_ <= datetime.fromisoformat(w["end"]) + timedelta(hours=3):
+            fresh[w["id"]] = w
+        else:
+            speech_watch.drop_buffer(store, w["id"])
+    speech_watch.publish_windows(store, list(fresh.values()))
+
+
+def _speech_send(store, sched_cfg, target) -> None:
+    sp_line = LineClient.from_env()
+    n_sp = speech_watch.run(
+        store, sp_line, target, sched_cfg, now_utc(),
+        push=lambda alt, bubble: _push_or_skip(sp_line, target, alt, bubble, sched_cfg,
+                                               label="speech", store=store,
+                                               priority=PRIORITY_CORE),
+        delivered=_delivered)
+    if n_sp:
+        log.info("speech_watch: sent %d card(s)", n_sp)
+
+
+async def _speech_only_run() -> int:
+    _, _, sched_cfg = _load_configs()
+    target = _group_targets()
+    if not target or not speech_watch.cfg_from(sched_cfg).get("enabled", True):
+        return 0
+    store = Store.from_env()
+    store.connect()
+    store.load_all()
+    try:
+        events = cal.fetch_calendar(sched_cfg.get("calendar", {}).get("source_url", cal.FF_URL))
+        _speech_plan(store, events, sched_cfg)
+        _speech_send(store, sched_cfg, target)
+    except Exception:
+        log.exception("speech-only (Friday UTC evening) run failed")
+    store.flush()
+    return 0
+
+
 async def run_calendar_check() -> int:
     """Single sweep that does BOTH pre-release and post-release alerts.
 
@@ -2537,6 +2606,10 @@ async def run_calendar_check() -> int:
     (-15, 0]. Both gated by sent_log idempotency per event_id.
     """
     if is_weekend_ict():
+        # Saturday ICT starts Friday 17:00 UTC — US-afternoon Fed / Trump
+        # speeches still happen then. Run ONLY the speech step on UTC Friday.
+        if now_utc().weekday() == 4:
+            return await _speech_only_run()
         log.info("weekend (ICT) — skipping calendar_check")
         return 0
     _, _, sched_cfg = _load_configs()
@@ -2562,19 +2635,10 @@ async def run_calendar_check() -> int:
 
     relevant = cal.filter_by_impact(cal.filter_by_country(events, countries), impacts)
 
-    # Speech / statement windows: publish what to listen for (news-cron collects
-    # the quotes). Previously-published windows are kept until their cards are
-    # due, so a window closing between runs still gets its final card.
+    # Speech / statement windows: publish what to listen for (news-cron
+    # collects the quotes).
     try:
-        from datetime import datetime, timedelta
-        sp_cfg = speech_watch.cfg_from(sched_cfg)
-        if sp_cfg.get("enabled", True):
-            now_ = now_utc()
-            fresh = {w["id"]: w for w in speech_watch.plan_windows(events, now_, sp_cfg)}
-            for w in speech_watch.stored_windows(store):
-                if w["id"] not in fresh and now_ <= datetime.fromisoformat(w["end"]) + timedelta(hours=3):
-                    fresh[w["id"]] = w
-            speech_watch.publish_windows(store, list(fresh.values()))
+        _speech_plan(store, events, sched_cfg)
     except Exception:
         log.exception("speech_watch planning failed")
 
@@ -2586,6 +2650,17 @@ async def run_calendar_check() -> int:
     except Exception:
         log.exception("event-window push failed")
 
+    # Speeches / statements with no number (Lagarde Speaks, FOMC Press
+    # Conference, …) are covered by the speech watcher's own cards; a T-15 /
+    # Released card for them has nothing to show but "Actual ——". Rate
+    # decisions carry a forecast and keep their cards.
+    try:
+        _sp_cfg = speech_watch.cfg_from(sched_cfg)
+        if _sp_cfg.get("enabled", True):
+            relevant = [e for e in relevant
+                        if not (speech_watch.is_speech_event(e, _sp_cfg) and not (e.forecast or "").strip())]
+    except Exception:
+        log.exception("speech filter failed — keeping all calendar events")
     upcoming = cal.filter_upcoming(relevant, pre_lo, pre_hi)
     # Pre-release is owned by the GAS newsupdate-linebot since 2026-06-11
     # (precise T-15 one-shot triggers). When disabled here, this mode sends
@@ -2761,15 +2836,7 @@ async def run_calendar_check() -> int:
 
     # Speech / statement cards (mid-way + final) from the collected quotes.
     try:
-        sp_line = LineClient.from_env()
-        n_sp = speech_watch.run(
-            store, sp_line, target, sched_cfg, now_utc(),
-            push=lambda alt, bubble: _push_or_skip(sp_line, target, alt, bubble, sched_cfg,
-                                                   label="speech", store=store,
-                                                   priority=PRIORITY_CORE),
-            delivered=_delivered)
-        if n_sp:
-            log.info("speech_watch: sent %d card(s)", n_sp)
+        _speech_send(store, sched_cfg, target)
     except Exception:
         log.exception("speech_watch run failed")
 

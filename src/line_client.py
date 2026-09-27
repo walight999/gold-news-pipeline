@@ -186,6 +186,16 @@ def get_line_quota_status(store) -> dict[str, int | str]:
             return {"month": d.get("month", ""), "count": usage, "limit": 0, "pct": 0, "source": "api"}
         pct = int(usage / limit * 100)
         return {"month": d.get("month", ""), "count": usage, "limit": limit, "pct": pct, "source": "api"}
+    # Stale-but-same-month API reading: still far closer to the truth than the
+    # local estimate against the 500 placeholder (which read 161% while LINE's
+    # API said 84%, and would shed briefings for no reason whenever the
+    # watchdog — the only refresher — missed 6 h). Usage only grows within a
+    # month, so a stale reading can under- but never over-state it.
+    from .utils_time import now_ict
+    if api_ts and int(d.get("api_limit") or 0) > 0 and d.get("month") == now_ict().strftime("%Y-%m"):
+        usage, limit = int(d.get("api_usage") or 0), int(d["api_limit"])
+        return {"month": d.get("month", ""), "count": usage, "limit": limit,
+                "pct": int(usage / limit * 100), "source": "api_stale"}
     # Fallback: local per-recipient estimate against the assumed free tier.
     count = int(d.get("count", 0))
     pct = int(count / LINE_FREE_TIER_QUOTA * 100) if LINE_FREE_TIER_QUOTA else 0

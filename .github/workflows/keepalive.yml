@@ -91,11 +91,15 @@ jobs:
             fi
             echo "[keepalive] $(date -u +%H:%M:%S) UTC dispatcher silent — dispatching news_cron"
             gh workflow run news_cron.yml || echo "[keepalive] news_cron dispatch failed, continuing"
+            # GitHub keeps ONE pending run per concurrency group: dispatching
+            # calendar_check right behind news_cron would replace (cancel) it.
+            # Give news_cron ~2.5 min to start + finish first.
+            sleep 150
             if [ $(( i % 2 )) -eq 0 ]; then
               gh workflow run calendar_check.yml || echo "[keepalive] calendar_check dispatch failed, continuing"
             fi
             i=$(( i + 1 ))
-            [ "$(( $(date -u +%s) + 300 ))" -ge "$STOP" ] && break
-            sleep 300
+            [ "$(( $(date -u +%s) + 150 ))" -ge "$STOP" ] && break
+            sleep 150
           done
           echo "[keepalive] reached rolling-window end (~5.5h) — exiting; next scheduled trigger resumes if still needed"

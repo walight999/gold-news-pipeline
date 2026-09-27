@@ -105,7 +105,7 @@ def get_xau_snapshot() -> PriceSnapshot | None:
         spot = None
     if spot is None:
         return fut
-    pct = fut.pct_change_day if fut else 0.0
+    pct = fut.pct_change_day if fut else None      # unknown, not 0.00%
     prev = spot / (1 + pct / 100) if pct is not None else spot
     return PriceSnapshot(ticker="XAUUSD", last=spot, prev_close=prev, pct_change_day=pct,
                          bar_time_utc=datetime.now(timezone.utc))
@@ -203,12 +203,18 @@ def base_and_returns_from_series(
     offsets_min: tuple[int, ...] = (5, 15, 30),
     now: datetime | None = None,
     bar_min: int = 5,
+    max_gap_min: float | None = None,
 ) -> tuple[float | None, dict[int, float | None]]:
     """Pure: compute (base_price, {offset: pct}) for one release from an
     already-fetched series. No network. See `fetch_intraday_series`.
     `bar_min` = bar size of the series (5 for yfinance, 1 for spot_feed): the
     base is the close of the bar that ENDS at the release; with 1-min bars the
-    T+m price is the close of the bar ending at T+m."""
+    T+m price is the close of the bar ending at T+m.
+    `max_gap_min`: reject a matched bar older than this many minutes before its
+    target (None = forward-fill freely, the old yfinance behaviour). The spot
+    path sets it so an offset inside a not-yet-published hour stays None and
+    is retried, instead of being filled with the previous hour's last price —
+    fill-only-empty would have made that wrong number permanent."""
     out: dict[int, float | None] = {m: None for m in offsets_min}
     if not series:
         return None, out
@@ -222,7 +228,11 @@ def base_and_returns_from_series(
                 best = i
             else:
                 break
-        return closes[best] if best >= 0 else None
+        if best < 0:
+            return None
+        if max_gap_min is not None and (target - idx_utc[best]) > timedelta(minutes=max_gap_min):
+            return None
+        return closes[best]
 
     def _close_before(target: datetime) -> float | None:
         """Price JUST BEFORE `target`, excluding the bar `target` falls
@@ -310,4 +320,5 @@ def xau_spot_base_and_returns(
                            release_dt_utc + timedelta(minutes=max(offsets_min) + 2), now)
     if not series:
         return None, {m: None for m in offsets_min}
-    return base_and_returns_from_series(series, release_dt_utc, offsets_min, now=now, bar_min=1)
+    return base_and_returns_from_series(series, release_dt_utc, offsets_min, now=now,
+                                        bar_min=1, max_gap_min=3)
