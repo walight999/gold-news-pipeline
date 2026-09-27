@@ -43,12 +43,16 @@ def test_is_speech_event(title, ccy, expected):
 
 def test_speaker_keywords():
     assert sw.speaker_keywords(_ev("President Trump Speaks"), CFG) == ["TRUMP"]
-    k = sw.speaker_keywords(_ev("Fed Chairman Warsh Testifies"), CFG)
-    assert k[0] == "WARSH" and "FOMC" in k
+    # A named speaker listens for that name only — FOMC/FED words would pull
+    # in other officials speaking the same hour.
+    assert sw.speaker_keywords(_ev("Fed Chairman Warsh Testifies"), CFG) == ["WARSH"]
+    assert sw.speaker_keywords(_ev("FOMC Member Waller Speaks"), CFG) == ["WALLER"]
+    assert sw.speaker_keywords(_ev("ECB President Lagarde Speaks", "EUR"), CFG) == ["LAGARDE"]
+    # Institution events: the institution + the chair who runs the presser.
     k = sw.speaker_keywords(_ev("FOMC Press Conference"), CFG)
-    assert "FOMC" in k and "WARSH" in k            # fed_chair added on FOMC events
+    assert "FOMC" in k and "WARSH" in k
+    assert "WARSH" in sw.speaker_keywords(_ev("Federal Funds Rate"), CFG)
     assert "LAGARDE" in sw.speaker_keywords(_ev("ECB Press Conference", "EUR"), CFG)
-    assert "MEMBER" not in sw.speaker_keywords(_ev("FOMC Member Waller Speaks"), CFG)
 
 
 def test_fomc_day_merges_into_one_window():

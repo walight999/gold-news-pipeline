@@ -93,22 +93,24 @@ def window_minutes(title: str) -> int:
 
 
 def speaker_keywords(ev, cfg: dict) -> list[str]:
-    """Upper-case words a quote headline must contain. President / Treasury
-    speeches → the person only (their name is the signal); central-bank
-    events → the person AND the institution (wires write "FED'S WARSH:")."""
+    """Upper-case words a quote headline must contain.
+
+    A named speaker ("FOMC Member Waller Speaks", "ECB President Lagarde
+    Speaks", "President Trump Speaks") → that name ONLY: institution words
+    like FOMC / FED would also catch other officials talking the same hour
+    and blend their quotes into this speaker's read. Institution events with
+    no person (FOMC Statement / Press Conference, rate decisions, minutes) →
+    the institution's words, plus the Fed Chair's name on FOMC events since
+    the chair runs the press conference ("WARSH: …")."""
     title = ev.title or ""
     ccy = (ev.country or "").upper()
-    keys: list[str] = []
     m = _SPEAKER.search(title)
     person = m.group(1) if m and m.group(1).lower() not in _NOT_A_NAME else None
     if person:
-        keys.append(person.upper())
-    political = bool(re.search(r"\b(President Trump|Treasury Sec)\b", title))
-    if not political:
-        keys += cfg["bodies"].get(ccy, [])
-        if ccy == "USD" and cfg.get("fed_chair") and "fomc" in title.lower():
-            keys.append(str(cfg["fed_chair"]).upper())
-    # de-dup, keep order
+        return [person.upper()]
+    keys = list(cfg["bodies"].get(ccy, []))
+    if ccy == "USD" and cfg.get("fed_chair") and re.search(r"fomc|federal funds", title, re.I):
+        keys.append(str(cfg["fed_chair"]).upper())
     return list(dict.fromkeys(k for k in keys if k))
 
 
