@@ -39,6 +39,7 @@ from typing import Any
 log = logging.getLogger(__name__)
 
 WINDOWS_ROW = "_speech_windows"
+SKIP_ROUTE = "speech_skip"          # sent_log marker: window closed with no quotes
 BUF_PREFIX = "_speech:"
 MAX_QUOTES = 60
 MAX_BUF_CHARS = 30000
@@ -57,7 +58,7 @@ DEFAULT_CFG: dict[str, Any] = {
     "fed_chair": "Warsh",
     # Words that identify the institution in wire headlines, per currency.
     "bodies": {
-        "USD": ["FOMC", "FED ", "FED'S", "FEDERAL RESERVE", "FED CHAIR"],
+        "USD": ["FOMC", "FED", "FEDERAL RESERVE"],
         "EUR": ["ECB", "LAGARDE"],
         "GBP": ["BOE", "BANK OF ENGLAND", "BAILEY"],
         "JPY": ["BOJ", "BANK OF JAPAN", "UEDA"],
@@ -180,15 +181,26 @@ def _dt(s: str) -> datetime:
 
 # ---------------------------------------------------------------- collection (news-cron)
 
+def _has_keyword(up: str, keywords: list[str]) -> bool:
+    """Whole-word match: "BOE" must not fire on "BOEING", "FED" on "FEDEX"."""
+    return any(re.search(r"(?<![A-Z])" + re.escape(k.strip()) + r"(?![A-Z])", up)
+               for k in keywords if k.strip())
+
+
 def is_quote(title: str, source_id: str, keywords: list[str]) -> bool:
     up = (title or "").upper()
-    if not any(k in up for k in keywords):
+    if not _has_keyword(up, keywords):
         return False
     if (source_id or "").startswith("x_"):
         return True               # squawk accounts: every line is a live quote
     # wires: only lines that actually report speech, not commentary about it
     return (" SAYS" in up or ": " in up or " SAID" in up) and \
         any((source_id or "").startswith(s) for s in QUOTE_SOURCES)
+
+
+def drop_buffer(store, wid: str) -> None:
+    """Remove a window's quote buffer once it can no longer be used."""
+    store.delete("source_state", (BUF_PREFIX + wid,))
 
 
 def load_buffer(store, wid: str) -> list[dict]:
@@ -310,8 +322,9 @@ def _llm(prompt: str) -> str | None:
             return resp.content[0].text
         except Exception as e:  # noqa: BLE001
             log.warning("speech analysis (claude) failed: %s", e)
+    # Fallback chain of the calendar explainer: Claude Haiku (≤3 tries) → Gemini.
     from .news_alert import _cal_explain_llm
-    return _cal_explain_llm(prompt)      # its Gemini branch; Claude already failed
+    return _cal_explain_llm(prompt)
 
 
 def analyze(win: dict, quotes: list[dict], stage: str, xau_move_pct: float | None,
@@ -323,9 +336,13 @@ def analyze(win: dict, quotes: list[dict], stage: str, xau_move_pct: float | Non
         row = store.get("translation_cache", (key,))
         if row and row.get("thai_text"):
             try:
-                return json.loads(row["thai_text"])
+                cached = json.loads(row["thai_text"])
             except ValueError:
-                pass
+                cached = None
+            if isinstance(cached, dict) and cached.get("failed"):
+                return None          # already failed on these exact quotes
+            if cached:
+                return cached
     qtext = "\n".join(f"- [{q['ts'][11:16]} UTC] {q['t']}" for q in quotes[-40:]) or "(no quotes captured)"
     move = "n/a" if xau_move_pct is None else f"{xau_move_pct:+.2f}%"
     prompt = _PROMPT.format(
@@ -333,13 +350,24 @@ def analyze(win: dict, quotes: list[dict], stage: str, xau_move_pct: float | Non
         title=win["title"], country=win["country"], quotes=qtext, xau_move=move,
         stmt_note=" plus the official statement text" if statement_text else "",
         statement=f"\nOFFICIAL STATEMENT:\n{statement_text}\n" if statement_text else "")
+    def _fail():
+        # Remember the failure for these exact quotes so calendar_check (every
+        # 10 min, for up to 3 h) doesn't re-run the whole model chain on them;
+        # a new quote changes the key and earns a fresh attempt.
+        if store is not None:
+            from .utils_time import iso_utc, now_utc
+            store.upsert("translation_cache", {"cache_key": key, "source_preview": win["title"][:80],
+                                               "thai_text": json.dumps({"failed": True}),
+                                               "hits": "0", "created_at": iso_utc(now_utc())})
+        return None
+
     text = _llm(prompt)
     if not text:
-        return None
+        return _fail()
     from .news_alert import _norm_bias, _norm_conf, _parse_json_lenient
     d = _parse_json_lenient(text)
     if not d:
-        return None
+        return _fail()
     from .translator import _has_cjk, _patch_names, _patch_places, strip_em_dash
 
     def clean(s):
@@ -355,7 +383,7 @@ def analyze(win: dict, quotes: list[dict], stage: str, xau_move_pct: float | Non
     texts = [out["summary_th"], out["why_th"], *out["key_points_th"]]
     if not out["summary_th"] or any(_has_cjk(t) for t in texts):
         log.warning("speech analysis unusable (empty/CJK) win=%s", win["id"])
-        return None
+        return _fail()
     if store is not None:
         from .utils_time import iso_utc, now_utc
         store.upsert("translation_cache", {"cache_key": key, "source_preview": win["title"][:80],
@@ -393,13 +421,16 @@ def run(store, line, target, sched_cfg, now: datetime, push, delivered) -> int:
         quotes = load_buffer(store, w["id"])
 
         def sent(stage, _w=w):
-            return bool(store.get("sent_log", (f"speech_{stage}:{_w['id']}", "speech")))
+            key = f"speech_{stage}:{_w['id']}"
+            return bool(store.get("sent_log", (key, "speech"))
+                        or store.get("sent_log", (key, SKIP_ROUTE)))
         for stage in due_stages(w, now, len(quotes), cfg, sent):
             if stage == "end" and not quotes and "statement" not in w["title"].lower() \
                     and "rate" not in w["title"].lower():
                 # Nothing was captured for a plain speech: mark done, no empty card.
-                store.upsert("sent_log", {"event_id": f"speech_end:{w['id']}", "route_type": "speech",
-                                          "sent_ts": iso_utc(now), "line_status": "0"})
+                # (own route_type: a skip is not a failed delivery in delivery_stats)
+                store.upsert("sent_log", {"event_id": f"speech_end:{w['id']}", "route_type": SKIP_ROUTE,
+                                          "sent_ts": iso_utc(now), "line_status": "skipped"})
                 continue
             start = _dt(w["start"])
             mins = max(1, min(int((now - start).total_seconds() // 60), 180))
@@ -431,6 +462,6 @@ def run(store, line, target, sched_cfg, now: datetime, push, delivered) -> int:
                     "predicted_verdict_th": a["summary_th"][:300],
                     "xau_return_5m": "", "xau_return_15m": "", "xau_return_30m": "",
                     "xau_base_price": "", "actual": "", "forecast": "",
-                    "surprise": a["tone"], "xau_return_60m": "",
+                    "surprise": "", "xau_return_60m": "",
                 })
     return sent_n

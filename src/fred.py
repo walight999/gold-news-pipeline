@@ -62,7 +62,10 @@ _SERIES_MAP: list[tuple[re.Pattern[str], str, str]] = [
     (re.compile(r"\bcore ppi m/m\b",                       re.I), "PPIFES",   "mom_pct"),
     (re.compile(r"\bppi m/m\b",                            re.I), "PPIFIS",   "mom_pct"),
     # Labour
-    (re.compile(r"\b(non[- ]?farm.*employ.*change|nfp|non[- ]?farm payroll)\b", re.I), "PAYEMS", "delta_k"),
+    # (?!adp): "ADP Non-Farm Employment Change" is the private ADP survey, not
+    # the BLS payrolls — it used to be served PAYEMS (the last NFP print), e.g.
+    # the 2026-09-30 ADP card would have shown August's +162K NFP as "actual".
+    (re.compile(r"^(?!adp\b).*\b(non[- ]?farm.*employ.*change|nfp|non[- ]?farm payroll)\b", re.I), "PAYEMS", "delta_k"),
     (re.compile(r"\bunemployment rate\b",                  re.I), "UNRATE",   "level_pct"),
     (re.compile(r"\b(initial jobless claims|unemployment claims)\b", re.I), "ICSA", "count_to_k"),
     (re.compile(r"\bcontinuing (jobless )?claims\b",       re.I), "CCSA",     "count_to_m"),

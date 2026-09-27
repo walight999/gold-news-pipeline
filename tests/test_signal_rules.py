@@ -85,3 +85,9 @@ def test_scenario_pills_unknown_event_neutral():
 def test_new_rules_higher_is_bearish(title):
     info = cal.gold_impact_directional(_ev(title))
     assert "Bearish" in info["higher_is"] and "Bullish" in info["lower_is"]
+
+
+def test_adp_is_not_served_nfp():
+    """ADP is the private survey — it must never get PAYEMS (the BLS NFP print)."""
+    assert fred.find_series_for_event("ADP Non-Farm Employment Change") is None
+    assert fred.find_series_for_event("Non-Farm Employment Change")[0] == "PAYEMS"

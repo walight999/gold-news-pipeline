@@ -225,11 +225,27 @@ def test_quota_prefers_line_api_when_fresh(store):
     assert qs["pct"] == 68            # NOT 141
 
 
-def test_quota_falls_back_to_local_when_api_stale(store):
+def test_quota_uses_stale_api_reading_within_the_same_month(store):
+    """2026-09-28 audit: a stale (>6h) reading of THIS month is still used —
+    the local estimate vs the 500 placeholder read 161% while LINE said 84%
+    and would shed briefings for nothing whenever the watchdog missed 6 h."""
+    from datetime import timedelta
+
+    from src.utils_time import iso_utc, now_ict, now_utc
+    month = now_ict().strftime("%Y-%m")
+    _seed_quota_blob(store, month=month, count=708,
+                     api_limit=35000, api_usage=23962,
+                     api_ts=iso_utc(now_utc() - timedelta(hours=12)))
+    qs = get_line_quota_status(store)
+    assert qs["source"] == "api_stale"
+    assert (qs["count"], qs["limit"], qs["pct"]) == (23962, 35000, 68)
+
+
+def test_quota_falls_back_to_local_when_api_reading_is_last_month(store):
     from datetime import timedelta
 
     from src.utils_time import iso_utc, now_utc
-    _seed_quota_blob(store, month="2026-09", count=708,
+    _seed_quota_blob(store, month="1999-01", count=708,
                      api_limit=35000, api_usage=23962,
                      api_ts=iso_utc(now_utc() - timedelta(hours=12)))
     qs = get_line_quota_status(store)
