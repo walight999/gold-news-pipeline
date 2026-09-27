@@ -1279,6 +1279,17 @@ SURPRISE_LABEL_TH = {
 }
 
 
+def _history_note(event: CalEvent) -> dict[str, Any] | None:
+    """Learned reaction history for this series (src/release_stats.py), or
+    None when there isn't enough of it."""
+    from .release_stats import history_line_th
+    line = history_line_th(event.country, event.title)
+    if not line:
+        return None
+    return {"type": "text", "text": f"📈 {line}", "size": "xxs", "wrap": True,
+            "color": "#6B7280", "margin": "md"}
+
+
 def _statement_note() -> dict[str, Any]:
     return {"type": "text", "text": "🟡 ประชุมดอกเบี้ย: ทองมักตอบสนองกับถ้อยแถลง/แนวทางในอนาคต มากกว่าตัวเลข",
             "size": "xs", "wrap": True, "color": "#92400E", "margin": "md"}
@@ -1378,6 +1389,9 @@ def post_release_bubble(
                 "margin": "md",
             })
             body_contents.append(_impact_pills_row(pills))
+            hist = _history_note(event)
+            if hist:
+                body_contents.append(hist)
         # Live XAU reaction (price-feed Phase 3 — when available)
         if xau_return_pct is not None:
             color = "#059669" if xau_return_pct > 0 else "#DC2626" if xau_return_pct < 0 else "#6B7280"
@@ -1527,6 +1541,9 @@ def pre_release_bubble(event: CalEvent, minutes_to_release: int,
             row = _impact_pills_row(scenario_pills(event, higher))
             row["margin"] = "sm"
             body_contents.append(row)
+        hist = _history_note(event)
+        if hist:
+            body_contents.append(hist)
     body_contents += [
         # Separator → source footer (matches breaking/alert/digest bottom row)
         {"type": "separator", "margin": "lg"},
@@ -1538,6 +1555,15 @@ def pre_release_bubble(event: CalEvent, minutes_to_release: int,
         "body": {"type": "box", "layout": "vertical", "spacing": "sm",
                  "paddingAll": "16px", "contents": body_contents},
     }
+
+
+def append_note(bubble: dict[str, Any], text: str) -> None:
+    """Add a small emphasised line at the end of a bubble's body (in place)."""
+    body = bubble.get("body") or {}
+    contents = body.get("contents")
+    if isinstance(contents, list):
+        contents.append({"type": "text", "text": text, "size": "xs", "wrap": True,
+                         "weight": "bold", "color": "#1E3A8A", "margin": "md"})
 
 
 # ---------- alt text ----------
