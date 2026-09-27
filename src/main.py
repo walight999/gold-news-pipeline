@@ -23,7 +23,7 @@ from typing import Any
 import yaml
 
 from . import calendar as cal
-from . import content_log, daily_brief, dedup, delivery_stats, digest, drive_upload, fb_publish, fred, health, image_gen, macro_push, news_alert, ops_alert, price_feed, scorecard, scorer, social_feed, telegram_news, translator, video_brief, weekly_report
+from . import content_log, daily_brief, thai_gold, dedup, delivery_stats, digest, drive_upload, fb_publish, fred, health, image_gen, macro_push, news_alert, ops_alert, price_feed, scorecard, scorer, social_feed, telegram_news, translator, video_brief, weekly_report
 from .fetcher import fetch_all, plan_fetch
 from .line_client import (
     PRIORITY_BRIEFING,
@@ -37,7 +37,9 @@ from .line_flex import (
     _pick_article_url,
     _source_label,
     alert_bubble,
+    alt_text_for_digest,
     alt_text_for_event,
+    alt_text_for_release,
     breaking_bubble,
     calendar_day_bubble,
     eod_recap_bubble,
@@ -69,6 +71,9 @@ from .utils_time import (
 
 def _quiet_hours_cfg(sched_cfg):
     return sched_cfg.get("quiet_hours") or {}
+
+
+_UNSET = object()
 
 
 def _persisted_first_seen(store, ev):
@@ -390,6 +395,7 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
     news_target = _group_targets()
     health_target = os.environ.get("LINE_HEALTH_TARGET", "")
 
+    xau_now: Any = _UNSET
     for d in decisions:
         ev = d.event
         # first_seen must survive across runs. normalize() stamps every item
@@ -463,12 +469,21 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
                 except Exception:
                     log.exception("content_log record (reject) failed event=%s", ev.event_id)
                 continue
+            if xau_now is _UNSET:
+                # One quote per run (lazy): only runs that actually push a
+                # breaking/alert card pay the yfinance call.
+                try:
+                    snap = price_feed.get_xau_snapshot()
+                except Exception:   # best-effort decoration — never blocks the push
+                    log.exception("xau snapshot for news card failed")
+                    snap = None
+                xau_now = (snap.last, snap.pct_change_day) if snap else None
             if d.route == Route.BREAKING:
-                bubble = breaking_bubble(ev, d.score, kw_cfg, alert=alert_obj)
-                alt = alt_text_for_event("⚡ BREAKING", ev, d.score)
+                bubble = breaking_bubble(ev, d.score, kw_cfg, alert=alert_obj, xau_now=xau_now)
+                alt = alt_text_for_event("⚡ BREAKING", ev, d.score, alert_obj.headline_th)
             else:
-                bubble = alert_bubble(ev, d.score, kw_cfg, alert=alert_obj)
-                alt = alt_text_for_event("🔔 ALERT", ev, d.score)
+                bubble = alert_bubble(ev, d.score, kw_cfg, alert=alert_obj, xau_now=xau_now)
+                alt = alt_text_for_event("🔔 ALERT", ev, d.score, alert_obj.headline_th)
             resp = _push_or_skip(line, news_target, alt, bubble, sched_cfg, label=d.route.value, store=store)
             if _delivered(resp):
                 store.upsert("sent_log", {
@@ -729,8 +744,8 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
             carousel = news_update_carousel(cards, slot, degraded=degraded_mode) if cards else None
             if carousel and news_target:
                 line = line or LineClient.from_env()
-                alt = (f"📰 News Update {slot} ICT — {len(cards)} event(s)"
-                       + (" [โหมดสำรอง]" if degraded_mode else ""))
+                alt = alt_text_for_digest(
+                    slot, [c["alert"].headline_th or "" for c in cards], degraded_mode)
                 # bypass_quiet: the 04:30 round sits inside the 04:00-05:00 ICT
                 # quiet window. A scheduled once-per-window summary should land
                 # on time regardless (same exemption as the 04:40 calendar
@@ -2398,6 +2413,7 @@ async def run_calendar_daily() -> int:
         xau_snapshot=xau_tuple, dxy_snapshot=dxy_tuple,
         hui_snapshot=hui_tuple, gld_snapshot=gld_tuple,
         thb_snapshot=thb_tuple,
+        thai_bar=thai_gold.fetch_latest(),
     )
     if bubble is None:
         store.flush()
@@ -2625,8 +2641,7 @@ async def run_calendar_check() -> int:
                                          xau_return_pct=xau_reaction,
                                          effect=effect_info,
                                          detail_th=detail_th)
-            alt_extra = f" · actual {actual_text}" if actual_text else ""
-            alt = f"📊 Released · {ev.country} {ev.title}{alt_extra}"
+            alt = alt_text_for_release(ev, actual_text, verdict)
             # Scorecard (Phase 1): persist the directional verdict so the EOD
             # scorecard can grade it against the actual 15m XAU move. Keyed on
             # cal:{event_id}; first_seen_ts = RELEASE time so the backfill
