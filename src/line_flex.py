@@ -14,7 +14,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
-from .calendar import CalEvent
+from .calendar import CalEvent, is_statement_driven, scenario_pills
 from .dedup import Event
 from .news_alert import MarketAlert
 from .normalizer import Item
@@ -1272,6 +1272,18 @@ def _verdict_word(verdict: str | None) -> str:
     return "NEUTRAL"
 
 
+SURPRISE_LABEL_TH = {
+    "beat": "▲ สูงกว่าคาด",
+    "miss": "▼ ต่ำกว่าคาด",
+    "in-line": "= ตามคาด",
+}
+
+
+def _statement_note() -> dict[str, Any]:
+    return {"type": "text", "text": "🟡 ประชุมดอกเบี้ย: ทองมักตอบสนองกับถ้อยแถลง/แนวทางในอนาคต มากกว่าตัวเลข",
+            "size": "xs", "wrap": True, "color": "#92400E", "margin": "md"}
+
+
 def post_release_bubble(
     event: CalEvent,
     impact: dict[str, str],
@@ -1341,9 +1353,12 @@ def post_release_bubble(
         })
         body_contents.append({"type": "separator", "margin": "lg"})
         if surprise:
-            emoji = {"beat": "🟢", "miss": "🔴", "in-line": "⚪"}.get(surprise, "")
+            # Neutral wording on purpose: "beat" only means actual > forecast,
+            # which is BAD news for e.g. jobless claims and bearish for gold on
+            # CPI — a green "BEAT" beside a red gold pill read as a contradiction.
+            label = SURPRISE_LABEL_TH.get(surprise, surprise)
             body_contents.append({
-                "type": "text", "text": f"{emoji} {surprise.upper()}",
+                "type": "text", "text": label,
                 "size": "sm", "weight": "bold",
                 "color": "#374151", "margin": "md",
             })
@@ -1353,13 +1368,16 @@ def post_release_bubble(
         # they're internally consistent — no need for a FRED-verdict
         # XAU override hack.
         from .calendar import event_impact_pills
-        pills = event_impact_pills(event, actual_text=actual_text)
-        body_contents.append({
-            "type": "text", "text": "Currency Impact (POST)",
-            "size": "xxs", "color": "#9CA3AF", "weight": "bold",
-            "margin": "md",
-        })
-        body_contents.append(_impact_pills_row(pills))
+        if is_statement_driven(event):
+            body_contents.append(_statement_note())
+        else:
+            pills = event_impact_pills(event, actual_text=actual_text)
+            body_contents.append({
+                "type": "text", "text": "Currency Impact (POST)",
+                "size": "xxs", "color": "#9CA3AF", "weight": "bold",
+                "margin": "md",
+            })
+            body_contents.append(_impact_pills_row(pills))
         # Live XAU reaction (price-feed Phase 3 — when available)
         if xau_return_pct is not None:
             color = "#059669" if xau_return_pct > 0 else "#DC2626" if xau_return_pct < 0 else "#6B7280"
@@ -1495,12 +1513,21 @@ def pre_release_bubble(event: CalEvent, minutes_to_release: int,
               "text": f"F: {event.forecast or '-'} / P: {event.previous or '-'}",
               "size": "xs", "color": "#6B7280", "flex": 1, "align": "end"},
         ]},
-        # Separator → 3-pill Currency Impact section
+        # Separator → scenario map. Forecast-vs-previous is the consensus the
+        # market has already priced, so painting ONE gold direction from it
+        # read like a prediction. Instead: what each outcome would mean.
         {"type": "separator", "margin": "lg"},
-        {"type": "text", "text": "Currency Impact (PRE)",
-         "size": "xxs", "color": "#9CA3AF", "weight": "bold",
-         "margin": "md"},
-        _impact_pills_row(event_impact_pills(event)),
+    ]
+    if is_statement_driven(event):
+        body_contents.append(_statement_note())
+    else:
+        for higher, label in ((True, "ถ้าออกสูงกว่าคาด"), (False, "ถ้าออกต่ำกว่าคาด")):
+            body_contents.append({"type": "text", "text": label, "size": "xxs",
+                                  "color": "#9CA3AF", "weight": "bold", "margin": "md"})
+            row = _impact_pills_row(scenario_pills(event, higher))
+            row["margin"] = "sm"
+            body_contents.append(row)
+    body_contents += [
         # Separator → source footer (matches breaking/alert/digest bottom row)
         {"type": "separator", "margin": "lg"},
         _source_link("ForexFactory", countdown, None),

@@ -9,10 +9,23 @@ Supported series (Phase 2.2 — 14 series, most-watched for XAU):
     Core CPI m/m            CPILFESL    mom_pct
     PCE Price Index m/m     PCEPI       mom_pct
     Core PCE m/m            PCEPILFE    mom_pct
-    PPI m/m                 PPIACO      mom_pct
-    Core PPI m/m            WPSFD49207  mom_pct   (PPILFE retired 2015)
-    Retail Sales m/m        RSXFS       mom_pct
+    PPI m/m                 PPIFIS      mom_pct   (final demand - the headline)
+    Core PPI m/m            PPIFES      mom_pct   (final demand less foods & energy)
+    Retail Sales m/m        RSAFS       mom_pct   (advance, retail + food services)
+    Core Retail Sales m/m   RSFSXMV     mom_pct   (ex motor vehicles & parts)
     Durable Goods m/m       DGORDER     mom_pct
+    Core Durable Goods m/m  ADXTNO      mom_pct   (ex transportation)
+
+US-ONLY: every series here is a US statistic. fetch_actual(country=...) refuses
+any non-USD event. Title regexes like "cpi m/m" / "retail sales m/m" also match
+GBP/CAD/EUR releases, which used to be served the US number (2026-08/09: GBP +
+CAD Retail Sales shown as the US +1.2%, German CPI as US CPI).
+
+2026-09-27 series corrections (checked against FRED series metadata): PPI m/m
+was PPIACO (all-commodities index, not the final-demand headline); Core PPI was
+WPSFD49207 (Finished Goods, not ex food & energy); Retail Sales was RSXFS (ex
+food services); "Core Retail Sales" / "Core Durable Goods" matched the headline
+regexes and were served headline values.
     NFP                     PAYEMS      delta_k    (level → monthly delta)
     Unemployment Rate       UNRATE      level_pct
     Initial Jobless Claims  ICSA        count_to_k
@@ -46,15 +59,18 @@ _SERIES_MAP: list[tuple[re.Pattern[str], str, str]] = [
     (re.compile(r"\bcpi m/m\b",                            re.I), "CPIAUCSL", "mom_pct"),
     (re.compile(r"\bcore pce price index m/m\b",           re.I), "PCEPILFE", "mom_pct"),
     (re.compile(r"\bpce price index m/m\b",                re.I), "PCEPI",    "mom_pct"),
-    (re.compile(r"\bcore ppi m/m\b",                       re.I), "WPSFD49207", "mom_pct"),
-    (re.compile(r"\bppi m/m\b",                            re.I), "PPIACO",   "mom_pct"),
+    (re.compile(r"\bcore ppi m/m\b",                       re.I), "PPIFES",   "mom_pct"),
+    (re.compile(r"\bppi m/m\b",                            re.I), "PPIFIS",   "mom_pct"),
     # Labour
     (re.compile(r"\b(non[- ]?farm.*employ.*change|nfp|non[- ]?farm payroll)\b", re.I), "PAYEMS", "delta_k"),
     (re.compile(r"\bunemployment rate\b",                  re.I), "UNRATE",   "level_pct"),
     (re.compile(r"\b(initial jobless claims|unemployment claims)\b", re.I), "ICSA", "count_to_k"),
     (re.compile(r"\bcontinuing (jobless )?claims\b",       re.I), "CCSA",     "count_to_m"),
     # Consumer / Manufacturing
-    (re.compile(r"\bretail sales m/m\b",                   re.I), "RSXFS",    "mom_pct"),
+    # Core variants FIRST: the headline regexes also match "Core ... m/m".
+    (re.compile(r"\bcore retail sales m/m\b",          re.I), "RSFSXMV",  "mom_pct"),
+    (re.compile(r"\bretail sales m/m\b",                   re.I), "RSAFS",    "mom_pct"),
+    (re.compile(r"\bcore durable goods orders m/m\b",  re.I), "ADXTNO",   "mom_pct"),
     (re.compile(r"\bdurable goods orders m/m\b",           re.I), "DGORDER",  "mom_pct"),
     # Housing
     (re.compile(r"\bbuilding permits\b",                   re.I), "PERMIT",   "thousands_to_m"),
@@ -180,7 +196,7 @@ def _obs_date(s: str):
 
 
 def fetch_actual(title: str, api_key: str | None = None,
-                 release_dt=None) -> FredResult | None:
+                 release_dt=None, country: str | None = None) -> FredResult | None:
     """Try to fetch the actual value for a calendar event.
 
     Returns None if:
@@ -193,6 +209,8 @@ def fetch_actual(title: str, api_key: str | None = None,
         prior period → we'd publish a bogus beat/miss). The caller then falls
         back to the FF HTML actual / directional-only card.
     """
+    if country is not None and (country or "").strip().upper() != "USD":
+        return None          # FRED series are US statistics: never serve them to other countries
     if api_key is None:
         api_key = fred_api_key()
     if not api_key:
@@ -243,7 +261,9 @@ def parse_forecast_value(text: str) -> float | None:
     if not text:
         return None
     s = text.strip().replace(",", "").replace("+", "")
-    if s.endswith(("%", "K", "M")):
+    # B/T (billions / trillions — trade balance, current account) added
+    # 2026-09-27: they used to fail the float() and silently go neutral.
+    if s.endswith(("%", "K", "M", "B", "T")):
         s = s[:-1]
     try:
         return float(s)

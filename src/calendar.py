@@ -257,10 +257,34 @@ _GOLD_IMPACT_RULES: list[tuple[re.Pattern[str], bool, str]] = [
      "Stronger demand lifts USD/yields"),
     (re.compile(r"\b(gdp|industrial production|manufacturing pmi|services pmi|ism)\b"), False,
      "Stronger growth lifts USD/yields"),
-    (re.compile(r"\b(rate decision|federal funds|interest rate decision|fed funds|"
-                r"main refinancing|deposit facility|bank rate)\b"), False,
-     "Hike (or hawkish tone) lifts USD/yields"),
+    # 2026-09-27 additions: high-impact US releases that had NO rule and so
+    # always rendered neutral. Same transmission as their families above.
+    (re.compile(r"\b(average hourly earnings|employment cost index|unit labor costs)\b"), False,
+     "Faster wage growth lifts USD/yields"),
+    (re.compile(r"\b(jolts|job openings)\b"), False,
+     "Stronger labour demand lifts USD/yields"),
+    (re.compile(r"\b(philly fed|empire state|richmond manufacturing|chicago pmi|"
+                r"kansas city|dallas fed)\b"), False,
+     "Stronger growth lifts USD/yields"),
+    (re.compile(r"\b(building permits|housing starts|new home sales|existing home sales|"
+                r"pending home sales)\b"), False,
+     "Stronger demand lifts USD/yields"),
 ]
+
+# Releases where the printed NUMBER is not the signal. Rate decisions are
+# almost always priced in; gold moves on the statement / guidance / dots
+# (2026-09-16: Fed cut to 3.75% → rule said "bullish", gold fell 1.9% in 60m on
+# the press conference). They render neutral with a "watch the statement" note
+# instead of a directional call. Checked BEFORE _GOLD_IMPACT_RULES.
+_STATEMENT_DRIVEN = re.compile(
+    r"\b(rate decision|federal funds|interest rate decision|fed funds|"
+    r"main refinancing|deposit facility|bank rate|cash rate|overnight rate|"
+    r"policy rate|monetary policy statement)\b")
+STATEMENT_DRIVEN_RATIONALE = "Rate decision: gold reacts to the statement / guidance, not the number"
+
+
+def is_statement_driven(event: "CalEvent") -> bool:
+    return bool(_STATEMENT_DRIVEN.search((event.title or "").lower()))
 
 
 def gold_impact_directional(event: CalEvent) -> dict[str, str]:
@@ -274,6 +298,9 @@ def gold_impact_directional(event: CalEvent) -> dict[str, str]:
     Keys: higher_is, lower_is, rationale.
     """
     title_low = event.title.lower()
+    if is_statement_driven(event):
+        return {"higher_is": "🟡 Neutral", "lower_is": "🟡 Neutral",
+                "rationale": STATEMENT_DRIVEN_RATIONALE}
     for pat, inverse, rationale in _GOLD_IMPACT_RULES:
         if pat.search(title_low):
             if inverse:
@@ -347,7 +374,7 @@ def event_impact_pills(
         ref = event.previous
         comparison = event.forecast
 
-    if not ref or not comparison:
+    if not ref or not comparison or is_statement_driven(event):
         return pills_neutral
     ref_v = parse_forecast_value(ref)
     cmp_v = parse_forecast_value(comparison)
@@ -372,6 +399,32 @@ def event_impact_pills(
     counter_dir = "bearish" if ecu_dir == "bullish" else "bullish"
     xau_dir = "bearish" if ecu_dir == "bullish" else "bullish"
     return [(ecu, ecu_dir), (counter, counter_dir), ("XAU", xau_dir)]
+
+
+def scenario_pills(event: "CalEvent", higher: bool) -> list[tuple[str, str]]:
+    """3 pills (ECU, counter, XAU) for the hypothetical "print comes in
+    ABOVE / BELOW forecast" case. Used by the T-15 card instead of the old
+    forecast-vs-previous pills: forecast vs previous is the consensus the market
+    has already priced, so painting a gold direction from it read like a
+    prediction. The two-scenario map tells the trader what to do with the print.
+    Neutral when there is no rule or the release is statement-driven."""
+    ecu = (event.country or "").upper() or "USD"
+    counter = "EUR" if ecu == "USD" else "USD"
+    neutral = [(ecu, "neutral"), (counter, "neutral"), ("XAU", "neutral")]
+    if is_statement_driven(event):
+        return neutral
+    title_low = (event.title or "").lower()
+    inverse = None
+    for pat, inv, _ in _GOLD_IMPACT_RULES:
+        if pat.search(title_low):
+            inverse = inv
+            break
+    if inverse is None:
+        return neutral
+    ecu_up = higher != inverse          # higher print strengthens ECU unless inverse
+    ecu_dir = "bullish" if ecu_up else "bearish"
+    other = "bearish" if ecu_up else "bullish"
+    return [(ecu, ecu_dir), (counter, other), ("XAU", other)]
 
 
 def forecast_vs_previous_effect(event: "CalEvent") -> dict[str, str]:
