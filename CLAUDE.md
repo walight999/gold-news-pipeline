@@ -250,6 +250,13 @@ with no 15m bar show as ⏳ pending, not wrong.
   official FOMC statement from the Fed RSS → Thai summary, tone, gold call).
   Final calls go to calibration_log (`routed_as=speech`, graded from SEND
   time). Config `schedule.yaml → speech:` (update `fed_chair` when it changes).
+- `spot_feed.py` — **XAU spot is primary (2026-09-28).** Card XAU level =
+  Swissquote spot (price_feed.get_xau_snapshot; day % still from GC=F).
+  Graded calibration rows (predicted_dir set: calendar + speech calls) are
+  backfilled on Dukascopy 1-min spot (closed hours only; wait ≤3h, then GC=F
+  fallback); ungraded news rows stay on the one-fetch GC=F series. The live
+  "5 min after the print" / speech move numbers are GC=F and labelled
+  "(futures)" on the cards. Thai-bar (สมาคม) price was removed — not used.
 - `release_stats.py` + `research/` — learned release-reaction history and the
   gated composite call on calendar cards; see `docs/RELEASE-LEARNING.md`.
 

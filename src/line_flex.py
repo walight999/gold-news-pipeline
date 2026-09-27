@@ -1135,33 +1135,6 @@ def _forecast_previous_inline(forecast: str, previous: str) -> dict[str, Any] | 
     }
 
 
-def _thai_bar_row(bar) -> dict[str, Any] | None:
-    """สมาคมค้าทองคำ 96.5% bar: sell / buy + change vs previous day's last."""
-    if bar is None:
-        return None
-    ch = bar.change_day
-    if ch > 0:
-        ch_text, ch_color = f"▲{ch:,.0f}", "#047857"
-    elif ch < 0:
-        ch_text, ch_color = f"▼{abs(ch):,.0f}", "#B91C1C"
-    else:
-        ch_text, ch_color = "คงที่", "#6B7280"
-    as_of = f" · {bar.as_of_ict:%d/%m %H:%M}" if bar.as_of_ict else ""
-    return {
-        "type": "box", "layout": "horizontal", "spacing": "sm", "margin": "md",
-        "alignItems": "center",
-        "contents": [
-            {"type": "text", "text": "ทองแท่งสมาคม", "size": "xxs", "color": "#6B7280", "flex": 0},
-            {"type": "text", "text": f"ขาย {bar.sell:,.0f} · ซื้อ {bar.buy:,.0f}",
-             "size": "xs", "weight": "bold", "color": "#111827", "flex": 0},
-            {"type": "text", "text": ch_text, "size": "xs", "weight": "bold",
-             "color": ch_color, "flex": 0},
-            {"type": "text", "text": as_of.lstrip(" ·") or " ", "size": "xxs",
-             "color": "#9CA3AF", "align": "end"},
-        ],
-    }
-
-
 def calendar_day_bubble(
     events: list[CalEvent],
     date_label: str,
@@ -1170,7 +1143,6 @@ def calendar_day_bubble(
     hui_snapshot: tuple[float, float] | None = None,
     gld_snapshot: tuple[float, float] | None = None,
     thb_snapshot: tuple[float, float] | None = None,
-    thai_bar: "Any | None" = None,                      # thai_gold.ThaiBarPrice
 ) -> dict[str, Any] | None:
     """One long bubble listing today's events chronologically.
 
@@ -1212,10 +1184,7 @@ def calendar_day_bubble(
             "type": "box", "layout": "horizontal", "spacing": "md",
             "contents": cells,
         })
-    bar_row = _thai_bar_row(thai_bar)
-    if bar_row:
-        body_contents.append(bar_row)
-    if cells or bar_row:
+    if cells:
         body_contents.append({"type": "separator", "margin": "md"})
 
     from .calendar import forecast_vs_previous_effect
@@ -1398,7 +1367,9 @@ def post_release_bubble(
             sign = "+" if xau_return_pct > 0 else ""
             body_contents.append({
                 "type": "text",
-                "text": f"XAU reacted {sign}{xau_return_pct:.2f}% in the next 5 min",
+                # Measured on GC=F futures: spot history for the current hour
+                # isn't published yet when this card goes out (src/spot_feed.py).
+                "text": f"XAU (futures) ขยับ {sign}{xau_return_pct:.2f}% ใน 5 นาทีแรกหลังข่าว",
                 "size": "xs", "color": color, "margin": "sm",
             })
     else:
@@ -1606,7 +1577,7 @@ def speech_bubble(win: dict[str, Any], a: dict[str, Any], n_quotes: int,
     if xau_move_pct is not None:
         sign = "+" if xau_move_pct >= 0 else ""
         color = "#059669" if xau_move_pct > 0 else "#DC2626" if xau_move_pct < 0 else "#6B7280"
-        body.append({"type": "text", "text": f"XAU ตั้งแต่เริ่มแถลง {sign}{xau_move_pct:.2f}%",
+        body.append({"type": "text", "text": f"XAU (futures) ตั้งแต่เริ่มแถลง {sign}{xau_move_pct:.2f}%",
                      "size": "xs", "color": color, "margin": "sm"})
     body.append({"type": "separator", "margin": "lg"})
     body.append({"type": "text", "text": f"วิเคราะห์จาก {n_quotes} ข้อความสดจาก squawk / wire",

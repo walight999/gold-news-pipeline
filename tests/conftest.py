@@ -75,3 +75,13 @@ def kw_config():
     import yaml
     with (ROOT / "config" / "keywords.yaml").open("r", encoding="utf-8") as f:
         return yaml.safe_load(f)
+
+
+
+@pytest.fixture(autouse=True)
+def _no_spot_network(monkeypatch):
+    """Tests never hit Swissquote / Dukascopy: spot is "unavailable" unless a
+    test patches src.spot_feed itself (then this default is overridden)."""
+    from src import spot_feed
+    monkeypatch.setattr(spot_feed, "current_spot", lambda *a, **k: None)
+    monkeypatch.setattr(spot_feed, "_curl", lambda *a, **k: None)   # → minute_series None

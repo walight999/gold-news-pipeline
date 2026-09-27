@@ -12,7 +12,7 @@ concurrency:
 jobs:
   run:
     runs-on: ubuntu-latest
-    timeout-minutes: 3
+    timeout-minutes: 5   # was 3; backfill now fetches spot for graded rows (≤90 s budget)
     env:
       LINE_CHANNEL_TOKEN: ${{ secrets.LINE_CHANNEL_TOKEN }}
       LINE_NEWS_TARGET:   ${{ secrets.LINE_NEWS_TARGET }}

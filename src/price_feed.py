@@ -14,6 +14,13 @@ returns None on failure rather than raising, so callers can render a
 graceful "no price data" fallback.
 
 XAUUSD=X (spot) is delisted on Yahoo, hence the futures proxy.
+
+2026-09-27: the desk trades SPOT, so spot is now primary where it can be
+(src/spot_feed.py): the XAU level on cards is Swissquote spot
+(get_xau_snapshot), and graded calls are measured on Dukascopy 1-minute spot
+(xau_spot_base_and_returns). GC=F remains the fallback and the source for the
+live "reacted in the next 5 min" number, which is needed before any spot
+history for that hour is published.
 """
 from __future__ import annotations
 
@@ -87,7 +94,21 @@ def get_snapshot(ticker: str) -> PriceSnapshot | None:
 
 
 def get_xau_snapshot() -> PriceSnapshot | None:
-    return get_snapshot("GC=F")
+    """XAU level = SPOT (Swissquote); day % change from GC=F (futures and spot
+    move together over a day, and Swissquote gives no previous close). Falls
+    back to the plain futures snapshot when spot is unavailable."""
+    fut = get_snapshot("GC=F")
+    try:
+        from .spot_feed import current_spot
+        spot = current_spot()
+    except Exception:  # noqa: BLE001
+        spot = None
+    if spot is None:
+        return fut
+    pct = fut.pct_change_day if fut else 0.0
+    prev = spot / (1 + pct / 100) if pct is not None else spot
+    return PriceSnapshot(ticker="XAUUSD", last=spot, prev_close=prev, pct_change_day=pct,
+                         bar_time_utc=datetime.now(timezone.utc))
 
 
 def get_dxy_snapshot() -> PriceSnapshot | None:
@@ -181,9 +202,13 @@ def base_and_returns_from_series(
     release_dt_utc: datetime,
     offsets_min: tuple[int, ...] = (5, 15, 30),
     now: datetime | None = None,
+    bar_min: int = 5,
 ) -> tuple[float | None, dict[int, float | None]]:
     """Pure: compute (base_price, {offset: pct}) for one release from an
-    already-fetched series. No network. See `fetch_intraday_series`."""
+    already-fetched series. No network. See `fetch_intraday_series`.
+    `bar_min` = bar size of the series (5 for yfinance, 1 for spot_feed): the
+    base is the close of the bar that ENDS at the release; with 1-min bars the
+    T+m price is the close of the bar ending at T+m."""
     out: dict[int, float | None] = {m: None for m in offsets_min}
     if not series:
         return None, out
@@ -207,7 +232,7 @@ def base_and_returns_from_series(
         (opened ≤ target-5m) so the measured move starts from the pre-print
         price — using _close_at here put the base ~5 min into the spike and
         systematically damped / sign-flipped the reaction the scorecard grades."""
-        return _close_at(target - timedelta(minutes=5))
+        return _close_at(target - timedelta(minutes=bar_min))
 
     ref = (release_dt_utc.astimezone(timezone.utc) if release_dt_utc.tzinfo
            else release_dt_utc.replace(tzinfo=timezone.utc))
@@ -220,7 +245,7 @@ def base_and_returns_from_series(
         later = ref + timedelta(minutes=m)
         if later > now:
             continue
-        p = _close_at(later)
+        p = _close_at(later - timedelta(minutes=1) if bar_min == 1 else later)
         if p:
             res[m] = (p - base) / base * 100
     return base, res
@@ -271,3 +296,18 @@ def xau_return_pct(release_dt_utc: datetime, minutes_after: int = 5) -> float | 
     if base is None:
         return None
     return rets.get(minutes_after)
+
+
+def xau_spot_base_and_returns(
+    release_dt_utc: datetime, offsets_min: tuple[int, ...] = (5, 15, 30, 60),
+    now: datetime | None = None,
+) -> tuple[float | None, dict[int, float | None]]:
+    """SPOT version of xau_base_and_returns_from_release: Dukascopy 1-minute
+    bars. (None, {…None}) when the spot history isn't available (yet)."""
+    from .spot_feed import minute_series
+    now = now or datetime.now(timezone.utc)
+    series = minute_series(release_dt_utc - timedelta(minutes=10),
+                           release_dt_utc + timedelta(minutes=max(offsets_min) + 2), now)
+    if not series:
+        return None, {m: None for m in offsets_min}
+    return base_and_returns_from_series(series, release_dt_utc, offsets_min, now=now, bar_min=1)
