@@ -284,6 +284,16 @@ def _collect_apify_entries(store, src_cfg, mode: str,
     return out
 
 
+def _record_spot_tape(store) -> float | None:
+    """Best-effort: stamp the current XAU spot on the tape (src/spot_feed.py)."""
+    try:
+        from . import spot_feed
+        return spot_feed.record_tape(store, now_utc())
+    except Exception:
+        log.exception("spot tape record failed")
+        return None
+
+
 async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
     src_cfg, kw_cfg, sched_cfg = _load_configs()
 
@@ -302,6 +312,7 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
             store.connect()
             store.load_all()
             health.write_heartbeat(store, items_seen=0)
+            _record_spot_tape(store)
             # Weekly self-review rides the weekend heartbeat run: the review
             # window is Sat ≥10:00 ICT (+ Sunday catch-up), which is exactly
             # when this branch — not the main pipeline below — is what runs.
@@ -369,6 +380,7 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
 
     items = normalize(raw_entries)
     log.info("items normalized: %d (from %d entries)", len(items), len(raw_entries))
+    _record_spot_tape(store)
     # Speech / statement windows (FOMC, Fed Chair, Trump, ECB…): keep the live
     # quote headlines while a window is open — calendar_check reads them.
     try:
@@ -486,7 +498,10 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
                 except Exception:   # best-effort decoration — never blocks the push
                     log.exception("xau snapshot for news card failed")
                     snap = None
-                xau_now = (snap.last, snap.pct_change_day) if snap else None
+                # (level, $ change today) — $ reads as a range traders know;
+                # None when the day change is unknown.
+                xau_now = ((snap.last, (snap.last - snap.prev_close)
+                            if snap.pct_change_day is not None else None) if snap else None)
             if d.route == Route.BREAKING:
                 bubble = breaking_bubble(ev, d.score, kw_cfg, alert=alert_obj, xau_now=xau_now)
                 alt = alt_text_for_event("⚡ BREAKING", ev, d.score, alert_obj.headline_th)
@@ -2468,6 +2483,13 @@ async def run_calendar_daily() -> int:
             "event_id": sent_key, "route_type": "calendar_daily",
             "sent_ts": iso_utc(now_utc()), "line_status": resp["status"],
         })
+        # Persist the ledger NOW, not at the end of the job: this also runs as
+        # calendar_check's catch-up, and a job killed between the push and a
+        # later flush would re-send the day's card on the next run.
+        try:
+            store.flush()
+        except Exception:
+            log.exception("calendar_daily: immediate sent_log flush failed (retried at end)")
     # Off-GAS CHUM News Bot (Telegram) — the daily brief is the bot's backbone.
     # Env-gated + best-effort; worker dedups on event_id=sent_key. Never blocks LINE.
     tg_news = telegram_news.TelegramNewsClient.from_env(store=store)
@@ -2626,6 +2648,7 @@ async def run_calendar_check() -> int:
         store.flush()
         return 1
 
+    spot_now = _record_spot_tape(store)
     countries = tuple(cal_cfg.get("pre_release_currencies", cal.DEFAULT_PRE_COUNTRIES))
     impacts   = tuple(cal_cfg.get("pre_release_impacts",    cal.DEFAULT_PRE_IMPACTS))
     pre_lo = int(cal_cfg.get("pre_release_window_low_min",  cal.DEFAULT_PRE_WINDOW_LOW))
@@ -2764,7 +2787,10 @@ async def run_calendar_check() -> int:
                     verdict = fred.reconcile_with_impact(surprise, impact_info)
             # XAU reaction since release (Phase 3 — when intraday data is
             # available; off-hours / 429s gracefully return None).
-            xau_reaction = price_feed.xau_return_pct(ev.dt_utc, minutes_after=5)
+            # Move since the print on SPOT, in $: tape point ≤6 min before the
+            # release → spot now. None (line hidden) when there's no honest base.
+            from . import spot_feed
+            xau_move = spot_feed.move_since(store, ev.dt_utc, now_utc(), spot_now)
             effect_info = cal.forecast_vs_previous_effect(ev)
             # Thai explanation of what the print means for gold (Claude Haiku,
             # cached). Best-effort — None degrades to the directional-only card.
@@ -2775,14 +2801,17 @@ async def run_calendar_check() -> int:
                     impact=ev.impact, actual=actual_text,
                     forecast=ev.forecast, previous=ev.previous,
                     surprise=surprise, verdict=verdict,
-                    xau_reaction_pct=xau_reaction, store=store,
+                    xau_reaction_pct=None, store=store,
+                    xau_move_text=(f"{'+' if xau_move['usd'] >= 0 else '-'}${abs(xau_move['usd']):,.1f} "
+                                   f"over {xau_move['minutes']} min since the release (spot)")
+                    if xau_move else None,
                 )
             except Exception:
                 log.exception("calendar explainer failed event=%s", ev.event_id)
             bubble = post_release_bubble(ev, impact_info,
                                          actual_text=actual_text,
                                          surprise=surprise, verdict=verdict,
-                                         xau_return_pct=xau_reaction,
+                                         xau_move=xau_move,
                                          effect=effect_info,
                                          detail_th=detail_th)
             alt = alt_text_for_release(ev, actual_text, verdict)

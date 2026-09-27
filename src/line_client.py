@@ -241,10 +241,11 @@ def quota_allows(store, priority: int) -> tuple[bool, str]:
     exhausted = last_status == "429" and qs.get("month") == cur_month
     if exhausted and priority >= PRIORITY_CORE:
         return False, "LINE quota exhausted (429) this month — conserving until reset"
-    if pct >= 90 and priority >= PRIORITY_BRIEFING:
-        return False, f"LINE quota {pct}% — shedding briefings to protect breaking/alert"
-    if pct >= 80 and priority >= PRIORITY_REDUNDANT:
-        return False, f"LINE quota {pct}% — shedding T-15 pre-release"
+    # 2026-09-28 (White): use the whole monthly quota — no early shedding at
+    # 80% / 90%. The quota resets on the 1st, and per-route delivery history
+    # (delivery_daily) is what the next month's tuning is based on. Only a real
+    # 429 stops lower-priority pushes; breaking/alert keep probing so delivery
+    # resumes by itself once LINE accepts again.
     return True, ""
 
 

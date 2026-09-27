@@ -29,10 +29,10 @@ normalize → dedup.cluster → scorer.score → router.decide
         │       1:1 U… carries private/ops only (eod_recap, scorecard, health).
         │       Reason: free-tier quota bills per recipient; dual-target news
         │       exhausted the 2026-07 quota mid-month (LINE 429 all pushes).
-        │     ⚠ Quota gate (line_client.quota_allows, priority PRIORITY_*): sheds
-        │       LOW-value LINE cards as usage climbs so breaking/alert keep quota.
-        │       Hard 429-this-month → shed all but breaking/alert; >=90% → shed
-        │       briefings; >=80% → shed T-15 pre-release. Telegram copies are
+        │     ⚠ Quota gate (line_client.quota_allows): since 2026-09-28 the FULL
+        │       monthly quota is used — no early shedding. Only a real 429 this
+        │       month stops pushes (all but breaking/alert, which keep probing).
+        │       Tune next month from delivery_daily. Telegram copies are
         │       INDEPENDENT — they still deliver when the LINE copy is shed.
         │
         └─► social_feed sheet tab: tweet_writer composes a @tradetongkam-voice
@@ -255,8 +255,11 @@ with no 15m bar show as ⏳ pending, not wrong.
   Graded calibration rows (predicted_dir set: calendar + speech calls) are
   backfilled on Dukascopy 1-min spot (closed hours only; wait ≤3h, then GC=F
   fallback); ungraded news rows stay on the one-fetch GC=F series. The live
-  "5 min after the print" / speech move numbers are GC=F and labelled
-  "(futures)" on the cards. Thai-bar (สมาคม) price was removed — not used.
+  Live moves on cards are SPOT, in $: a Swissquote "spot tape" (source_state
+  `_spot_tape`, stamped every news-cron / calendar-check run, 26 h kept) gives
+  the price ≤6 min before a release / speech; card move = spot now − that
+  (hidden if no base). History lines add the typical 15-min $ range
+  (|move| p50–p80 × current spot). Thai-bar (สมาคม) price was removed — not used.
 - `release_stats.py` + `research/` — learned release-reaction history and the
   gated composite call on calendar cards; see `docs/RELEASE-LEARNING.md`.
 

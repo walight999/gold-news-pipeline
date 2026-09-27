@@ -417,8 +417,13 @@ def series_table(rows: list[dict], model: dict) -> dict:
                         wrong += int(o != hawk * d)
                 n = right + wrong
                 if n >= 5:
+                    absm = sorted(abs(x) for x in moves)
                     cells[f"{a}|{h}"] = {"n": n, "hit": round(right / n, 3),
-                                         "median_move_hawkish_pct": round(statistics.median(moves), 4)}
+                                         "median_move_hawkish_pct": round(statistics.median(moves), 4),
+                                         # typical size of the reaction (flat moves
+                                         # included) → the card's "$a–$b" range
+                                         "abs_p50_pct": round(absm[len(absm) // 2], 4),
+                                         "abs_p80_pct": round(absm[min(len(absm) - 1, int(len(absm) * 0.8))], 4)}
         if cells:
             out[k] = {"scale": sc, "rule_sign": sign, "cells": cells}
     return out

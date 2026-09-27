@@ -171,23 +171,16 @@ def test_quota_429_from_previous_month_does_not_gate(store):
     assert quota_allows(store, PRIORITY_CORE)[0] is True
 
 
-def test_quota_soft_gate_sheds_redundant_at_80pct(store):
+def test_quota_high_usage_never_sheds(store):
+    """2026-09-28 (White): use the full monthly quota. High usage (here 99% of
+    the local cap) no longer sheds any priority; only a real 429 does."""
     from src.line_client import (
         PRIORITY_BRIEFING, PRIORITY_CORE, PRIORITY_REDUNDANT, quota_allows,
     )
-    for _ in range(400):  # 80% of 500
+    for _ in range(495):
         record_line_outcome(store, 200)
-    assert quota_allows(store, PRIORITY_REDUNDANT)[0] is False   # T-15 shed
-    assert quota_allows(store, PRIORITY_BRIEFING)[0] is True     # not yet
-    assert quota_allows(store, PRIORITY_CORE)[0] is True
-
-
-def test_quota_soft_gate_sheds_briefing_at_90pct_core_protected(store):
-    from src.line_client import PRIORITY_BRIEFING, PRIORITY_CORE, quota_allows
-    for _ in range(450):  # 90% of 500
-        record_line_outcome(store, 200)
-    assert quota_allows(store, PRIORITY_BRIEFING)[0] is False
-    assert quota_allows(store, PRIORITY_CORE)[0] is True         # core stays
+    for prio in (PRIORITY_REDUNDANT, PRIORITY_BRIEFING, PRIORITY_CORE):
+        assert quota_allows(store, prio)[0] is True
 
 
 def test_watchdog_no_warning_at_low_volume(store):

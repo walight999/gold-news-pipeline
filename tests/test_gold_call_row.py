@@ -13,14 +13,15 @@ def _texts(row):
 
 def test_bias_confidence_and_price():
     a = MarketAlert(action="keep", headline_th="h", gold_bias="bullish", gold_confidence="high")
-    row = _gold_call_row(a, (2650.4, 0.42))
-    assert _texts(row) == ["🟢 หนุนทอง · มั่นใจสูง", "XAU 2,650.4 (+0.42% วันนี้)"]
+    # xau_now = (level, $ change today) since 2026-09-28 — moves read in $
+    row = _gold_call_row(a, (4285.2, 18.4))
+    assert _texts(row) == ["🟢 หนุนทอง · มั่นใจสูง", "XAU 4,285.2 (+$18.4 วันนี้)"]
 
 
 def test_negative_change_and_no_confidence():
     a = MarketAlert(action="keep", headline_th="h", gold_bias="bearish")
-    row = _gold_call_row(a, (2600.0, -1.5))
-    assert _texts(row) == ["🔴 กดดันทอง", "XAU 2,600.0 (-1.50% วันนี้)"]
+    row = _gold_call_row(a, (4200.0, -63.0))
+    assert _texts(row) == ["🔴 กดดันทอง", "XAU 4,200.0 (-$63.0 วันนี้)"]
 
 
 def test_nothing_to_show_returns_none():
@@ -29,8 +30,8 @@ def test_nothing_to_show_returns_none():
 
 
 def test_price_only_when_no_bias():
-    row = _gold_call_row(MarketAlert(action="keep", headline_th="h"), (2650.0, 0.1))
-    assert _texts(row) == ["XAU 2,650.0 (+0.10% วันนี้)"]
+    row = _gold_call_row(MarketAlert(action="keep", headline_th="h"), (4285.0, 0.4))
+    assert _texts(row) == ["XAU 4,285.0 (+$0.4 วันนี้)"]
 
 
 def test_parse_normalises_bias_fields():

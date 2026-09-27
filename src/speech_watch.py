@@ -286,7 +286,8 @@ Below are the live headline quotes from wire / squawk feeds{stmt_note}, oldest f
 Judge what was SAID — policy stance, forward guidance, surprises vs what markets
 expected — and what it means for gold over the next hour. Quotes may repeat or be
 partial; weigh the substance, ignore noise. If the quotes are thin or contradictory,
-say so and lower confidence. XAU has moved {xau_move} since the start.
+say so and lower confidence. XAU has moved {xau_move} since the start; if you
+mention that move, quote it in US dollars exactly as given (never as a percentage).
 
 Return ONLY JSON:
 {{"tone": "hawkish" | "dovish" | "neutral" | "mixed",
@@ -344,7 +345,8 @@ def analyze(win: dict, quotes: list[dict], stage: str, xau_move_pct: float | Non
             if cached:
                 return cached
     qtext = "\n".join(f"- [{q['ts'][11:16]} UTC] {q['t']}" for q in quotes[-40:]) or "(no quotes captured)"
-    move = "n/a" if xau_move_pct is None else f"{xau_move_pct:+.2f}%"
+    move = ("n/a" if xau_move_pct is None else
+            xau_move_pct if isinstance(xau_move_pct, str) else f"{xau_move_pct:+.2f}%")
     prompt = _PROMPT.format(
         kind=_kind(win["title"]), stage="in progress" if stage == "mid" else "just finished",
         title=win["title"], country=win["country"], quotes=qtext, xau_move=move,
@@ -413,7 +415,6 @@ def run(store, line, target, sched_cfg, now: datetime, push, delivered) -> int:
     cfg = cfg_from(sched_cfg)
     if not cfg.get("enabled", True):
         return 0
-    from . import price_feed
     from .line_flex import speech_bubble
     from .utils_time import iso_utc
     sent_n = 0
@@ -433,18 +434,20 @@ def run(store, line, target, sched_cfg, now: datetime, push, delivered) -> int:
                                           "sent_ts": iso_utc(now), "line_status": "skipped"})
                 continue
             start = _dt(w["start"])
-            mins = max(1, min(int((now - start).total_seconds() // 60), 180))
             try:
-                move = price_feed.xau_return_pct(start, minutes_after=mins)
+                from . import spot_feed
+                mv = spot_feed.move_since(store, start, now, spot_feed.current_spot())
             except Exception:  # noqa: BLE001
-                move = None
+                mv = None
+            move = (f"{'+' if mv['usd'] >= 0 else '-'}${abs(mv['usd']):,.1f} over "
+                    f"{mv['minutes']} min (spot)") if mv else None
             stmt = None
             if w["country"] == "USD" and re.search(r"FOMC Statement|Federal Funds Rate", w["title"], re.I):
                 stmt = fetch_fomc_statement(now)
             a = analyze(w, quotes, stage, move, stmt, store)
             if not a:
                 continue
-            bubble = speech_bubble(w, a, len(quotes), move, stage)
+            bubble = speech_bubble(w, a, len(quotes), mv, stage)
             head = "🎙️ ระหว่างแถลง" if stage == "mid" else "🎙️ สรุปถ้อยแถลง"
             resp = push(f"{head} · {w['title']} · {a['summary_th']}", bubble)
             if not delivered(resp):
