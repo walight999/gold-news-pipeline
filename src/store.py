@@ -230,6 +230,14 @@ class Store:
     dirty: dict[str, set[str]] = field(default_factory=dict)
     # Track API call count for acceptance criterion §6.8.
     api_calls: int = 0
+    # Snapshot of each row as last loaded from / queued for the sheet. upsert()
+    # compares against THIS, not the live row: get() hands out the live dict, so
+    # a caller that mutates it in place and then upserts it back would otherwise
+    # compare the row against itself, hit the "nothing changed" no-op, and the
+    # change would never reach the sheet (LINE failure streak, classifier token
+    # counter — silently dropped in every mode that doesn't dirty the tab some
+    # other way).
+    _clean: dict[str, dict[str, dict[str, Any]]] = field(default_factory=dict)
 
     @classmethod
     def from_env(cls) -> "Store":
@@ -276,6 +284,7 @@ class Store:
                     continue
                 buf[rk] = {c: r.get(c, "") for c in cols}
             self.data[tab] = buf
+            self._clean[tab] = {rk: dict(r) for rk, r in buf.items()}
             self.dirty[tab] = set()
         log.info("store.load_all done: %s", {t: len(self.data[t]) for t in SCHEMAS})
 
@@ -289,8 +298,12 @@ class Store:
         row = {c: row.get(c, "") for c in SCHEMAS[tab]}
         rk = _row_key(tab, row)
         existing = self.data.get(tab, {}).get(rk)
-        if existing is not None and all(
-            str(existing.get(c, "")) == str(row.get(c, ""))
+        # Baseline = the sheet-side snapshot when we have one (see _clean);
+        # rows injected without load_all (tests, fresh tabs) fall back to the
+        # live row, i.e. the old behaviour.
+        baseline = self._clean.get(tab, {}).get(rk, existing)
+        if existing is not None and baseline is not None and all(
+            str(baseline.get(c, "")) == str(row.get(c, ""))
             for c in SCHEMAS[tab] if c != "updated_at"
         ):
             # No-op: every field except updated_at is unchanged vs what's already
@@ -301,6 +314,7 @@ class Store:
             return existing
         row["updated_at"] = iso_utc(now_utc())
         self.data.setdefault(tab, {})[rk] = row
+        self._clean.setdefault(tab, {})[rk] = dict(row)
         self.dirty.setdefault(tab, set()).add(rk)
         return row
 

@@ -13,7 +13,7 @@ concurrency:
 jobs:
   run:
     runs-on: ubuntu-latest
-    timeout-minutes: 3
+    timeout-minutes: 8  # was 3: Sheets retries (5x, 2-30s) + FF retries could be killed after the LINE push but before sent_log flushed → duplicate card next run
     env:
       LINE_CHANNEL_TOKEN: ${{ secrets.LINE_CHANNEL_TOKEN }}
       LINE_NEWS_TARGET:   ${{ secrets.LINE_NEWS_TARGET }}
@@ -35,6 +35,14 @@ jobs:
       PYTHONUNBUFFERED:   "1"
     steps:
       - uses: actions/checkout@v4
+      # Last-good ForexFactory feed (src/calendar.py FF_CACHE_PATH): used only
+      # when the live fetch fails after retries (FF 429s near release slots).
+      # Unique key per run + prefix restore = always restore the newest copy.
+      - uses: actions/cache@v4
+        with:
+          path: .ff_cache
+          key: ff-cache-${{ github.run_id }}
+          restore-keys: ff-cache-
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"

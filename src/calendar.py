@@ -16,8 +16,11 @@ Three consumers:
 from __future__ import annotations
 
 import hashlib
+import json
 import logging
+import os
 import re
+import time
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
@@ -62,12 +65,85 @@ def _make_event_id(title: str, dt_iso: str, country: str) -> str:
     return hashlib.sha256(raw).hexdigest()[:16]
 
 
+# Last-good copy of the FF feed. The endpoint rate-limits (HTTP 429 seen live
+# 2026-09-25 13:31 UTC, right after a release slot) and a single failure used
+# to abort the whole calendar run. Workflows persist this file between runs
+# with actions/cache; locally it just lives in the working tree (gitignored).
+FF_CACHE_PATH = os.environ.get("FF_CACHE_PATH", ".ff_cache/ff_thisweek.json")
+FF_CACHE_MAX_AGE_H = 72          # the feed is a weekly file; older = wrong week
+_FF_ATTEMPTS = 3
+_FF_RETRY_STATUSES = (429, 500, 502, 503, 504)
+
+
+def _ff_sleep(seconds: float) -> None:   # indirection so tests don't sleep
+    time.sleep(seconds)
+
+
+def _ff_get_json(url: str, timeout: float) -> Any:
+    """GET the feed with a short retry on 429/5xx/transport errors. Honours
+    Retry-After (capped) so a rate limit window can pass between attempts."""
+    last_exc: Exception | None = None
+    for attempt in range(1, _FF_ATTEMPTS + 1):
+        try:
+            with httpx.Client(timeout=timeout,
+                              headers={"User-Agent": "gold-news-pipeline/1.0"}) as c:
+                r = c.get(url, follow_redirects=True)
+            if r.status_code in _FF_RETRY_STATUSES and attempt < _FF_ATTEMPTS:
+                ra = r.headers.get("Retry-After", "")
+                wait = min(float(ra), 20.0) if ra.replace(".", "", 1).isdigit() else 5.0 * attempt
+                log.warning("ff fetch HTTP %s (attempt %d/%d) — retrying in %.0fs",
+                            r.status_code, attempt, _FF_ATTEMPTS, wait)
+                _ff_sleep(wait)
+                continue
+            r.raise_for_status()
+            return r.json()
+        except httpx.TransportError as e:
+            last_exc = e
+            if attempt < _FF_ATTEMPTS:
+                log.warning("ff fetch transport error (attempt %d/%d): %s",
+                            attempt, _FF_ATTEMPTS, e)
+                _ff_sleep(5.0 * attempt)
+                continue
+            raise
+    raise last_exc or RuntimeError("ff fetch: retries exhausted")   # pragma: no cover
+
+
+def _ff_cache_write(data: Any) -> None:
+    try:
+        os.makedirs(os.path.dirname(FF_CACHE_PATH) or ".", exist_ok=True)
+        with open(FF_CACHE_PATH, "w", encoding="utf-8") as f:
+            json.dump({"fetched_at": time.time(), "data": data}, f)
+    except OSError as e:           # cache is an optimisation — never fail the run
+        log.warning("ff cache write failed: %s", e)
+
+
+def _ff_cache_read() -> Any | None:
+    try:
+        with open(FF_CACHE_PATH, encoding="utf-8") as f:
+            blob = json.load(f)
+    except (OSError, ValueError):
+        return None
+    age_h = (time.time() - float(blob.get("fetched_at") or 0)) / 3600.0
+    if age_h > FF_CACHE_MAX_AGE_H:
+        log.warning("ff cache too old (%.1fh) — not using it", age_h)
+        return None
+    log.warning("ff fetch failed — using last-good cache (%.1fh old)", age_h)
+    return blob.get("data")
+
+
 def fetch_calendar(url: str = FF_URL, timeout: float = 20.0) -> list[CalEvent]:
-    with httpx.Client(timeout=timeout,
-                      headers={"User-Agent": "gold-news-pipeline/1.0"}) as c:
-        r = c.get(url, follow_redirects=True)
-    r.raise_for_status()
-    return parse_ff_payload(r.json())
+    """Fetch + parse the FF weekly feed. On a fetch failure that survives the
+    retries, fall back to the last-good cached copy; re-raise only when there
+    is no usable cache (callers already handle that as a failed run)."""
+    try:
+        data = _ff_get_json(url, timeout)
+    except (httpx.HTTPError, ValueError):
+        cached = _ff_cache_read()
+        if cached is None:
+            raise
+        return parse_ff_payload(cached)
+    _ff_cache_write(data)
+    return parse_ff_payload(data)
 
 
 def parse_ff_payload(data: list[dict[str, Any]]) -> list[CalEvent]:

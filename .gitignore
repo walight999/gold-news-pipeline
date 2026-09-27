@@ -13,3 +13,4 @@ service_account*.json
 snapshots/daily_brief_*.md
 snapshots/video_payload_*.json
 snapshots/artwork_*.png
+.ff_cache/
