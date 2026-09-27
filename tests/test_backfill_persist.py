@@ -68,6 +68,11 @@ def _patch_prices(monkeypatch, base=3400.0,
 
     monkeypatch.setattr(price_feed, "fetch_intraday_series", fake_fetch)
     monkeypatch.setattr(price_feed, "base_and_returns_from_series", fake_compute)
+    # These tests exercise the persistence of the FUTURES batch path: spot is
+    # reported unavailable and graded rows fall back immediately. The spot
+    # path (graded rows priced on Dukascopy) is covered in test_spot_prices.py.
+    monkeypatch.setattr(price_feed, "xau_spot_base_and_returns", lambda *a, **k: (None, {}))
+    monkeypatch.setattr(main_mod, "SPOT_FALLBACK_H", 0.0)
     return calls
 
 

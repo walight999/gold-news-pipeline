@@ -23,7 +23,7 @@ from typing import Any
 import yaml
 
 from . import calendar as cal
-from . import content_log, daily_brief, speech_watch, thai_gold, dedup, delivery_stats, digest, drive_upload, fb_publish, fred, health, image_gen, macro_push, news_alert, ops_alert, price_feed, scorecard, scorer, social_feed, telegram_news, translator, video_brief, weekly_report
+from . import content_log, daily_brief, speech_watch, dedup, delivery_stats, digest, drive_upload, fb_publish, fred, health, image_gen, macro_push, news_alert, ops_alert, price_feed, scorecard, scorer, social_feed, telegram_news, translator, video_brief, weekly_report
 from .fetcher import fetch_all, plan_fetch
 from .line_client import (
     PRIORITY_BRIEFING,
@@ -1754,6 +1754,11 @@ def _backfill_due(row: dict[str, Any], now: datetime) -> bool:
     return not str(row.get("xau_return_60m") or "").strip() and age_min >= 65.0
 
 
+# A graded calibration row waits this long for Dukascopy spot (published per
+# closed hour) before it is measured on GC=F futures instead.
+SPOT_FALLBACK_H = 3.0
+
+
 def _backfill_xau_on_store(store: "Store", now: datetime,
                            max_rows: int | None = None) -> tuple[int, int]:
     """Fill xau_return_5m/15m/30m for due rows on an already-loaded store.
@@ -1783,17 +1788,41 @@ def _backfill_xau_on_store(store: "Store", now: datetime,
     if not due:
         return 0, 0
 
-    series = price_feed.fetch_intraday_series("GC=F", period="5d")
-    if not series:
-        # yfinance down / rate-limited. Rows stay due and retry next run.
-        log.warning("backfill: no intraday series, %d rows deferred", len(due))
-        return len(due), 0
+    # Graded calls (calendar / speech verdicts carry predicted_dir) are measured
+    # on SPOT 1-minute bars — the price the desk trades, and the one the
+    # research model learned on. GC=F-5m disagreed with spot on direction in
+    # 14/71 releases (2026-09-27), too noisy to grade against. Spot history
+    # for today only exists for CLOSED hours, so a graded row waits for spot
+    # and only falls back to futures once it is SPOT_FALLBACK_H old.
+    # Ungraded news rows (the bulk, ~120/day) stay on the one-fetch futures
+    # series: they are descriptive and per-row Dukascopy files would be slow.
+    series = None
+    series_fetched = False
+    spot_used = 0
 
     attempted = 0
     filled = 0
     for r, ts in due:
         attempted += 1
-        base, rets = price_feed.base_and_returns_from_series(series, ts, (5, 15, 30, 60), now=now)
+        base, rets = None, {}
+        graded = bool(str(r.get("predicted_dir") or "").strip())
+        if graded:
+            try:
+                base, rets = price_feed.xau_spot_base_and_returns(ts, (5, 15, 30, 60), now=now)
+            except Exception:
+                log.exception("backfill: spot series failed for %s", r.get("event_id"))
+            if base is not None:
+                spot_used += 1
+            elif (now - ts).total_seconds() < SPOT_FALLBACK_H * 3600:
+                continue                       # wait for spot; retry next run
+        if base is None:
+            if not series_fetched:
+                series = price_feed.fetch_intraday_series("GC=F", period="5d")
+                series_fetched = True
+            if not series:
+                # yfinance down / rate-limited. Rows stay due and retry next run.
+                continue
+            base, rets = price_feed.base_and_returns_from_series(series, ts, (5, 15, 30, 60), now=now)
         # COPY before mutating. `r` is the live dict inside store.data (all_rows
         # hands out references), and upsert's no-op guard compares the incoming
         # row against that same object — mutating in place makes them identical,
@@ -1824,6 +1853,8 @@ def _backfill_xau_on_store(store: "Store", now: datetime,
             continue   # nothing new measurable this pass — leave undirtied
         store.upsert("calibration_log", upd)
         filled += 1
+    if spot_used:
+        log.info("backfill: %d graded row(s) priced on spot", spot_used)
     return attempted, filled
 
 
@@ -2422,7 +2453,6 @@ async def run_calendar_daily() -> int:
         xau_snapshot=xau_tuple, dxy_snapshot=dxy_tuple,
         hui_snapshot=hui_tuple, gld_snapshot=gld_tuple,
         thb_snapshot=thb_tuple,
-        thai_bar=thai_gold.fetch_latest(),
     )
     if bubble is None:
         store.flush()
