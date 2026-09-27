@@ -999,6 +999,14 @@ def _eod_recap_text(stats: dict, short_date: str) -> str:
     return "\n".join(lines)
 
 
+def _report_date_ict(ict_now):
+    """ICT date an end-of-day report (eod_recap / scorecard) is FOR. Fired in
+    the afternoon/evening → today; fired before noon (throttled cron slipped
+    past midnight) → yesterday."""
+    from datetime import timedelta
+    return ict_now.date() if ict_now.hour >= 12 else (ict_now - timedelta(days=1)).date()
+
+
 async def run_eod_recap() -> int:
     """End-of-day recap @ 23:00 ICT. Idempotent per ICT date that the
     recap is FOR (not the date the workflow happens to fire on).
@@ -1007,8 +1015,11 @@ async def run_eod_recap() -> int:
     When we fire at 01:xx ICT, the day we're summarising is yesterday,
     not "today" — so both the date label and the activity window
     must align on the recap's target day."""
-    if is_weekend_ict():
-        log.info("weekend (ICT) — skipping eod_recap")
+    # Guard on the day being RECAPPED, not the wall clock: the 23:00 ICT Friday
+    # run is routinely throttled past midnight into Saturday ICT, and a
+    # wall-clock weekend guard then dropped every Friday recap.
+    if _report_date_ict(now_ict()).weekday() >= 5:
+        log.info("recap day is a weekend (ICT) — skipping eod_recap")
         return 0
     src_cfg, _, sched_cfg = _load_configs()
     store = Store.from_env()
@@ -1023,10 +1034,7 @@ async def run_eod_recap() -> int:
     # recap is FOR (the scheduled 23:00 ICT slot). Below 12 means the
     # cron dropped and we're now running on the next ICT day — recap
     # is for the day that just ended.
-    if ict.hour >= 12:
-        recap_for_date = ict.date()
-    else:
-        recap_for_date = (ict - timedelta(days=1)).date()
+    recap_for_date = _report_date_ict(ict)
     recap_start_ict = datetime.combine(recap_for_date, _t.min, tzinfo=ICT)
     recap_end_ict   = recap_start_ict + timedelta(days=1)
     today_start = recap_start_ict.astimezone(_tz.utc)
@@ -1996,8 +2004,11 @@ async def run_scorecard() -> int:
     Grades each calendar release's published verdict against the actual 15m XAU
     move, writes the daily aggregate to scorecard_daily, and pushes a summary to
     the 1:1 chat ONLY (never the group). Idempotent per ICT day via sent_log."""
-    if is_weekend_ict():
-        log.info("weekend (ICT) — skipping scorecard")
+    # Same as eod_recap: guard on the GRADED day. The 16:45 UTC schedule is
+    # throttled to ~19:30-20:40 UTC, i.e. Saturday ICT on Fridays — so every
+    # Friday (incl. NFP days) was skipped by a wall-clock weekend guard.
+    if _report_date_ict(now_ict()).weekday() >= 5:
+        log.info("scorecard day is a weekend (ICT) — skipping scorecard")
         return 0
     store = Store.from_env()
     store.connect()
@@ -2009,7 +2020,7 @@ async def run_scorecard() -> int:
     ict = now_ict()
     # Same drop-tolerant heuristic as eod_recap: fired in the afternoon/evening
     # → score TODAY; fired after midnight (cron dropped) → score yesterday.
-    for_date = ict.date() if ict.hour >= 12 else (ict - timedelta(days=1)).date()
+    for_date = _report_date_ict(ict)
     start_ict = datetime.combine(for_date, _t.min, tzinfo=ICT)
     win_start = start_ict.astimezone(_tz.utc)
     win_end = (start_ict + timedelta(days=1)).astimezone(_tz.utc)
@@ -2414,6 +2425,42 @@ async def run_calendar_daily() -> int:
     return 0
 
 
+_CAROUSEL_MAX = 12   # LINE Flex carousel hard limit
+
+
+def _push_calendar_groups(line, target, pending, sched_cfg, store, *,
+                          route_type: str, priority: int) -> int:
+    """Push collected calendar cards grouped by release time — one bubble when
+    alone, one carousel when several events print at the same minute. On
+    delivery every card in the group gets its sent_log row (and its
+    calibration row, if it made a directional call). Returns cards delivered."""
+    groups: dict[Any, list[dict[str, Any]]] = {}
+    for item in pending:
+        groups.setdefault(item["ev"].dt_utc, []).append(item)
+    delivered = 0
+    for _, items in sorted(groups.items(), key=lambda kv: kv[0]):
+        for k in range(0, len(items), _CAROUSEL_MAX):
+            chunk = items[k:k + _CAROUSEL_MAX]
+            if len(chunk) == 1:
+                contents, alt = chunk[0]["bubble"], chunk[0]["alt"]
+            else:
+                contents = {"type": "carousel", "contents": [c["bubble"] for c in chunk]}
+                alt = f"{chunk[0]['alt']} +{len(chunk) - 1}"
+            resp = _push_or_skip(line, target, alt, contents, sched_cfg, label="calendar",
+                                 store=store, priority=priority)
+            if not _delivered(resp):
+                continue
+            for c in chunk:
+                store.upsert("sent_log", {
+                    "event_id": c["sent_key"], "route_type": route_type,
+                    "sent_ts": iso_utc(now_utc()), "line_status": resp["status"],
+                })
+                if c["on_delivered"]:
+                    store.upsert("calibration_log", c["on_delivered"])
+                delivered += 1
+    return delivered
+
+
 async def run_calendar_check() -> int:
     """Single sweep that does BOTH pre-release and post-release alerts.
 
@@ -2481,6 +2528,13 @@ async def run_calendar_check() -> int:
         # Off-GAS CHUM News Bot (Telegram) — the trust loop (pre T-15 + post).
         tg_news = telegram_news.TelegramNewsClient.from_env(store=store)
 
+        # Cards are collected first and pushed per release time: events that
+        # print at the same minute (US 19:30 ICT CPI m/m + core + y/y + claims)
+        # go out as ONE carousel push instead of one push each. Same cards,
+        # 1 quota unit per recipient instead of N.
+        pending_pre: list[dict[str, Any]] = []
+        pending_post: list[dict[str, Any]] = []
+
         # Pre-release alerts
         for ev in upcoming:
             sent_key = f"precal:{ev.event_id}"
@@ -2491,14 +2545,8 @@ async def run_calendar_check() -> int:
             effect_info = cal.forecast_vs_previous_effect(ev)
             bubble = pre_release_bubble(ev, mins_to, impact_info, effect_info)
             alt = f"⏰ T-{mins_to}min · {ev.country} {ev.title}"
-            resp = _push_or_skip(line, target, alt, bubble, sched_cfg, label="calendar",
-                                 store=store, priority=PRIORITY_REDUNDANT)
-            if _delivered(resp):
-                store.upsert("sent_log", {
-                    "event_id": sent_key, "route_type": "calendar_pre",
-                    "sent_ts": iso_utc(now_utc()), "line_status": resp["status"],
-                })
-                pre_pushed += 1
+            pending_pre.append({"ev": ev, "sent_key": sent_key, "bubble": bubble,
+                                "alt": alt, "on_delivered": None})
             # Telegram is independent of LINE — push regardless of the LINE result
             # (worker dedups on event_id+phase).
             if tg_news:
@@ -2579,43 +2627,35 @@ async def run_calendar_check() -> int:
                                          detail_th=detail_th)
             alt_extra = f" · actual {actual_text}" if actual_text else ""
             alt = f"📊 Released · {ev.country} {ev.title}{alt_extra}"
-            resp = _push_or_skip(line, target, alt, bubble, sched_cfg, label="calendar",
-                                 store=store, priority=PRIORITY_CORE)
-            if _delivered(resp):
-                store.upsert("sent_log", {
-                    "event_id": sent_key, "route_type": "calendar_post",
-                    "sent_ts": iso_utc(now_utc()), "line_status": resp["status"],
-                })
-                post_pushed += 1
-                # Scorecard (Phase 1): persist the directional verdict so the EOD
-                # scorecard can grade it against the actual 15m XAU move. Keyed
-                # on cal:{event_id}; first_seen_ts = RELEASE time so the backfill
-                # measures returns from the print. Only when we actually made a
-                # directional call (verdict present).
-                pred_dir = scorecard.verdict_to_dir(verdict)
-                if pred_dir:
-                    store.upsert("calibration_log", {
-                        "event_id": f"cal:{ev.event_id}",
-                        "first_seen_ts": iso_utc(ev.dt_utc),
-                        "topic_bucket": "calendar",
-                        "routed_as": "calendar_post",
-                        "title": (ev.title or "")[:300],
-                        "country": ev.country or "",
-                        "predicted_dir": pred_dir,
-                        "predicted_verdict_th": verdict or "",
-                        "xau_return_5m": "", "xau_return_15m": "", "xau_return_30m": "",
-                        "xau_base_price": "",
-                        # Release-reaction dataset: what printed vs what was
-                        # expected, and how it surprised (beat/miss/in-line).
-                        # Was computed for the card and thrown away — persisting
-                        # it lets the future evaluation slice returns BY surprise
-                        # class ("does a CPI beat actually move gold, and for
-                        # how long?"), which the verdict alone can't answer.
-                        "actual": actual_text or "",
-                        "forecast": ev.forecast or "",
-                        "surprise": surprise or "",
-                        "xau_return_60m": "",
-                    })
+            # Scorecard (Phase 1): persist the directional verdict so the EOD
+            # scorecard can grade it against the actual 15m XAU move. Keyed on
+            # cal:{event_id}; first_seen_ts = RELEASE time so the backfill
+            # measures returns from the print. Only when we actually made a
+            # directional call (verdict present), and only once delivered.
+            cal_row = None
+            pred_dir = scorecard.verdict_to_dir(verdict)
+            if pred_dir:
+                cal_row = {
+                    "event_id": f"cal:{ev.event_id}",
+                    "first_seen_ts": iso_utc(ev.dt_utc),
+                    "topic_bucket": "calendar",
+                    "routed_as": "calendar_post",
+                    "title": (ev.title or "")[:300],
+                    "country": ev.country or "",
+                    "predicted_dir": pred_dir,
+                    "predicted_verdict_th": verdict or "",
+                    "xau_return_5m": "", "xau_return_15m": "", "xau_return_30m": "",
+                    "xau_base_price": "",
+                    # Release-reaction dataset: what printed vs what was
+                    # expected, and how it surprised (beat/miss/in-line) —
+                    # lets the evaluation slice returns BY surprise class.
+                    "actual": actual_text or "",
+                    "forecast": ev.forecast or "",
+                    "surprise": surprise or "",
+                    "xau_return_60m": "",
+                }
+            pending_post.append({"ev": ev, "sent_key": sent_key, "bubble": bubble,
+                                 "alt": alt, "on_delivered": cal_row})
             # Telegram is independent of LINE — push regardless of the LINE result.
             # detail_th (Thai LINE rewrite) is omitted; the worker renders English.
             if tg_news:
@@ -2625,6 +2665,13 @@ async def run_calendar_check() -> int:
                         actual=actual_text, detail_th=None))
                 except Exception:
                     log.exception("telegram post-release push failed %s", sent_key)
+
+        pre_pushed = _push_calendar_groups(
+            line, target, pending_pre, sched_cfg, store,
+            route_type="calendar_pre", priority=PRIORITY_REDUNDANT)
+        post_pushed = _push_calendar_groups(
+            line, target, pending_post, sched_cfg, store,
+            route_type="calendar_post", priority=PRIORITY_CORE)
 
     log.info("calendar_check pushes: pre=%d post=%d", pre_pushed, post_pushed)
     store.flush()
