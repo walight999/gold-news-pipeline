@@ -1566,6 +1566,59 @@ def append_note(bubble: dict[str, Any], text: str) -> None:
                          "weight": "bold", "color": "#1E3A8A", "margin": "md"})
 
 
+# ---------- speech / statement (src/speech_watch.py) ----------
+
+_TONE_TH = {"hawkish": ("Hawkish", "#FEE2E2", "#B91C1C"),
+            "dovish": ("Dovish", "#DCFCE7", "#047857"),
+            "mixed": ("Mixed", "#FEF3C7", "#92400E"),
+            "neutral": ("Neutral", "#F3F4F6", "#374151")}
+
+
+def speech_bubble(win: dict[str, Any], a: dict[str, Any], n_quotes: int,
+                  xau_move_pct: float | None, stage: str) -> dict[str, Any]:
+    """Card for a speech / statement: what was said + what it means for gold.
+    `a` = speech_watch.analyze() output."""
+    label = "🎙️ ระหว่างแถลง" if stage == "mid" else "🎙️ สรุปถ้อยแถลง"
+    tone_txt, tone_bg, tone_fg = _TONE_TH.get(a.get("tone") or "neutral", _TONE_TH["neutral"])
+    body: list[dict[str, Any]] = [
+        {"type": "box", "layout": "horizontal", "spacing": "sm", "alignItems": "center",
+         "contents": [
+             {"type": "text", "text": f"{win.get('country', '')} · {win.get('title', '')}",
+              "size": "xs", "weight": "bold", "color": "#374151", "flex": 1, "wrap": True},
+             _chip(tone_txt, tone_bg, tone_fg),
+         ]},
+        {"type": "text", "text": _compact_th(a.get("summary_th") or ""), "size": "md",
+         "weight": "bold", "wrap": True, "color": "#111827", "margin": "md"},
+    ]
+    for kp in (a.get("key_points_th") or [])[:3]:
+        if kp:
+            body.append({"type": "text", "text": f"• {_compact_th(kp)}", "size": "sm",
+                         "wrap": True, "color": "#1F2937", "margin": "sm"})
+    if a.get("why_th"):
+        body.append({"type": "separator", "margin": "md"})
+        body.append({"type": "text", "text": f"💡 {a['why_th']}", "size": "xs", "wrap": True,
+                     "weight": "bold", "color": "#6B7280", "margin": "sm"})
+    call = MarketAlert(action="keep", headline_th="-", gold_bias=a.get("gold_bias") or "",
+                       gold_confidence=a.get("gold_confidence") or "")
+    row = _gold_call_row(call, None)
+    if row:
+        body.append(row)
+    if xau_move_pct is not None:
+        sign = "+" if xau_move_pct >= 0 else ""
+        color = "#059669" if xau_move_pct > 0 else "#DC2626" if xau_move_pct < 0 else "#6B7280"
+        body.append({"type": "text", "text": f"XAU ตั้งแต่เริ่มแถลง {sign}{xau_move_pct:.2f}%",
+                     "size": "xs", "color": color, "margin": "sm"})
+    body.append({"type": "separator", "margin": "lg"})
+    body.append({"type": "text", "text": f"วิเคราะห์จาก {n_quotes} ข้อความสดจาก squawk / wire",
+                 "size": "xxs", "color": "#9CA3AF", "margin": "md"})
+    return {
+        "type": "bubble", "size": "giga",
+        "header": _header(label, "", "#1E3A8A"),
+        "body": {"type": "box", "layout": "vertical", "spacing": "sm",
+                 "paddingAll": "16px", "contents": body},
+    }
+
+
 # ---------- alt text ----------
 
 def alt_text_for_event(label: str, ev: Event, score: float,

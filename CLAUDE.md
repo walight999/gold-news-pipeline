@@ -241,6 +241,17 @@ with no 15m bar show as ⏳ pending, not wrong.
   like social_feed so `flush()` never clobbers the operator's edits. Impact
   outcome joins `event_id` → calibration_log; don't duplicate numbers here.
 - `router.py` — ≥4.5 breaking, ≥3.5 alert (if official or ≥2 orgs), ≥2.5 digest.
+- `speech_watch.py` — **speech / statement events with no number** (FOMC
+  statement + presser, Fed Chair/members, President Trump, Treasury Sec,
+  ECB/BOE/BOJ): calendar_check publishes listening windows (`_speech_windows`
+  source_state row; same-currency CB events ≤45 min apart merge into one
+  window), news-cron collects live quote headlines (`_speech:<id>` rows), then
+  calendar_check sends a mid-way + final card (Sonnet reads the quotes + the
+  official FOMC statement from the Fed RSS → Thai summary, tone, gold call).
+  Final calls go to calibration_log (`routed_as=speech`, graded from SEND
+  time). Config `schedule.yaml → speech:` (update `fed_chair` when it changes).
+- `release_stats.py` + `research/` — learned release-reaction history and the
+  gated composite call on calendar cards; see `docs/RELEASE-LEARNING.md`.
 
 ## Config
 
