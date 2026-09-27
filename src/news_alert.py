@@ -1162,6 +1162,7 @@ RULES:
 - Sentence 1: the result — actual vs forecast vs previous, and whether it beat / missed / in-line.
 - Sentence 2: what it implies for policy (Fed/central bank) or USD / yields.
 - Sentence 3 (optional): the read-through to ทอง/XAU — direction and the why.
+- If you mention how gold has moved, quote XAU_MOVE exactly as given (US dollars, spot, over the stated minutes). Never convert it to a percentage and never claim a time window other than the one given.
 - Keep these EXACTLY in English: Fed, FOMC, ECB, BoJ, BoE, CPI, Core CPI, PCE, NFP, GDP, PMI, ISM, USD, DXY, yields, hawkish, dovish, safe-haven.
 - Gregorian years only (2026). No Buddhist Era. No emoji. No Chinese/Japanese/Korean characters.
 - If the figures are missing or unclear, return {"detail_th": []}.
@@ -1175,7 +1176,7 @@ FORECAST: {forecast}
 PREVIOUS: {previous}
 SURPRISE: {surprise}
 GOLD_VERDICT: {verdict}
-XAU_REACTION_5M_PCT: {xau}
+XAU_MOVE: {xau}
 
 JSON output (strict, single object, no surrounding text):"""
 
@@ -1199,7 +1200,7 @@ def _render_cal_prompt(title, country, impact, actual, forecast, previous,
         "{previous}": str(previous or "—"),
         "{surprise}": str(surprise or "unknown"),
         "{verdict}": str(verdict or "unclear"),
-        "{xau}": "unknown" if xau is None else f"{xau:+.2f}",
+        "{xau}": "unknown" if xau is None else (xau if isinstance(xau, str) else f"{xau:+.2f}%"),
     }
     out = _CAL_EXPLAIN_PROMPT
     for k, v in repl.items():
@@ -1238,6 +1239,7 @@ def explain_calendar_release(
     verdict: str | None = None,
     xau_reaction_pct: float | None = None,
     store: "Store | None" = None,
+    xau_move_text: str | None = None,
 ) -> list[str] | None:
     """Short Thai explanation of a just-released economic event, for the
     Released-News card. Claude Haiku → Gemini → None (card degrades to the
@@ -1258,7 +1260,8 @@ def explain_calendar_release(
             if cached is not None:
                 return cached
     prompt = _render_cal_prompt(title, country, impact, actual, forecast,
-                                previous, surprise, verdict, xau_reaction_pct)
+                                previous, surprise, verdict,
+                                xau_move_text if xau_move_text is not None else xau_reaction_pct)
     text = _cal_explain_llm(prompt)
     if not text:
         return None

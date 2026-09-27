@@ -66,6 +66,68 @@ def current_spot(timeout: float = 10.0) -> float | None:
     return None
 
 
+# ---------------------------------------------------------------- spot tape
+
+TAPE_ROW = "_spot_tape"
+TAPE_KEEP_H = 26
+
+
+def load_tape(store) -> list[list[float]]:
+    """[[epoch_minute, price], ...] oldest first."""
+    import json
+    row = store.get("source_state", (TAPE_ROW,)) or {}
+    try:
+        t = json.loads(row.get("items_last_hour") or "[]")
+        return [x for x in t if isinstance(x, list) and len(x) == 2]
+    except ValueError:
+        return []
+
+
+def record_tape(store, now: datetime, price: float | None = None) -> float | None:
+    """Append the current Swissquote spot to the tape (every news-cron /
+    calendar-check run, i.e. ~every 5 min) so cards can measure a move in $
+    from just before a release / speech on SPOT, without waiting for
+    Dukascopy to publish the hour. Returns the price recorded (or None)."""
+    import json
+    price = price if price is not None else current_spot()
+    if price is None:
+        return None
+    m = int(now.timestamp()) // 60
+    tape = [x for x in load_tape(store) if x[0] >= m - TAPE_KEEP_H * 60 and x[0] != m]
+    tape.append([m, round(float(price), 3)])
+    tape.sort(key=lambda x: x[0])
+    store.upsert("source_state", {"source_id": TAPE_ROW,
+                                  "items_last_hour": json.dumps(tape, separators=(",", ":")),
+                                  "last_success_ts": now.isoformat()})
+    return price
+
+
+def tape_price_before(store, t: datetime, max_age_min: int = 6) -> tuple[float, int] | None:
+    """(price, minutes_before_t) of the last tape point at or before `t`, if it
+    is no more than `max_age_min` old — otherwise None (no honest base)."""
+    tm = int(t.timestamp()) // 60
+    best = None
+    for m, p in load_tape(store):
+        if m <= tm:
+            best = (m, p)
+    if best is None or tm - best[0] > max_age_min:
+        return None
+    return best[1], tm - best[0]
+
+
+def move_since(store, t: datetime, now: datetime, spot_now: float | None) -> dict | None:
+    """$ move on spot from just before `t` to `now`: {"usd", "pct", "minutes",
+    "base"}; None when there's no base within 6 min before `t` or no spot now."""
+    if spot_now is None:
+        return None
+    b = tape_price_before(store, t)
+    if not b:
+        return None
+    base, _ = b
+    return {"usd": spot_now - base, "pct": (spot_now / base - 1) * 100 if base else 0.0,
+            "minutes": max(0, int((now - t).total_seconds() // 60)), "base": base}
+
+
 # ---------------------------------------------------------------- Dukascopy history
 
 def _curl(url: str, attempts: int = 4) -> bytes | None:

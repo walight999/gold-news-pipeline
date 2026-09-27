@@ -25,6 +25,7 @@ log = logging.getLogger(__name__)
 
 STATS_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config", "release_stats.json")
 MIN_N = 12
+UNCLEAR_HIT = 0.55          # below this at both 5 and 15 min → "direction unclear"
 
 
 @lru_cache(maxsize=1)
@@ -58,7 +59,8 @@ def series_cells(country: str, title: str, asset: str = "XAU") -> dict[int, dict
     return out
 
 
-def history_line_th(country: str, title: str, asset: str = "XAU") -> str | None:
+def history_line_th(country: str, title: str, asset: str = "XAU",
+                    spot: float | None = None) -> str | None:
     """One Thai line of reaction history, or None when there's not enough."""
     cells = series_cells(country, title, asset)
     if not cells:
@@ -71,7 +73,42 @@ def history_line_th(country: str, title: str, asset: str = "XAU") -> str | None:
     span = _span_label(_load())
     head = f"ย้อนหลัง {span} " if span else "ย้อนหลัง "
     name = "ทอง" if asset == "XAU" else asset
-    return f"{head}(n={n}): {name}ไปตามทิศนี้ " + " · ".join(parts)
+    if max(float(c["hit"]) for c in shown.values()) < UNCLEAR_HIT:
+        # History doesn't back the pill's direction (e.g. AHE, which prints in
+        # the same minute as NFP): say so instead of "ไปตามทิศนี้ 47%".
+        line = f"{head}(n={n}): ทิศ{name}หลังข่าวนี้ไม่ชัด (" + " · ".join(parts) + ")"
+    else:
+        line = f"{head}(n={n}): {name}ไปตามทิศนี้ " + " · ".join(parts)
+    rng = typical_range_usd(cells.get(15), spot)
+    if rng and asset == "XAU":
+        line += f" · ปกติขยับ ${rng[0]:,.0f}–${rng[1]:,.0f} ใน 15 นาที"
+    return line
+
+
+def typical_range_usd(cell: dict | None, spot: float | None = None) -> tuple[float, float] | None:
+    """Typical 15-min move of this release as a $ range at TODAY's price:
+    median and 80th percentile of |move| (research/learn.py, % of price)
+    × current spot. Scales with the gold price level by construction."""
+    if not cell or cell.get("abs_p50_pct") is None or cell.get("abs_p80_pct") is None:
+        return None
+    if spot is None:
+        spot = _spot_cached()
+    if not spot:
+        return None
+    lo = float(cell["abs_p50_pct"]) / 100 * spot
+    hi = float(cell["abs_p80_pct"]) / 100 * spot
+    if hi < 1:
+        return None
+    return lo, hi
+
+
+@lru_cache(maxsize=1)
+def _spot_cached() -> float | None:
+    try:
+        from .spot_feed import current_spot
+        return current_spot()
+    except Exception:  # noqa: BLE001
+        return None
 
 
 # ---------------------------------------------------------------- live composite call

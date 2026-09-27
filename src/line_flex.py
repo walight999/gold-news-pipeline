@@ -366,6 +366,11 @@ _BIAS_TH = {"bullish": ("🟢", "หนุนทอง", "#047857"),
 _CONF_TH = {"high": "มั่นใจสูง", "medium": "มั่นใจกลาง", "low": "มั่นใจต่ำ"}
 
 
+def _usd(v: float) -> str:
+    """Signed dollar move, e.g. +$18.4 / -$6.0."""
+    return f"{'+' if v >= 0 else '-'}${abs(v):,.1f}"
+
+
 def _gold_call_row(alert: MarketAlert | None,
                    xau_now: tuple[float, float] | None) -> dict[str, Any] | None:
     """One line tying the story to the tape: the classifier's gold call (+
@@ -378,8 +383,8 @@ def _gold_call_row(alert: MarketAlert | None,
         parts.append({"type": "text", "text": f"{emoji} {text}" + (f" · {conf}" if conf else ""),
                       "size": "xs", "weight": "bold", "color": fg, "flex": 0})
     if xau_now:
-        last, pct = xau_now
-        chg = "" if pct is None else f" ({'+' if pct >= 0 else ''}{pct:.2f}% วันนี้)"
+        last, usd = xau_now
+        chg = "" if usd is None else f" ({_usd(usd)} วันนี้)"
         parts.append({"type": "text", "text": f"XAU {last:,.1f}{chg}",
                       "size": "xs", "color": "#6B7280", "align": "end"})
     if not parts:
@@ -1085,7 +1090,7 @@ def _fmt_value(v: float, prefix: str = "", decimals: int = 2) -> str:
 
 
 def _price_cell(label: str, snap: tuple[float, float] | None,
-                value_fmt) -> dict[str, Any] | None:
+                value_fmt, change_usd: bool = False) -> dict[str, Any] | None:
     """One column of the price strip. `value_fmt(last)` returns the
     display string (e.g. "4,542.40" or "35.21").
 
@@ -1109,8 +1114,11 @@ def _price_cell(label: str, snap: tuple[float, float] | None,
     ]
     if pct is not None:                    # unknown day change → no fake 0.00%
         color = "#059669" if pct > 0 else "#DC2626" if pct < 0 else "#374151"
-        sign = "+" if pct > 0 else ""
-        contents.append({"type": "text", "text": f"{sign}{pct:.2f}%", "size": "xxs",
+        if change_usd:                     # gold: the $ move reads as a range
+            text = _usd(last - last / (1 + pct / 100))
+        else:
+            text = f"{'+' if pct > 0 else ''}{pct:.2f}%"
+        contents.append({"type": "text", "text": text, "size": "xxs",
                          "color": color, "align": "center"})
     return {"type": "box", "layout": "vertical", "flex": 1, "contents": contents}
 
@@ -1175,7 +1183,8 @@ def calendar_day_bubble(
     # Render only cells that have data — user prefers consistent
     # all-real-data formatting over fixed-width with placeholders.
     cells = [
-        c for c in (_price_cell(lbl, snap, fmt) for lbl, snap, fmt in price_specs)
+        c for c in (_price_cell(lbl, snap, fmt, change_usd=(lbl == "XAU"))
+                    for lbl, snap, fmt in price_specs)
         if c is not None
     ]
     if cells:
@@ -1269,7 +1278,7 @@ def post_release_bubble(
     actual_text: str | None = None,
     surprise: str | None = None,
     verdict: str | None = None,
-    xau_return_pct: float | None = None,
+    xau_move: dict[str, Any] | None = None,       # spot_feed.move_since()
     effect: dict[str, str] | None = None,
     detail_th: list[str] | None = None,
 ) -> dict[str, Any]:
@@ -1360,17 +1369,6 @@ def post_release_bubble(
             hist = _history_note(event)
             if hist:
                 body_contents.append(hist)
-        # Live XAU reaction (price-feed Phase 3 — when available)
-        if xau_return_pct is not None:
-            color = "#059669" if xau_return_pct > 0 else "#DC2626" if xau_return_pct < 0 else "#6B7280"
-            sign = "+" if xau_return_pct > 0 else ""
-            body_contents.append({
-                "type": "text",
-                # Measured on GC=F futures: spot history for the current hour
-                # isn't published yet when this card goes out (src/spot_feed.py).
-                "text": f"XAU (futures) ขยับ {sign}{xau_return_pct:.2f}% ใน 5 นาทีแรกหลังข่าว",
-                "size": "xs", "color": color, "margin": "sm",
-            })
     else:
         # No-FRED path — show F:/P: as an inline label and the 3-pill
         # currency impact row underneath. Matches pre-release layout.
@@ -1391,6 +1389,17 @@ def post_release_bubble(
             "margin": "md",
         })
         body_contents.append(_impact_pills_row(event_impact_pills(event)))
+
+    # Live reaction on SPOT, in $ (spot tape: price just before the print
+    # → spot when the card is built). Hidden when there's no honest base.
+    if xau_move:
+        usd = xau_move["usd"]
+        color = "#059669" if usd > 0 else "#DC2626" if usd < 0 else "#6B7280"
+        body_contents.append({
+            "type": "text",
+            "text": f"ทองขยับ {_usd(usd)} ใน {xau_move['minutes']} นาทีหลังข่าว (spot)",
+            "size": "xs", "color": color, "margin": "sm",
+        })
 
     return {
         "type": "bubble", "size": "giga",
@@ -1545,7 +1554,7 @@ _TONE_TH = {"hawkish": ("Hawkish", "#FEE2E2", "#B91C1C"),
 
 
 def speech_bubble(win: dict[str, Any], a: dict[str, Any], n_quotes: int,
-                  xau_move_pct: float | None, stage: str) -> dict[str, Any]:
+                  xau_move: dict[str, Any] | None, stage: str) -> dict[str, Any]:
     """Card for a speech / statement: what was said + what it means for gold.
     `a` = speech_watch.analyze() output."""
     label = "🎙️ ระหว่างแถลง" if stage == "mid" else "🎙️ สรุปถ้อยแถลง"
@@ -1573,10 +1582,11 @@ def speech_bubble(win: dict[str, Any], a: dict[str, Any], n_quotes: int,
     row = _gold_call_row(call, None)
     if row:
         body.append(row)
-    if xau_move_pct is not None:
-        sign = "+" if xau_move_pct >= 0 else ""
-        color = "#059669" if xau_move_pct > 0 else "#DC2626" if xau_move_pct < 0 else "#6B7280"
-        body.append({"type": "text", "text": f"XAU (futures) ตั้งแต่เริ่มแถลง {sign}{xau_move_pct:.2f}%",
+    if xau_move:
+        usd = xau_move["usd"]
+        color = "#059669" if usd > 0 else "#DC2626" if usd < 0 else "#6B7280"
+        body.append({"type": "text",
+                     "text": f"ทองขยับ {_usd(usd)} ตั้งแต่เริ่มแถลง ({xau_move['minutes']} นาที, spot)",
                      "size": "xs", "color": color, "margin": "sm"})
     body.append({"type": "separator", "margin": "lg"})
     body.append({"type": "text", "text": f"วิเคราะห์จาก {n_quotes} ข้อความสดจาก squawk / wire",
