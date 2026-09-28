@@ -341,6 +341,15 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
     draft_routes = {str(r).strip() for r in
                     (sched_cfg.get("social", {}) or {}).get(
                         "draft_routes", ["breaking", "alert", "digest"])}
+    # Per-row tweet drafts (tweet_writer Claude call) — OFF since 2026-09-27:
+    # 2 of 1,240 drafts were ever approved; X posting now runs off the same
+    # classifier-approved events (x_candidates → squawk_mirror.mirror_events).
+    # Rows are still written (daily_brief reads them), just without a draft.
+    compose_drafts = bool((sched_cfg.get("social", {}) or {}).get("compose_drafts", False))
+    # Classifier-ACCEPTED breaking/alert events this run → X autopost candidates
+    # (squawk events mode). Collected whether or not the LINE push lands, so a
+    # LINE quota/outage doesn't also silence X.
+    x_candidates: list[dict[str, Any]] = []
     # Content-quality ledger rows (sent cards + classifier rejects) — appended
     # once at step 8b alongside the social feed. Best-effort by design.
     content_records: list[dict[str, Any]] = []
@@ -490,6 +499,12 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
                 except Exception:
                     log.exception("content_log record (reject) failed event=%s", ev.event_id)
                 continue
+            x_candidates.append({
+                "event_id": ev.event_id, "route": d.route.value,
+                "en_title": ev.representative_title,
+                "headline_th": alert_obj.headline_th, "body_th": alert_obj.body_th,
+                "impact_th": alert_obj.impact_th, "category": alert_obj.category,
+            })
             if xau_now is _UNSET:
                 # One quote per run (lazy): only runs that actually push a
                 # breaking/alert card pay the yfinance call.
@@ -530,6 +545,7 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
                             url=_pick_article_url(ev.items),
                             en_title=ev.representative_title,
                             en_summary=ev.representative_summary,
+                            compose=compose_drafts,
                         ))
                 except Exception:
                     log.exception("social_feed record (breaking/alert) failed event=%s", ev.event_id)
@@ -823,6 +839,7 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
                                     url=card["url"],
                                     en_title=str(row.get("title") or ""),
                                     en_summary=str(row.get("summary") or ""),
+                                    compose=compose_drafts,
                                 ))
                         except Exception:
                             log.exception("social_feed record (digest) failed event=%s", row.get("event_id"))
@@ -894,16 +911,27 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
     # FirstSquawk tweets to the mirror instead of paying for a second Apify call
     # on the same account. Only when the handle is NOT in the news scrape does
     # the mirror fall back to its own interval-gated scrape.
-    if (mode in ("cron", "event") and os.environ.get("APIFY_TOKEN")
-            and os.environ.get("X_API_KEY")
-            and apify_meta.get("budget_level") != "exhausted"):
-        sq_cfg = src_cfg.get("squawk") or {}
+    sq_cfg = src_cfg.get("squawk") or {}
+    sq_events = str(sq_cfg.get("source", "firstsquawk")) == "events"
+    if (mode in ("cron", "event") and os.environ.get("X_API_KEY")
+            and (sq_events or (os.environ.get("APIFY_TOKEN")
+                               and apify_meta.get("budget_level") != "exhausted"))):
         sq_handle = str(sq_cfg.get("handle") or "FirstSquawk").lower()
         xc = src_cfg.get("x_accounts") or {}
         shared = bool(xc.get("enabled")) and sq_handle in [
             str(h).lower() for h in (xc.get("handles") or [])]
         run_sq, sq_entries = False, None
-        if sq_cfg.get("enabled") is not False:
+        if sq_cfg.get("enabled") is not False and sq_events:
+            # events mode: post the classifier-approved stories (any source),
+            # breaking before alert. No Apify here at all — the stories came
+            # from this run's normal fetch.
+            try:
+                from . import squawk_mirror
+                ordered = sorted(x_candidates, key=lambda c: c["route"] != "breaking")
+                squawk_mirror.mirror_events(store, ordered, sq_cfg)
+            except Exception:  # noqa: BLE001 — X autopost is best-effort
+                log.exception("run_once: x_autopost (events) failed")
+        elif sq_cfg.get("enabled") is not False:
             if shared:
                 if apify_meta.get("x_scraped"):
                     run_sq = True
@@ -1266,6 +1294,10 @@ async def run_squawk_mirror() -> int:
     cfg = (_load_yaml("sources.yaml") or {}).get("squawk") or {}
     if cfg.get("enabled") is False:
         log.info("squawk_mirror: disabled in sources.yaml — skipping")
+        return 0
+    if str(cfg.get("source", "firstsquawk")) == "events":
+        log.info("squawk_mirror: source=events — X autopost runs inside the news "
+                 "cron (run_once); standalone FirstSquawk scrape is off")
         return 0
     store = Store.from_env()
     store.connect()

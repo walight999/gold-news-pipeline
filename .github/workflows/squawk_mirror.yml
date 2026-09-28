@@ -1,12 +1,12 @@
 name: squawk-mirror
 on:
-  schedule:
+  # schedule: OFF 2026-09-27: squawk.source=events posts from inside news-cron; dispatch-only fallback
     # Every 15 min — mirror First Squawk's live gold-relevant headlines to X.
     # since_minutes (20) overlaps the gap so nothing is missed; squawk_log dedup
     # absorbs the overlap. GitHub throttles schedule cron to ~1/2-4h, so for true
     # cadence add a cron-job.org workflow_dispatch job (see docs/DISPATCHER-CRON.md).
     # No APIFY/ANTHROPIC/X creds => safe no-op.
-    - cron: "*/15 * * * *"
+    # - cron: "*/15 * * * *"
   workflow_dispatch: {}
 
 concurrency:

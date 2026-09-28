@@ -76,6 +76,15 @@ apify_budget:
 # ~cents + $0.015/posted tweet, hard-bounded by cap_per_day.
 squawk:
   enabled: true
+  # source (2026-09-27, White: get the most out of what we already pay for):
+  #   events      → post the breaking/alert stories the LINE classifier ACCEPTED
+  #                 this run (any source: RSS + X), composed from its Thai output.
+  #                 One editorial brain for LINE and X; needs NO Apify call, so X
+  #                 keeps posting even when the Apify budget is exhausted.
+  #   firstsquawk → legacy: scrape @FirstSquawk + keyword filter below.
+  source: events
+  cap_per_hour: 4             # events mode: spread the day's cap (on 2026-09-25 a
+                              # single UN-speech burst used all 20 by 02:00 ICT)
   handle: FirstSquawk
   cap_per_day: 20             # hard ceiling on tweets/day (X is $0.015/post ⇒ ≤$0.30/day).
                               # Confirmed 2026-09-22 after White approved the Sonnet+new-prompt voice.
