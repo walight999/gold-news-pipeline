@@ -96,25 +96,29 @@ def record_news_event(*, route: str, category: str, tone: str,
                       impact_level: str, headline_th: str | None,
                       body_th: list[str] | None, impact_th: str | None,
                       source: str, url: str,
-                      en_title: str = "", en_summary: str = "") -> dict[str, Any]:
+                      en_title: str = "", en_summary: str = "",
+                      compose: bool = True) -> dict[str, Any]:
     """Build a feed record for a single pushed breaking/alert/digest event.
 
-    The tweet draft is composed in @tradetongkam's voice by the Claude
-    tweet_writer (independent of the LINE rewrite); if that's unavailable it
-    falls back to the simple build_tweet template."""
+    compose=True: the tweet draft is composed in @tradetongkam's voice by the
+    Claude tweet_writer (independent of the LINE rewrite), falling back to the
+    simple build_tweet template. compose=False (run_once default since
+    2026-09-27): no draft, no Claude call — the row is kept for daily_brief and
+    history; X posting runs through squawk_mirror.mirror_events instead."""
     now = now_utc()
     summary_th = _sanitize(" ".join(body_th or []))
-    tweet = None
-    try:
-        from . import tweet_writer
-        tweet = tweet_writer.compose_tweet(
-            headline_th=headline_th, body_th=body_th, impact_th=impact_th,
-            category=category, en_title=en_title, en_summary=en_summary,
-        )
-    except Exception:  # noqa: BLE001 — composer is best-effort
-        tweet = None
-    if not tweet:
-        tweet = build_tweet(headline_th, impact_th)
+    tweet = ""
+    if compose:
+        try:
+            from . import tweet_writer
+            tweet = tweet_writer.compose_tweet(
+                headline_th=headline_th, body_th=body_th, impact_th=impact_th,
+                category=category, en_title=en_title, en_summary=en_summary,
+            )
+        except Exception:  # noqa: BLE001 — composer is best-effort
+            tweet = None
+        if not tweet:
+            tweet = build_tweet(headline_th, impact_th)
     return {
         "ts_utc": iso_utc(now),
         "ts_ict": to_ict(now).strftime("%Y-%m-%d %H:%M:%S"),

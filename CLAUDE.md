@@ -306,7 +306,20 @@ overrides the model id.
 - X API posting (pay-per-use since 2026-02): **$0.015/post WITHOUT a link**,
   $0.20 WITH a link → drafts are deliberately link-free + source-free.
 
-## Social autopost loop (operator)
+## X autopost = classifier-approved events (2026-09-27)
+
+`sources.yaml squawk.source: events` — @tradetongkam posts exactly the
+breaking/alert stories the LINE classifier ACCEPTED in this run (any source,
+RSS + X), composed by Sonnet from the classifier's Thai output
+(`squawk_mirror.mirror_events`, called at the end of `run_once`). ONE editorial
+brain for LINE and X. Caps: `cap_per_day` 20 / `cap_per_hour` 4 / `max_items`
+per run; dedup `ev:<event_id>` + near-dup in `squawk_log`. Needs NO Apify, so X
+keeps posting when the Apify budget is exhausted. `source: firstsquawk` = the
+legacy FS-scrape+keyword path. social_feed rows no longer carry a tweet draft
+(`schedule.yaml social.compose_drafts: false`); `social-post` and
+`squawk-mirror` workflows are dispatch-only.
+
+## Social autopost loop (operator — LEGACY, drafts off since 2026-09-27)
 
 News → draft lands in `social_feed` (tweet_text, @tradetongkam voice) → operator
 reviews, types `yes` in `approved` for the ones to publish → `social-post` cron

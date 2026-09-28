@@ -1,11 +1,11 @@
 name: social-post
 on:
-  schedule:
+  # schedule: OFF 2026-09-27: drafts no longer composed (schedule.yaml social.compose_drafts); dispatch-only
     # Every 20 min. Posts only rows an operator marked approved=yes in the
     # social_feed sheet, so cadence just bounds how fast an approved draft goes
     # out (GitHub throttles public-repo crons — effective interval is longer,
     # which is fine for social). Runs all week.
-    - cron: "*/20 * * * *"
+    # - cron: "*/20 * * * *"
   workflow_dispatch:
     inputs:
       mode:

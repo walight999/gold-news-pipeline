@@ -59,6 +59,11 @@ social:
   # the high-value fast-news drafts (the ones worth posting to X) at ~1/3 of
   # the cost. Add "digest" back to restore the old firehose.
   draft_routes: ["breaking", "alert"]
+  # Per-row tweet drafts via tweet_writer (Claude). OFF 2026-09-27: 2 of 1,240
+  # drafts were ever approved. X posting now runs automatically off the same
+  # classifier-approved events (sources.yaml squawk.source: events). Rows are
+  # still appended (daily_brief reads them) with an empty tweet_text.
+  compose_drafts: false
 
 scorecard:
   # Directional-accuracy grading of calendar verdicts (src/scorecard.py).

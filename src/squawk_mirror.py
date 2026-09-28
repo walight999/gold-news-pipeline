@@ -27,6 +27,7 @@ from __future__ import annotations
 import logging
 import os
 import re
+from datetime import timedelta
 from functools import lru_cache
 from typing import Any, Callable
 
@@ -285,4 +286,106 @@ def mirror(store, *, token: str, cfg: dict[str, Any] | None = None,
     if posted == 0 and entries:
         for e in entries[:12]:
             log.info("squawk_mirror:   saw | %s", str(e.get("title") or "")[:120])
+    return posted
+
+
+# --- events mode (2026-09-27): ONE editorial brain for LINE and X -------------
+# White: "we already pay for it — get the most out of it". The LINE classifier
+# (Claude, score + gold-relevance + Thai rewrite) already decides which stories
+# matter; the FirstSquawk keyword filter was a second, looser brain (it posted
+# ~20 Netanyahu-at-the-UN lines that LINE rejected). In events mode the X feed
+# posts exactly the breaking/alert stories the classifier ACCEPTED this run —
+# from ANY source, not just FirstSquawk — composed from the classifier's Thai
+# output (richer than a bare English headline), under day + hour + run caps.
+
+def _posted_since(rows: list[dict[str, Any]], since) -> int:
+    n = 0
+    for r in rows:
+        if not str(r.get("posted") or "").strip():
+            continue
+        ts = parse_iso(str(r.get("ts_utc") or ""))
+        if ts is not None and ts >= since:
+            n += 1
+    return n
+
+
+def mirror_events(store, candidates: list[dict[str, Any]],
+                  cfg: dict[str, Any] | None = None, *,
+                  composer: Callable[..., str | None] = tweet_writer.compose_tweet,
+                  poster: Callable[[str], str] = social_feed.x_post,
+                  now=None) -> int:
+    """Post classifier-approved breaking/alert events to X as @tradetongkam Thai
+    tweets. `candidates`: dicts with event_id, en_title, headline_th, body_th,
+    impact_th, category (built in run_once). Dedup by event_id in squawk_log
+    (`fs_id` = "ev:<id>") + content near-dup vs today's posts. Caps:
+    cap_per_day, cap_per_hour, max_items per run. Never raises."""
+    if not candidates:
+        return 0
+    cfg = cfg or {}
+    cap_day = int(cfg.get("cap_per_day", 20))
+    cap_hour = int(cfg.get("cap_per_hour", 4))
+    max_run = int(cfg.get("max_items", 5))
+    model = str(cfg.get("model") or os.environ.get("SQUAWK_MODEL") or DEFAULT_COMPOSE_MODEL)
+    dup_threshold = float(cfg.get("dup_similarity", 0.7))
+
+    now = now or now_utc()
+    today_ict = to_ict(now).strftime("%Y-%m-%d")
+    try:
+        _, rows = store.read_feed(MIRROR_TAB)
+    except Exception:  # noqa: BLE001
+        log.exception("x_autopost: read squawk_log failed")
+        return 0   # can't dedup ⇒ don't risk double-posting
+    seen, today_count = _seen_and_today_count(rows, today_ict)
+    hour_count = _posted_since(rows, now - timedelta(hours=1))
+    recent_texts = [str(r.get("fs_text") or "") for r in rows
+                    if str(r.get("ts_ict") or "")[:10] == today_ict]
+
+    posted = n_dup = n_neardup = n_fail = 0
+    for c in candidates:
+        if today_count + posted >= cap_day:
+            log.info("x_autopost: daily cap %d reached", cap_day)
+            break
+        if hour_count + posted >= cap_hour:
+            log.info("x_autopost: hourly cap %d reached — rest wait", cap_hour)
+            break
+        if posted >= max_run:
+            break
+        fid = f"ev:{c.get('event_id')}"
+        if not c.get("event_id") or fid in seen:
+            n_dup += 1
+            continue
+        text = str(c.get("en_title") or "").strip()
+        if _is_near_dup(text, recent_texts, dup_threshold):
+            n_neardup += 1
+            continue
+        try:
+            tweet = composer(headline_th=c.get("headline_th"), body_th=c.get("body_th"),
+                             impact_th=c.get("impact_th"), category=c.get("category"),
+                             en_title=text, en_summary=None, model=model)
+        except Exception:  # noqa: BLE001
+            log.exception("x_autopost: compose failed event=%s", c.get("event_id"))
+            tweet = None
+        if not tweet:
+            n_fail += 1
+            continue
+        try:
+            url = poster(tweet)
+        except Exception:  # noqa: BLE001 — one bad post must not stop the rest
+            log.exception("x_autopost: X post failed event=%s", c.get("event_id"))
+            n_fail += 1
+            continue
+        seen.add(fid)
+        recent_texts.append(text)
+        posted += 1
+        log.info("x_autopost: POSTED %s | %s", url, " ".join(tweet.split())[:150])
+        row = [iso_utc(now), to_ict(now).strftime("%Y-%m-%d %H:%M:%S"),
+               fid, text[:280], tweet, url or "posted"]
+        try:
+            store.append_feed(MIRROR_TAB, MIRROR_HEADERS, [row])
+        except Exception:  # noqa: BLE001
+            log.exception("x_autopost: log append failed (tweet WAS posted: %s)", url)
+    log.info("x_autopost: posted %d of %d candidates (today %d/%d, hour %d/%d) "
+             "[dup=%d near-dup=%d fail=%d]", posted, len(candidates),
+             today_count + posted, cap_day, hour_count + posted, cap_hour,
+             n_dup, n_neardup, n_fail)
     return posted
