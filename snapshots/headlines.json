@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-09-28T22:21:03Z",
+      "ts": "2026-09-29T02:05:57Z",
       "title": "mideast · Geopolitics · risk off",
       "source": "Bbc World",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-28T22:21:03Z",
+      "ts": "2026-09-29T02:05:57Z",
       "title": "us · Geopolitics · risk off",
       "source": "Bbc World",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-28T22:21:03Z",
+      "ts": "2026-09-29T02:05:57Z",
+      "title": "us · Growth",
+      "source": "Investing Cb",
+      "score": 0.2,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-09-29T02:05:57Z",
       "title": "global · Other",
       "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-28T22:21:03Z",
+      "ts": "2026-09-29T02:05:57Z",
       "title": "global · Other",
       "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-28T22:21:03Z",
+      "ts": "2026-09-29T02:05:57Z",
       "title": "global · Other",
       "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-28T22:21:03Z",
+      "ts": "2026-09-29T02:05:57Z",
       "title": "global · Other",
       "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-28T22:21:03Z",
+      "ts": "2026-09-29T02:05:57Z",
       "title": "global · Other",
       "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-28T22:21:03Z",
-      "title": "global · Other",
-      "source": "Bbc World",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-09-28T22:21:03Z",
-      "title": "global · Other",
-      "source": "Bbc World",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-09-28T22:21:03Z",
+      "ts": "2026-09-29T02:05:57Z",
       "title": "mideast · Geopolitics · risk off",
       "source": "Bbc World",
       "score": 0.3,
       "xau_relevant": false
+    },
+    {
+      "ts": "2026-09-29T02:05:57Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-09-28T22:25:16.971624Z"
+  "written_at": "2026-09-29T02:10:58.040982Z"
 }
