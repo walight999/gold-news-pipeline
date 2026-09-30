@@ -164,7 +164,13 @@ with no 15m bar show as ⏳ pending, not wrong.
   CRITICAL `apify_budget_exhausted` / routine `apify_budget_high`. Config
   `sources.yaml → apify_budget`. Rule (White): fit the fixed plan limit, never
   raise it. Truth Social is OFF (it was 83% of the 2026-09 spend for ~0 news).
-  squawk_mirror reuses the news X scrape's @FirstSquawk tweets (no 2nd call).
+  squawk_mirror reuses the news X scrape's @FirstSquawk tweets (no 2nd call). **2026-09-30 hot windows:** calendar_check publishes `_hot_windows`
+  (High-impact USD releases T-10→T+45 + speech windows). Inside: base cadence
+  even when tight; outside: ×`quiet_multiplier` (1.5) and the last
+  `hot_reserve_pct` (25%) of the limit is reserved for hot windows only.
+  FinancialJuice's own RSS (`financialjuice` source, free, browser UA, org
+  x_financialjuice) keeps squawk headlines + speech quotes flowing when
+  Apify is out.
 - `news_alert.py` — Claude Haiku classify + Thai rewrite for LINE. **Do not
   repurpose for social** — keep LINE and social independent. Also owns
   `explain_calendar_release()` — short Thai "what this print means for gold"

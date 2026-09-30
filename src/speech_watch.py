@@ -65,6 +65,8 @@ DEFAULT_CFG: dict[str, Any] = {
     },
 }
 QUOTE_SOURCES = ("x_", "forexlive", "fxstreet", "investing", "cnbc")
+# Feeds where EVERY line is a live squawk quote (like the X accounts).
+SQUAWK_SOURCES = ("x_", "financialjuice")
 
 
 def cfg_from(sched_cfg: dict | None) -> dict:
@@ -191,8 +193,8 @@ def is_quote(title: str, source_id: str, keywords: list[str]) -> bool:
     up = (title or "").upper()
     if not _has_keyword(up, keywords):
         return False
-    if (source_id or "").startswith("x_"):
-        return True               # squawk accounts: every line is a live quote
+    if (source_id or "").startswith(SQUAWK_SOURCES):
+        return True               # squawk feeds: every line is a live quote
     # wires: only lines that actually report speech, not commentary about it
     return (" SAYS" in up or ": " in up or " SAID" in up) and \
         any((source_id or "").startswith(s) for s in QUOTE_SOURCES)

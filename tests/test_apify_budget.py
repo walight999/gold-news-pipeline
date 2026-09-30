@@ -69,10 +69,13 @@ def test_weekend_closed_window_ict():
 
 def test_interval_multiplier_compounds():
     sat = datetime(2026, 9, 26, 6, 0, tzinfo=UTC)
-    assert ab.interval_multiplier(ab.OK, CFG, WEEKDAY) == 1.0
-    assert ab.interval_multiplier(ab.TIGHT, CFG, WEEKDAY) == 2.0
+    # 2026-09-30: weekday quiet hours ×1.5 (quiet_multiplier default); hot
+    # windows (release / speech) always base cadence, even when TIGHT.
+    assert ab.interval_multiplier(ab.OK, CFG, WEEKDAY) == 1.5
+    assert ab.interval_multiplier(ab.TIGHT, CFG, WEEKDAY) == 3.0
     assert ab.interval_multiplier(ab.OK, CFG, sat) == 3.0
     assert ab.interval_multiplier(ab.TIGHT, CFG, sat) == 6.0
+    assert ab.interval_multiplier(ab.TIGHT, CFG, WEEKDAY, hot=True) == 1.0
     assert ab.interval_multiplier(ab.TIGHT, {}, sat) == 1.0   # disabled ⇒ legacy
 
 
@@ -140,7 +143,8 @@ def test_tight_budget_stretches_interval_and_lookback(monkeypatch):
         seen["since"] = since_minutes
         return []
     monkeypatch.setattr(ap, "fetch_tweets", fake)
-    # last X scrape 20 min ago: due at 12 min normally, NOT due at 24 (tight ×2)
+    # last X scrape 20 min ago: due at 12 min normally, NOT due at 36 (tight ×2 ×
+    # weekday-quiet ×1.5 — no hot window published in this store)
     ts = (main.now_utc().replace(microsecond=0)).timestamp() - 20 * 60
     last = datetime.fromtimestamp(ts, tz=UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
     st = _Store([{"source_id": "_apify", "last_attempt_ts": last}])
@@ -149,7 +153,7 @@ def test_tight_budget_stretches_interval_and_lookback(monkeypatch):
     assert "since" not in seen and not meta.get("x_scraped")
     # fresh store → due; lookback widened to the stretched interval + 2
     main._collect_apify_entries(_Store(), _x_cfg(), "cron", meta)
-    assert seen["since"] == 26 and meta["x_scraped"]
+    assert seen["since"] == 38 and meta["x_scraped"]
 
 
 # ---------------- squawk reuses the shared scrape ----------------

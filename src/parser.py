@@ -16,15 +16,19 @@ def parse_feed(body: bytes, source: dict[str, Any]) -> list[dict[str, Any]]:
         return []
     feed = feedparser.parse(body)
     entries: list[dict[str, Any]] = []
+    prefix = str(source.get("title_prefix") or "")
     for e in feed.entries:
         published = _entry_dt(e)
+        title = _clean_text((e.get("title") or "").strip())
+        if prefix and title.startswith(prefix):
+            title = title[len(prefix):].strip()     # e.g. "FinancialJuice: …"
         entries.append({
             "source_id": source["id"],
             "tier": source["tier"],
             "role": source["role"],
             "source_class": source.get("source_class", "aggregator"),
             "organization": source.get("organization") or source["id"],
-            "title": _clean_text((e.get("title") or "").strip()),
+            "title": title,
             "summary": _strip_html(e.get("summary") or e.get("description") or ""),
             "url": e.get("link") or "",
             "published_ts": published,  # datetime or None

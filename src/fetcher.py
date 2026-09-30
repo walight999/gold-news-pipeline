@@ -92,7 +92,9 @@ async def _fetch_one(client: httpx.AsyncClient, source: dict[str, Any], state: d
     asyncio.gather() and killed the entire cron run (all 14 sources
     dropped). We now treat any unexpected exception as a per-source
     failure and continue with the rest."""
-    headers: dict[str, str] = {"User-Agent": "gold-news-pipeline/1.0"}
+    # Per-source override: some feeds (FinancialJuice) answer 429 to anything
+    # but a full browser User-Agent.
+    headers: dict[str, str] = {"User-Agent": source.get("user_agent") or "gold-news-pipeline/1.0"}
     if state.get("etag"):
         headers["If-None-Match"] = str(state["etag"])
     if state.get("last_modified"):
