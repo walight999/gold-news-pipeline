@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-09-30T04:06:27Z",
+      "ts": "2026-09-30T10:35:52Z",
       "title": "global · Other",
-      "source": "Fxstreet",
+      "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-30T04:06:27Z",
-      "title": "japan · Growth",
-      "source": "Fxstreet",
-      "score": 0.2,
+      "ts": "2026-09-30T10:35:52Z",
+      "title": "fed · Rate Policy",
+      "source": "Ecb",
+      "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-30T04:06:27Z",
+      "ts": "2026-09-30T10:35:52Z",
+      "title": "russia · Geopolitics · risk off",
+      "source": "Bbc World",
+      "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-09-30T10:35:52Z",
+      "title": "global · Other · dovish",
+      "source": "Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-09-30T10:35:52Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-09-30T10:35:52Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-09-30T10:35:52Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-09-30T10:35:52Z",
       "title": "ecb · Rate Policy",
-      "source": "Fxstreet",
+      "source": "Ecb",
       "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-30T04:06:27Z",
-      "title": "global · Other",
-      "source": "Fxstreet",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-09-30T04:06:27Z",
-      "title": "pboc · Gold Flow",
-      "source": "Fxstreet",
+      "ts": "2026-09-30T10:35:52Z",
+      "title": "us · Geopolitics",
+      "source": "Bbc World",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-09-30T04:06:27Z",
-      "title": "us · Inflation",
-      "source": "Fxstreet",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-09-30T04:06:27Z",
-      "title": "china · Growth",
-      "source": "Fxstreet",
-      "score": 0.2,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-09-30T04:06:27Z",
-      "title": "us · Usd Yields",
-      "source": "Fxstreet",
+      "ts": "2026-09-30T10:35:52Z",
+      "title": "israel · Geopolitics · risk off",
+      "source": "Bbc World",
       "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-09-30T04:06:27Z",
-      "title": "us · Inflation",
-      "source": "Fxstreet",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-09-30T04:06:27Z",
-      "title": "global · Other",
-      "source": "Fxstreet",
-      "score": 0.1,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-09-30T04:15:42.688994Z"
+  "written_at": "2026-09-30T10:39:13.606620Z"
 }
