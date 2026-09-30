@@ -46,9 +46,11 @@ def _span_label(d: dict) -> str:
 
 
 def series_cells(country: str, title: str, asset: str = "XAU") -> dict[int, dict]:
-    """{horizon_min: {"n", "hit", ...}} for cells with at least MIN_N samples."""
+    """{horizon_min: {"n", "hit", ...}} for cells with at least MIN_N samples.
+    Non-USD series live under "pair_series" (their own USD pair)."""
     d = _load()
-    s = (d.get("series") or {}).get(f"{(country or '').upper()}|{title}")
+    key = f"{(country or '').upper()}|{title}"
+    s = (d.get("series") or {}).get(key) or (d.get("pair_series") or {}).get(key)
     if not s:
         return {}
     out = {}
@@ -59,9 +61,19 @@ def series_cells(country: str, title: str, asset: str = "XAU") -> dict[int, dict
     return out
 
 
-def history_line_th(country: str, title: str, asset: str = "XAU",
+PAIR_FOR = {"EUR": "EURUSD", "GBP": "GBPUSD", "JPY": "USDJPY"}
+
+
+def history_line_th(country: str, title: str, asset: str | None = None,
                     spot: float | None = None) -> str | None:
-    """One Thai line of reaction history, or None when there's not enough."""
+    """One Thai line of reaction history, or None when there's not enough.
+    USD releases → gold; EUR/GBP/JPY releases → their USD pair (gold has no
+    reliable reaction to them — see calendar.NON_USD_GOLD_RATIONALE)."""
+    ccy = (country or "").upper()
+    if asset is None:
+        asset = "XAU" if ccy == "USD" else PAIR_FOR.get(ccy, "")
+    if not asset:
+        return None
     cells = series_cells(country, title, asset)
     if not cells:
         return None
@@ -72,7 +84,8 @@ def history_line_th(country: str, title: str, asset: str = "XAU",
     n = max(int(c["n"]) for c in shown.values())
     span = _span_label(_load())
     head = f"ย้อนหลัง {span} " if span else "ย้อนหลัง "
-    name = "ทอง" if asset == "XAU" else asset
+    # Thai "ทอง" joins the next word directly; a ticker (EURUSD) needs a space.
+    name = "ทอง" if asset == "XAU" else f"{asset} "
     if max(float(c["hit"]) for c in shown.values()) < UNCLEAR_HIT:
         # History doesn't back the pill's direction (e.g. AHE, which prints in
         # the same minute as NFP): say so instead of "ไปตามทิศนี้ 47%".

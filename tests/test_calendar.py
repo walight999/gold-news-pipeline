@@ -129,14 +129,17 @@ def test_gold_impact_directional_unemployment_claims_inverse():
 
 
 def test_event_impact_pills_gbp_cpi_cooling():
-    """User example 2026-05-23: GBP CPI y/y, F: 3.0% / P: 3.3%
-    (cooling). Expect GBP↓, USD↑, XAU↑ — image confirmed."""
+    """User example 2026-05-23: GBP CPI y/y, F: 3.0% / P: 3.3% (cooling) →
+    GBP↓, USD↑ (kept). The XAU pill was ↑ by rule; since 2026-09-30 (White:
+    "let the learning decide") it is NEUTRAL — 2019-2026 data shows non-USD
+    releases move gold at coin-flip odds (30-55% out of sample, see
+    calendar.NON_USD_GOLD_RATIONALE), while GBPUSD reacts 79-84%."""
     from src.calendar import event_impact_pills, CalEvent
     e = CalEvent(event_id="x", title="CPI y/y", country="GBP", impact="High",
                  forecast="3.0%", previous="3.3%",
                  dt_utc=datetime(2026, 5, 27, 6, 0, tzinfo=timezone.utc))
     pills = event_impact_pills(e)
-    assert pills == [("GBP", "bearish"), ("USD", "bullish"), ("XAU", "bullish")]
+    assert pills == [("GBP", "bearish"), ("USD", "bullish"), ("XAU", "neutral")]
 
 
 def test_event_impact_pills_us_cpi_hot():
