@@ -1702,6 +1702,49 @@ async def run_tweet_post() -> int:
     return n
 
 
+def _monthly_quota_report(store) -> bool:
+    """On the 1st-3rd (ICT), send last month's LINE usage by card type to the
+    1:1 chat, once. Runs inside maintain BEFORE sent_log's 30-day purge."""
+    import json as _json
+    from datetime import timedelta as _td
+    from .line_client import LINE_PUSH_SOURCE_ID
+    from .line_flex import quota_report_bubble
+    ict = now_ict()
+    if ict.day > 3:
+        return False
+    month = (ict.replace(day=1) - _td(days=1)).strftime("%Y-%m")
+    key = f"quota_report:{month}"
+    if store.get("sent_log", (key, "quota_report")):
+        return False
+    target = _private_target()
+    if not target:
+        return False
+    row = store.get("source_state", (LINE_PUSH_SOURCE_ID,)) or {}
+    try:
+        blob = _json.loads(row.get("items_last_hour") or "{}")
+    except ValueError:
+        blob = {}
+    if blob.get("prev_api_month") == month:
+        usage, limit = int(blob.get("prev_api_usage") or 0), int(blob.get("prev_api_limit") or 0)
+    elif blob.get("api_month") == month:
+        usage, limit = int(blob.get("api_usage") or 0), int(blob.get("api_limit") or 0)
+    else:
+        log.info("quota report: no LINE reading for %s — skipped", month)
+        return False
+    pushes = delivery_stats.monthly_pushes(store.all_rows("sent_log"), month)
+    if not pushes or not usage:
+        return False
+    g, rows = delivery_stats.quota_breakdown(pushes, usage)
+    resp = LineClient.from_env().push_flex(
+        target, f"📊 โควต้า LINE {month}: ใช้ {usage:,}/{limit:,}",
+        quota_report_bubble(month, usage, limit, g, rows))
+    if _delivered(resp):
+        store.upsert("sent_log", {"event_id": key, "route_type": "quota_report",
+                                  "sent_ts": iso_utc(now_utc()), "line_status": resp["status"]})
+        return True
+    return False
+
+
 async def run_maintain() -> int:
     """Purge stale rows so the Sheet doesn't grow unbounded.
 
@@ -1732,6 +1775,10 @@ async def run_maintain() -> int:
     # days but records the ROUTING DECISION, not the delivery: a card the quota
     # gate shed still reads `alert` there. Rolls up to ~365 rows/year.
     from datetime import timedelta as _td
+    try:
+        _monthly_quota_report(store)
+    except Exception:
+        log.exception("monthly quota report failed")
     n_arch = 0
     for row in delivery_stats.aggregate(
             store.all_rows("sent_log"),

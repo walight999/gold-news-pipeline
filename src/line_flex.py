@@ -1599,6 +1599,43 @@ def speech_bubble(win: dict[str, Any], a: dict[str, Any], n_quotes: int,
     }
 
 
+_ROUTE_TH = {"breaking": "Breaking", "digest": "News Update (digest)", "alert": "Alert",
+             "calendar_post": "Released (หลังข่าว)", "calendar_pre": "T-15 (ก่อนข่าว)",
+             "calendar_daily": "ปฏิทินรายวัน", "speech": "ถ้อยแถลง", "weekly_preview": "Weekly preview",
+             "eod_recap": "EOD recap (1:1)", "scorecard": "Scorecard (1:1)",
+             "content_review": "Content review (1:1)", "weekly_report": "Weekly report (1:1)"}
+
+
+def quota_report_bubble(month: str, usage: int, limit: int, group_size: float,
+                        rows: list[dict[str, Any]]) -> dict[str, Any]:
+    """Monthly LINE quota usage by card type — the basis for next month's tuning."""
+    pct = usage / limit * 100 if limit else 0.0
+    body: list[dict[str, Any]] = [
+        {"type": "text", "text": f"ใช้ไป {usage:,} / {limit:,} ({pct:.0f}%)", "size": "md",
+         "weight": "bold", "color": "#111827"},
+        {"type": "text", "text": f"ต้นทุนต่อ 1 push เข้ากลุ่ม ≈ {group_size:.0f} หน่วย (≈ จำนวนสมาชิก)",
+         "size": "xs", "color": "#6B7280", "margin": "sm", "wrap": True},
+        {"type": "separator", "margin": "md"},
+    ]
+    for r in rows:
+        if r["units"] < 1:
+            continue
+        body.append({"type": "box", "layout": "horizontal", "margin": "sm", "contents": [
+            {"type": "text", "text": _ROUTE_TH.get(r["route"], r["route"]), "size": "xs",
+             "color": "#374151", "flex": 5, "wrap": True},
+            {"type": "text", "text": f"{r['pushes']} push", "size": "xxs", "color": "#6B7280",
+             "flex": 2, "align": "end"},
+            {"type": "text", "text": f"{r['pct']:.0f}%", "size": "xs", "weight": "bold",
+             "color": "#111827", "flex": 1, "align": "end"},
+        ]})
+    return {
+        "type": "bubble", "size": "giga",
+        "header": _header("📊 โควต้า LINE", month, "#1E3A8A"),
+        "body": {"type": "box", "layout": "vertical", "spacing": "sm",
+                 "paddingAll": "16px", "contents": body},
+    }
+
+
 # ---------- alt text ----------
 
 def alt_text_for_event(label: str, ev: Event, score: float,
