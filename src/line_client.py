@@ -152,8 +152,10 @@ def refresh_line_quota_from_api(store, token: str, timeout: float = 10.0) -> Non
     # LINE may reset on its own clock (before ICT midnight), so a rollover is
     # detected by EITHER the ICT month changing OR usage dropping; the month's
     # final reading is captured once.
-    from .utils_time import now_ict
-    month = now_ict().strftime("%Y-%m")
+    # Label the reading with LINE's OWN billing month: the quota resets at
+    # midnight JST (22:00 ICT) — observed 2026-09-30, usage 55 at 22:38 ICT.
+    from datetime import timedelta as _td, timezone as _tz
+    month = now_utc().astimezone(_tz(_td(hours=9))).strftime("%Y-%m")
     old_month, old_usage = counters.get("api_month"), counters.get("api_usage")
     rolled = bool(old_month) and (old_month != month or
                                   (old_usage is not None and usage < int(old_usage)))

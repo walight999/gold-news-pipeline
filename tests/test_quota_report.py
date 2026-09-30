@@ -48,7 +48,8 @@ def test_quota_breakdown_solves_group_size():
 
 
 def _refresh(store, monkeypatch, usage, month):
-    monkeypatch.setattr("src.utils_time.now_ict", lambda: datetime(int(month[:4]), int(month[5:]), 15, tzinfo=ICT))
+    monkeypatch.setattr("src.utils_time.now_utc",
+                        lambda: datetime(int(month[:4]), int(month[5:]), 15, tzinfo=timezone.utc))
 
     class C:
         def __init__(self, *a, **k): pass
@@ -96,3 +97,22 @@ def test_report_sent_once_on_the_first(monkeypatch):
     monkeypatch.setattr(m, "now_ict", lambda: datetime(2026, 10, 5, 23, 0, tzinfo=ICT))
     s2 = _store()
     assert m._monthly_quota_report(s2) is False               # only on the 1st-3rd
+
+
+def test_billing_month_is_jst(monkeypatch):
+    """22:30 ICT on the last day = 00:30 JST on the 1st → already next month."""
+    s = _store()
+    monkeypatch.setattr("src.utils_time.now_utc", lambda: datetime(2026, 9, 30, 15, 30, tzinfo=timezone.utc))
+
+    class C:
+        def __init__(self, *a, **k): pass
+        def __enter__(self): return self
+        def __exit__(self, *a): return False
+
+        def get(self, url, headers=None):
+            body = {"type": "limited", "value": 35000} if url.endswith("/quota") else {"totalUsage": 55}
+            return httpx.Response(200, json=body, request=httpx.Request("GET", url))
+    monkeypatch.setattr(line_client.httpx, "Client", C)
+    line_client.refresh_line_quota_from_api(s, "tok")
+    b = json.loads(s.get("source_state", (LINE_PUSH_SOURCE_ID,))["items_last_hour"])
+    assert b["api_month"] == "2026-10"
