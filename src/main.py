@@ -2605,6 +2605,58 @@ def _push_calendar_groups(line, target, pending, sched_cfg, store, *,
     return delivered
 
 
+from datetime import timedelta as _timedelta   # noqa: E402
+
+_ACTUAL_WAIT = _timedelta(minutes=8)
+_PING_AHEAD = _timedelta(minutes=30)
+
+
+def _record_pinger_spot_base(store) -> None:
+    """release_pinger passes XAU spot ~25 s before the print; put it on the
+    spot tape so the Released card's $ move starts right at the release."""
+    price, ts = os.environ.get("SPOT_BASE", "").strip(), os.environ.get("SPOT_BASE_TS", "").strip()
+    if not price or not ts:
+        return
+    try:
+        from datetime import datetime
+        from . import spot_feed
+        spot_feed.record_tape(store, datetime.fromisoformat(ts.replace("Z", "+00:00")),
+                              price=float(price))
+    except Exception:
+        log.exception("pinger spot base ignored (%r @ %r)", price, ts)
+
+
+def _dispatch_release_pingers(store, relevant) -> int:
+    """One release_pinger per upcoming release minute (numeric releases with a
+    forecast, due within 30 min). Marker in sent_log so each minute is pinged
+    once. Needs GH_TOKEN (actions: write) — silently off without it."""
+    token, repo = os.environ.get("GH_TOKEN", ""), os.environ.get("GITHUB_REPOSITORY", "")
+    if not token or not repo:
+        return 0
+    now = now_utc()
+    minutes = sorted({e.dt_utc for e in relevant
+                      if (e.forecast or "").strip() and now < e.dt_utc <= now + _PING_AHEAD})
+    sent = 0
+    for dt in minutes:
+        key = f"ping:{dt.strftime('%Y-%m-%dT%H:%MZ')}"
+        if store.get("sent_log", (key, "ping")):
+            continue
+        import httpx
+        r = httpx.post(
+            f"https://api.github.com/repos/{repo}/actions/workflows/release_pinger.yml/dispatches",
+            headers={"Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json"},
+            json={"ref": "main", "inputs": {"release_ts": dt.strftime("%Y-%m-%dT%H:%M:%SZ")}},
+            timeout=15)
+        if r.status_code == 204:
+            store.upsert("sent_log", {"event_id": key, "route_type": "ping",
+                                      "sent_ts": iso_utc(now), "line_status": "dispatched"})
+            sent += 1
+            log.info("release pinger dispatched for %s", key)
+        else:
+            log.warning("release pinger dispatch HTTP %s: %s", r.status_code, r.text[:200])
+    return sent
+
+
 def _speech_plan(store, events, sched_cfg) -> None:
     """Publish speech listening windows (see speech_watch). Previously
     published windows are kept until their cards are due; buffers of windows
@@ -2683,6 +2735,7 @@ async def run_calendar_check() -> int:
         store.flush()
         return 1
 
+    _record_pinger_spot_base(store)
     spot_now = _record_spot_tape(store)
     countries = tuple(cal_cfg.get("pre_release_currencies", cal.DEFAULT_PRE_COUNTRIES))
     impacts   = tuple(cal_cfg.get("pre_release_impacts",    cal.DEFAULT_PRE_IMPACTS))
@@ -2725,6 +2778,10 @@ async def run_calendar_check() -> int:
                         if not (speech_watch.is_speech_event(e, _sp_cfg) and not (e.forecast or "").strip())]
     except Exception:
         log.exception("speech filter failed — keeping all calendar events")
+    try:
+        _dispatch_release_pingers(store, relevant)
+    except Exception:
+        log.exception("release pinger dispatch failed")
     upcoming = cal.filter_upcoming(relevant, pre_lo, pre_hi)
     # Pre-release is owned by the GAS newsupdate-linebot since 2026-06-11
     # (precise T-15 one-shot triggers). When disabled here, this mode sends
@@ -2757,6 +2814,7 @@ async def run_calendar_check() -> int:
         # 1 quota unit per recipient instead of N.
         pending_pre: list[dict[str, Any]] = []
         pending_post: list[dict[str, Any]] = []
+        deferred_minutes: set = set()
 
         # Pre-release alerts
         for ev in upcoming:
@@ -2820,6 +2878,15 @@ async def run_calendar_check() -> int:
                 if ff_actual:
                     actual_text = ff_actual
                     actual_value = fred.parse_forecast_value(ff_actual)
+            if (actual_text is None and (ev.forecast or "").strip()
+                    and now_utc() - ev.dt_utc < _ACTUAL_WAIT):
+                # A numeric release whose actual isn't published yet: wait for
+                # the next run (release_pinger fires at +60/+150/+270 s) rather
+                # than lock in an "Actual ——" card. After _ACTUAL_WAIT it goes
+                # out with whatever there is.
+                deferred_minutes.add(ev.dt_utc)
+                log.info("calendar_check: actual not yet out for %s — holding the card", ev.title)
+                continue
             if actual_text is not None and actual_value is not None:
                 forecast_val = fred.parse_forecast_value(ev.forecast)
                 if forecast_val is not None:
@@ -2897,6 +2964,10 @@ async def run_calendar_check() -> int:
                 except Exception:
                     log.exception("telegram post-release push failed %s", sent_key)
 
+        # Everything printed in the same minute goes out together (one
+        # carousel + one composite call): if any of them is still waiting for
+        # its actual, hold the whole minute.
+        pending_post = [i for i in pending_post if i["ev"].dt_utc not in deferred_minutes]
         pre_pushed = _push_calendar_groups(
             line, target, pending_pre, sched_cfg, store,
             route_type="calendar_pre", priority=PRIORITY_REDUNDANT)

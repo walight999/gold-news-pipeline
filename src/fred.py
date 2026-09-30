@@ -96,6 +96,30 @@ _SERIES_FREQ: dict[str, str] = {
 # passes and only a full-extra-period-stale obs is rejected — a false reject
 # just falls through to the FF HTML actual / directional-only card (safe).
 _MAX_LAG_DAYS: dict[str, int] = {"weekly": 21, "monthly": 62, "quarterly": 135}
+# Per-series overrides where the frequency default let a full-period-stale obs
+# through. Jobless claims print on Thursday for the week ending the previous
+# Saturday (ICSA obs = release − 5 d; last week's = −12 d, which passed the
+# 21-day weekly cap → the 2026-10-01 dry run showed LAST week's 197K as the
+# actual). Continuing claims lag one more week (fresh −12 d, stale −19 d).
+#
+# Monthly series differ by WHEN in the next month they print, so one 62-day cap
+# let a stale NFP through: NFP 2026-10-02 (Sept data, obs 09-01 = 31 d) vs a
+# not-yet-updated FRED still on Aug (obs 08-01 = exactly 62 d → accepted, the
+# card would have shown August's payrolls). Caps sit between the fresh and the
+# one-period-stale lag for each release's normal date:
+#   NFP / unemployment  (1st Fri)     fresh 31-38 d, stale 61-69 → 45
+#   CPI / PPI / retail  (10th-17th)   fresh 40-47 d, stale 70-78 → 60
+#   PCE / durables      (25th-end)    fresh 55-61 d, stale 86-92 → 75
+_MAX_LAG_BY_SERIES: dict[str, int] = {
+    "ICSA": 8, "CCSA": 15,
+    "PAYEMS": 45, "UNRATE": 45,
+    "CPIAUCSL": 60, "CPILFESL": 60, "PPIFIS": 60, "PPIFES": 60, "RSAFS": 60, "RSFSXMV": 60,
+    "PCEPI": 75, "PCEPILFE": 75, "DGORDER": 75, "ADXTNO": 75,
+    # Daily target rate: a new target is effective the day AFTER the decision,
+    # so a fresh obs is dated after the release (lag −1). An obs dated on/before
+    # the decision day is the OLD target → reject (card falls back to FF).
+    "DFEDTARU": -1,
+}
 
 # Absolute in-line tolerance floor per transform, in the transform's display
 # unit. Guards the relative (5%-of-forecast) band from collapsing to ~0 on
@@ -239,7 +263,8 @@ def fetch_actual(title: str, api_key: str | None = None,
         od = _obs_date(obs[0].get("date", ""))
         rd = release_dt.date() if hasattr(release_dt, "date") else release_dt
         if od is not None and rd is not None:
-            max_lag = _MAX_LAG_DAYS[_SERIES_FREQ.get(sid, "monthly")]
+            max_lag = (_MAX_LAG_BY_SERIES[sid] if sid in _MAX_LAG_BY_SERIES
+                       else _MAX_LAG_DAYS[_SERIES_FREQ.get(sid, "monthly")])
             lag = (rd - od).days
             if lag > max_lag:
                 log.warning("fred stale series=%s obs=%s release=%s lag=%dd > %dd "

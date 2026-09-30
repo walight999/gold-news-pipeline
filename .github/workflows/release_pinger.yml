@@ -1,0 +1,60 @@
+name: release-pinger
+
+# Fast Released-News cards (2026-09-30). calendar_check (every 10 min) sees a
+# release coming up within 30 min and dispatches this workflow once per release
+# minute. It sleeps OUTSIDE the gold-news lock (so nothing queues behind it),
+# snapshots XAU spot ~25 s before the print (the $-move base for the card), then
+# dispatches calendar_check at T+60 s, +150 s and +270 s. calendar_check sends
+# the card as soon as the actual is published (it holds a card back while the
+# actual is still missing, up to 8 min) — card in the chat ~1.5-2.5 min after
+# the print instead of 2-10 min on the fixed 10-min cadence. Idempotent: every
+# extra calendar_check run is a no-op once the card is in sent_log.
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_ts:
+        description: "Release minute, UTC ISO (e.g. 2026-10-02T12:30:00Z)"
+        required: true
+
+concurrency:
+  group: release-pinger-${{ inputs.release_ts }}   # one pinger per release minute
+  cancel-in-progress: false
+
+permissions:
+  actions: write            # gh workflow run calendar_check.yml
+  contents: read
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      RELEASE_TS: ${{ inputs.release_ts }}
+    steps:
+      - name: wait for the print, snapshot spot, dispatch calendar_check
+        run: |
+          set -u
+          rel=$(date -u -d "$RELEASE_TS" +%s)
+          now=$(date -u +%s)
+          if [ $(( now - rel )) -gt 300 ]; then
+            echo "release $RELEASE_TS already >5 min old — nothing to do"; exit 0
+          fi
+          wait=$(( rel - 25 - now ))
+          if [ "$wait" -gt 0 ]; then sleep "$wait"; fi
+          # Spot just before the print (Swissquote mid) → the card's $-move base.
+          spot=$(curl -s -m 10 -A "Mozilla/5.0" \
+                 "https://forex-data-feed.swissquote.com/public-quotes/bboquotes/instrument/XAU/USD" \
+                 | python3 -c "import sys,json; p=json.load(sys.stdin)[0]['spreadProfilePrices'][0]; print(round((p['bid']+p['ask'])/2,3))" \
+                 2>/dev/null || echo "")
+          spot_ts=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          echo "[pinger] base spot=$spot at $spot_ts for release $RELEASE_TS"
+          for off in 60 150 270; do
+            t=$(( rel + off - $(date -u +%s) ))
+            if [ "$t" -gt 0 ]; then sleep "$t"; fi
+            gh workflow run calendar_check.yml -f spot_base="$spot" -f spot_base_ts="$spot_ts" \
+              && echo "[pinger] dispatched calendar_check at T+${off}s" \
+              || echo "[pinger] dispatch failed at T+${off}s"
+          done
