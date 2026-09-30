@@ -147,6 +147,21 @@ def refresh_line_quota_from_api(store, token: str, timeout: float = 10.0) -> Non
                 counters = d
         except (_json.JSONDecodeError, TypeError, ValueError):
             counters = {}
+    # Keep the previous month's LAST reading when the month rolls over, so the
+    # monthly quota report (1st of the month) still knows what was billed.
+    # LINE may reset on its own clock (before ICT midnight), so a rollover is
+    # detected by EITHER the ICT month changing OR usage dropping; the month's
+    # final reading is captured once.
+    from .utils_time import now_ict
+    month = now_ict().strftime("%Y-%m")
+    old_month, old_usage = counters.get("api_month"), counters.get("api_usage")
+    rolled = bool(old_month) and (old_month != month or
+                                  (old_usage is not None and usage < int(old_usage)))
+    if rolled and counters.get("prev_api_month") != old_month:
+        counters["prev_api_month"] = old_month
+        counters["prev_api_usage"] = old_usage
+        counters["prev_api_limit"] = counters.get("api_limit")
+    counters["api_month"] = month
     counters["api_limit"] = limit
     counters["api_usage"] = usage
     counters["api_ts"] = iso_utc(now_utc())

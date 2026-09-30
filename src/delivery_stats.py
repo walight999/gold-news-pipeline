@@ -54,7 +54,7 @@ def aggregate(rows: list[dict[str, Any]], cutoff: datetime) -> list[dict[str, An
     for r in rows:
         # `content:` rows are content-dedup markers (see digest.content_sig), not
         # a delivery — counting them would double every digest event in n_sent.
-        if str(r.get("route_type")) in ("content", "speech_skip", "ping"):
+        if str(r.get("route_type")) in ("content", "speech_skip", "ping", "quota_report"):
             continue            # markers, not deliveries (speech_skip: no quotes → no card)
         day = ict_day(r.get("sent_ts"))
         if day is None:
@@ -82,6 +82,47 @@ def aggregate(rows: list[dict[str, Any]], cutoff: datetime) -> list[dict[str, An
                                    ensure_ascii=False),
         })
     return out
+
+
+PRIVATE_ROUTES = {"eod_recap", "scorecard", "content_review", "weekly_report", "quota_report", "health"}
+_MARKERS = {"content", "speech_skip", "ping", "quota_report"}
+
+
+def monthly_pushes(rows: list[dict[str, Any]], month: str) -> dict[str, dict[str, int]]:
+    """{route: {"pushes", "cards"}} for ICT month "YYYY-MM". One push = one
+    route + one send minute (a digest round / calendar carousel is 1 push of
+    several cards) — LINE bills per push × recipients, not per card."""
+    seen: set[tuple[str, str]] = set()
+    out: dict[str, dict[str, int]] = {}
+    for r in rows:
+        route = str(r.get("route_type") or "")
+        if route in _MARKERS or str(r.get("line_status") or "") not in _DELIVERED_STATUS:
+            continue
+        day = ict_day(r.get("sent_ts"))
+        if not day or not day.startswith(month):
+            continue
+        ts = str(r.get("sent_ts") or "")[:16]
+        c = out.setdefault(route, {"pushes": 0, "cards": 0})
+        c["cards"] += 1
+        if (route, ts) not in seen:
+            seen.add((route, ts))
+            c["pushes"] += 1
+    return out
+
+
+def quota_breakdown(pushes: dict[str, dict[str, int]], usage: int) -> tuple[float, list[dict[str, Any]]]:
+    """Split LINE's billed `usage` over routes. Group pushes cost ≈ G units
+    (G = group members, solved from the month's own numbers); 1:1 pushes 1."""
+    priv = sum(v["pushes"] for k, v in pushes.items() if k in PRIVATE_ROUTES)
+    grp = sum(v["pushes"] for k, v in pushes.items() if k not in PRIVATE_ROUTES)
+    g = (usage - priv) / grp if grp else 0.0
+    rows = []
+    for k, v in pushes.items():
+        units = v["pushes"] * (1 if k in PRIVATE_ROUTES else g)
+        rows.append({"route": k, "pushes": v["pushes"], "cards": v["cards"], "units": units,
+                     "pct": units / usage * 100 if usage else 0.0})
+    rows.sort(key=lambda x: -x["units"])
+    return g, rows
 
 
 def summarize(rows: list[dict[str, Any]], days: int = 7,
