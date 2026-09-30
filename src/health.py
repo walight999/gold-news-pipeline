@@ -366,18 +366,19 @@ def check_pipeline_health(
             reason = "token expired? channel disabled? network down?"
         out.append(("line_push_failing",
                     f"LINE push failed {line_consec}× in a row — {reason}"))
+    # 2026-09-28: the full monthly quota is used on purpose, so a high
+    # percentage is not a problem — only exhaustion is. Fire on the FIRST 429
+    # of the month (line_push_failing above needs 5 in a row, which can take
+    # hours once only breaking/alert are still probing).
+    from .utils_time import now_ict
     qs = get_line_quota_status(store)
-    if qs.get("count", 0) > 0:
-        pct = qs.get("pct", 0)
-        if pct >= 80:
-            count = qs.get("count")
-            limit = qs.get("limit") or LINE_FREE_TIER_QUOTA
-            month = qs.get("month") or "this month"
-            # `limit`/usage come from LINE's own quota API when available (source
-            # "api") — so this reflects the REAL plan cap, not a hardcoded 500.
-            out.append(("line_quota_high",
-                        f"LINE usage {count}/{limit} ({pct}%) for {month} "
-                        "— approaching the monthly message cap."))
+    if (str(line_row.get("last_status") or "") == "429"
+            and qs.get("month") == now_ict().strftime("%Y-%m")):
+        count = qs.get("count")
+        limit = qs.get("limit") or LINE_FREE_TIER_QUOTA
+        out.append(("line_quota_high",
+                    f"LINE monthly quota EXHAUSTED ({count}/{limit}) — only breaking/alert "
+                    "keep probing; everything resumes after the reset on the 1st."))
 
     # Telegram/news-bot push health. Telegram is the primary channel while LINE
     # quota is exhausted, so a silent worker outage drops everything. Row is

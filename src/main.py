@@ -202,9 +202,12 @@ def _collect_apify_entries(store, src_cfg, mode: str,
     if level == apify_budget.EXHAUSTED:
         log.warning("apify: budget exhausted for this billing cycle — skipping all Apify sources")
         return []
-    mult = apify_budget.interval_multiplier(level, bcfg)
-    if event and level != apify_budget.TIGHT:
-        mult = 1.0
+    hot = event or apify_budget.in_hot_window(store)
+    meta["apify_hot"] = hot
+    if apify_budget.hot_reserve_blocks(store, bcfg, hot):
+        log.info("apify: outside hot windows and inside the reserved budget — skipping this run")
+        return []
+    mult = apify_budget.interval_multiplier(level, bcfg, hot=hot)
 
     # --- X / Twitter (the original source; kaitoeasyapi) ---
     xc = src_cfg.get("x_accounts") or {}
@@ -2696,6 +2699,12 @@ async def run_calendar_check() -> int:
         _speech_plan(store, events, sched_cfg)
     except Exception:
         log.exception("speech_watch planning failed")
+    try:
+        from . import apify_budget
+        apify_budget.publish_hot_windows(store, apify_budget.hot_windows_from_events(
+            events, speech_watch.stored_windows(store)))
+    except Exception:
+        log.exception("hot-window publish failed")
 
     # News-event entry gate: push the soonest HIGH-impact release to the alert-bot so it
     # suppresses NEW entries around the print. Env-gated (MACRO_WEBHOOK_*), best-effort,

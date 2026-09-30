@@ -52,15 +52,16 @@ def test_quota_pct_calculation(store):
     assert qs["pct"] == 80
 
 
-def test_watchdog_flags_line_quota_high_at_80pct(store):
-    """500-msg free tier — flag at >=80%."""
+def test_watchdog_quiet_at_high_usage_loud_on_exhaustion(store):
+    """2026-09-28: the full quota is used on purpose — high usage is silent;
+    the first 429 of the month raises line_quota_high immediately."""
     from src.health import check_pipeline_health, write_heartbeat
     write_heartbeat(store, items_seen=5)
-    for _ in range(450):
+    for _ in range(495):
         record_line_outcome(store, 200)
-    warns = check_pipeline_health(store)
-    types = [wt for wt, _ in warns]
-    assert "line_quota_high" in types
+    assert "line_quota_high" not in [wt for wt, _ in check_pipeline_health(store)]
+    record_line_outcome(store, {"status": 429})
+    assert "line_quota_high" in [wt for wt, _ in check_pipeline_health(store)]
 
 
 def test_watchdog_flags_line_push_failing_at_5_consecutive(store):

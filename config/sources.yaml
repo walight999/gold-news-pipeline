@@ -64,6 +64,13 @@ apify_budget:
   slack_pct: 5            # tolerate 5% of the limit above the pace line first
   tight_multiplier: 2
   weekend_multiplier: 3
+  # 2026-09-30: spend where gold moves. calendar_check publishes "hot windows"
+  # (High-impact USD releases T-10→T+45 min + speech / statement windows).
+  # Inside: base cadence, even when pace is tight. Outside: intervals × quiet_
+  # multiplier, and the last hot_reserve_pct of the limit is kept for hot
+  # windows only (the Sep cycle ran dry on the 27th → no X feed for NFP week).
+  quiet_multiplier: 1.5
+  hot_reserve_pct: 25
 
 # First Squawk live mirror (2026-09-22, White) — `--mode squawk_mirror`. Scrapes
 # @FirstSquawk (already in x_accounts above for the news pipeline) and mirrors its
@@ -258,6 +265,13 @@ sources:
   # ALIVE, just moved: point straight at the 301 target (stable 200 + valid RSS).
   - {id: marketwatch, tier: 1, source_class: aggregator, organization: marketwatch,  role: macro,        url: "https://feeds.content.dowjones.io/public/rss/mw_topstories", poll_min: 10, enabled: true}
   - {id: forexlive,   tier: 2, source_class: wire,       organization: forexlive,    role: trader_macro, url: "https://www.forexlive.com/feed/",                    poll_min: 5,  enabled: true}
+  # FinancialJuice's own RSS (2026-09-30): the same real-time squawk lines as
+  # @financialjuice on X, free — keeps fast headlines + live speech quotes
+  # flowing when the Apify budget is exhausted (2026-09-27 → 10-04 cycle).
+  # organization = the X handle's org, so the two copies never fake a second
+  # confirming outlet. Items arrive as "FinancialJuice: <headline>". Needs a full
+  # browser User-Agent (the pipeline's default UA gets HTTP 429).
+  - {id: financialjuice, tier: 2, source_class: wire, organization: x_financialjuice, role: trader_macro, url: "https://www.financialjuice.com/feed.ashx?xy=rss", poll_min: 5, enabled: true, title_prefix: "FinancialJuice: ", user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36"}
   - {id: fxstreet,    tier: 2, source_class: wire,       organization: fxstreet,     role: gold_bias,    url: "https://www.fxstreet.com/rss",                       poll_min: 5,  enabled: true}
   - {id: kitco,       tier: 3, source_class: gold_blog,  organization: kitco,        role: gold_context, url: "https://www.kitco.com/rss/",                         poll_min: 60, enabled: false, note: "feed 404"}
   # Investing.com runs without Cloudflare — plain httpx returns 200.

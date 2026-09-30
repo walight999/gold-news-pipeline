@@ -61,6 +61,68 @@ def budget_level(usage: float, limit: float, cycle_start: datetime,
     return OK
 
 
+HOT_ROW = "_hot_windows"
+
+
+def publish_hot_windows(store, windows: list[tuple[datetime, datetime]]) -> None:
+    """calendar_check writes the minutes worth spending Apify on: around
+    High-impact USD releases and speech / statement windows."""
+    store.upsert("source_state", {
+        "source_id": HOT_ROW, "last_attempt_ts": iso_utc(now_utc()),
+        "items_last_hour": json.dumps([[a.isoformat(), b.isoformat()] for a, b in windows]),
+    })
+
+
+def in_hot_window(store, now: datetime | None = None) -> bool:
+    now = now or now_utc()
+    row = store.get("source_state", (HOT_ROW,)) or {}
+    try:
+        wins = json.loads(row.get("items_last_hour") or "[]")
+    except (TypeError, ValueError):
+        return False
+    for a, b in wins:
+        try:
+            if datetime.fromisoformat(a) <= now <= datetime.fromisoformat(b):
+                return True
+        except (TypeError, ValueError):
+            continue
+    return False
+
+
+def hot_windows_from_events(events, speech_windows: list[dict], *,
+                            before_min: int = 10, after_min: int = 45) -> list[tuple[datetime, datetime]]:
+    """High-impact USD releases [T-before, T+after] + every speech window."""
+    from datetime import timedelta
+    out = []
+    for e in events:
+        if (e.country or "").upper() == "USD" and (e.impact or "") == "High":
+            out.append((e.dt_utc - timedelta(minutes=before_min), e.dt_utc + timedelta(minutes=after_min)))
+    for w in speech_windows:
+        try:
+            out.append((datetime.fromisoformat(w["start"]) - timedelta(minutes=before_min),
+                        datetime.fromisoformat(w["end"])))
+        except (KeyError, TypeError, ValueError):
+            continue
+    return out
+
+
+def hot_reserve_blocks(store, cfg: dict[str, Any] | None, hot: bool) -> bool:
+    """True when this run must NOT spend: outside hot windows, the last
+    `hot_reserve_pct` of the monthly limit is kept for release / speech windows
+    (the 2026-09 cycle ran dry on the 27th and NFP week had no X feed)."""
+    cfg = cfg or {}
+    if hot or not cfg.get("enabled"):
+        return False
+    _, blob = read_cached(store)
+    try:
+        usage, limit = float(blob.get("usage")), float(blob.get("limit"))
+    except (TypeError, ValueError):
+        return False
+    if limit <= 0:
+        return False
+    return usage >= limit * (1 - float(cfg.get("hot_reserve_pct", 25)) / 100.0)
+
+
 def is_weekend_closed(now: datetime) -> bool:
     """True while spot gold is shut: Sat 05:00 ICT → Mon 05:00 ICT."""
     ict = to_ict(now)
@@ -137,15 +199,21 @@ def current_level(store, token: str, cfg: dict[str, Any] | None,
 
 
 def interval_multiplier(level: str, cfg: dict[str, Any] | None,
-                        now: datetime | None = None) -> float:
-    """How much to stretch every Apify min-interval this run. Tight pace and
-    the gold-closed weekend compound (e.g. 2 × 3 = 6×)."""
+                        now: datetime | None = None, hot: bool = False) -> float:
+    """How much to stretch every Apify min-interval this run. Hot windows
+    (release / speech) run at the base cadence even when TIGHT; quiet hours
+    are stretched by `quiet_multiplier`; tight pace and the gold-closed
+    weekend compound (e.g. 2 × 3 = 6×)."""
     cfg = cfg or {}
     if not cfg.get("enabled"):
+        return 1.0
+    if hot:
         return 1.0
     m = 1.0
     if level == TIGHT:
         m *= float(cfg.get("tight_multiplier", 2))
     if is_weekend_closed(now or now_utc()):
-        m *= float(cfg.get("weekend_multiplier", 3))
+        m *= float(cfg.get("weekend_multiplier", 3))   # already the quietest time
+    else:
+        m *= float(cfg.get("quiet_multiplier", 1.5))   # weekday, no release / speech
     return m

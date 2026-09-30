@@ -90,6 +90,16 @@ def _ws_get_all_records(ws: gspread.Worksheet, expected_headers: list[str]) -> l
 
 
 @_retry
+def _ws_list(sh: gspread.Spreadsheet) -> list[gspread.Worksheet]:
+    return sh.worksheets()
+
+
+@_retry
+def _ws_values(ws: gspread.Worksheet) -> list[list[str]]:
+    return ws.get_all_values()
+
+
+@_retry
 def _ws_row_values(ws: gspread.Worksheet, n: int) -> list[str]:
     return ws.row_values(n)
 
@@ -272,17 +282,38 @@ class Store:
         return ws
 
     def load_all(self) -> None:
-        """One read per tab. Populates self.data."""
+        """Populates self.data with ONE metadata read + ONE values read per tab.
+
+        Was 3 reads per tab (worksheet lookup, header row, records) = ~28 per
+        run; with news-cron, calendar-check and others loading within the same
+        minute that hit Sheets' 60-reads/min/user quota (429 on 2026-09-28
+        23:02 UTC). Now ~11. Rows map POSITIONALLY onto the schema — the same
+        result the old path gave after _ensure_tab rewrote a stale header, and
+        every cell stays a string (== get_all_records(numericise_ignore=all))."""
+        assert self._sh is not None
+        ws_map = {ws.title: ws for ws in _ws_list(self._sh)}
+        self.api_calls += 1
         for tab, cols in SCHEMAS.items():
-            ws = self._ensure_tab(tab)
-            records = _ws_get_all_records(ws, cols)
-            self.api_calls += 1
+            ws = ws_map.get(tab)
+            if ws is None:
+                ws = self._ensure_tab(tab)          # creates the tab + header
+                values: list[list[str]] = [list(cols)]
+            else:
+                values = _ws_values(ws)
+                self.api_calls += 1
+                header = list(values[0]) if values else []
+                while header and header[-1] == "":
+                    header.pop()
+                if header != cols:
+                    _ws_update(ws, "A1", [cols])
+                    self.api_calls += 1
             buf: dict[str, dict[str, Any]] = {}
-            for r in records:
+            for raw in values[1:]:
+                r = {c: (raw[i] if i < len(raw) else "") for i, c in enumerate(cols)}
                 rk = _row_key(tab, r)
                 if not rk.strip("|"):
                     continue
-                buf[rk] = {c: r.get(c, "") for c in cols}
+                buf[rk] = r
             self.data[tab] = buf
             self._clean[tab] = {rk: dict(r) for rk, r in buf.items()}
             self.dirty[tab] = set()
