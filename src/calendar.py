@@ -287,6 +287,20 @@ def is_statement_driven(event: "CalEvent") -> bool:
     return bool(_STATEMENT_DRIVEN.search((event.title or "").lower()))
 
 
+# Non-USD releases → gold: NO reliable direction (research/learn.py, 2019-2026,
+# walk-forward 2023+): gold moved WITH a hawkish EUR/GBP/CAD/AUD/CHF surprise
+# 44-50% of the time and the out-of-sample hit was 30-55% for every currency —
+# a coin flip, whichever way the rule is written (the 2026-05-23 "GBP cooling →
+# XAU up" rule and its opposite both fail). The currency's own USD pair DOES
+# react reliably (EURUSD 86-88%, GBPUSD 79-84% out of sample). So the XAU pill
+# for a non-USD release is neutral; the currency pills keep their direction.
+NON_USD_GOLD_RATIONALE = "Non-USD release: historically no reliable effect on gold"
+
+
+def gold_neutral_for(event: "CalEvent") -> bool:
+    return ((event.country or "").upper() or "USD") != "USD"
+
+
 def gold_impact_directional(event: CalEvent) -> dict[str, str]:
     """Returns directional gold-impact guidance keyed off the event title.
 
@@ -298,6 +312,9 @@ def gold_impact_directional(event: CalEvent) -> dict[str, str]:
     Keys: higher_is, lower_is, rationale.
     """
     title_low = event.title.lower()
+    if gold_neutral_for(event):
+        return {"higher_is": "🟡 Neutral", "lower_is": "🟡 Neutral",
+                "rationale": NON_USD_GOLD_RATIONALE}
     if is_statement_driven(event):
         return {"higher_is": "🟡 Neutral", "lower_is": "🟡 Neutral",
                 "rationale": STATEMENT_DRIVEN_RATIONALE}
@@ -398,6 +415,8 @@ def event_impact_pills(
         ecu_dir = "bearish" if higher_strengthens_ecu else "bullish"
     counter_dir = "bearish" if ecu_dir == "bullish" else "bullish"
     xau_dir = "bearish" if ecu_dir == "bullish" else "bullish"
+    if gold_neutral_for(event):
+        xau_dir = "neutral"            # see NON_USD_GOLD_RATIONALE
     return [(ecu, ecu_dir), (counter, counter_dir), ("XAU", xau_dir)]
 
 
@@ -424,7 +443,7 @@ def scenario_pills(event: "CalEvent", higher: bool) -> list[tuple[str, str]]:
     ecu_up = higher != inverse          # higher print strengthens ECU unless inverse
     ecu_dir = "bullish" if ecu_up else "bearish"
     other = "bearish" if ecu_up else "bullish"
-    return [(ecu, ecu_dir), (counter, other), ("XAU", other)]
+    return [(ecu, ecu_dir), (counter, other), ("XAU", "neutral" if gold_neutral_for(event) else other)]
 
 
 def forecast_vs_previous_effect(event: "CalEvent") -> dict[str, str]:

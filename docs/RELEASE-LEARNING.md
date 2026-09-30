@@ -84,3 +84,16 @@ python -m research.refresh                         # what CI runs weekly
 ```
 Tunables in learn.py: HALF_LIFE_Y (env LEARN_HALF_LIFE_Y), drift window
 (LEARN_DRIFT_DAYS), GATE_PREC, FLAT.
+
+## Non-USD releases (2026-09-30)
+Hawkish EUR/GBP/CAD/AUD/CHF surprises move **gold** at coin-flip odds
+(44–50% in-sample; walk-forward 2023+ out-of-sample 30–55% for every
+currency, whichever direction the rule takes). The currency's **own USD
+pair** does react: EURUSD 86–88%, GBPUSD 79–84% out of sample.
+
+Consequences on the cards (`src/calendar.py::NON_USD_GOLD_RATIONALE`):
+- XAU pill on a non-USD release = 🟡 neutral (no directional gold call, not graded).
+- ECU / counter pills keep their direction (that is what the data supports).
+- History line for EUR/GBP/JPY series shows their pair
+  (`config/release_stats.json → pair_series`, `research/learn.py::pair_series_table`),
+  e.g. "GBPUSD ไปตามทิศนี้ 90% ใน 5 นาที". Shown only with n ≥ 12.

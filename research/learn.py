@@ -383,6 +383,54 @@ def pre_release_study(rows: list[dict]) -> dict:
     return out
 
 
+# Non-USD release → the asset that actually reacts: its USD pair, with the
+# direction of a HAWKISH surprise for that currency (+1 = pair rises).
+PAIR_FOR = {"EUR": ("EURUSD", 1), "GBP": ("GBPUSD", 1), "JPY": ("USDJPY", -1)}
+
+
+def pair_series_table(rows: list[dict], scales: dict) -> dict:
+    """History cells for EUR/GBP/JPY series on their own USD pair (the card's
+    currency-pill line). Same convention as series_table: |z| ≥ SERIES_Z,
+    flat moves excluded from the hit rate, typical |move| kept."""
+    out = {}
+    by = defaultdict(list)
+    for r in rows:
+        if r["currency"] in PAIR_FOR:
+            by[r["_key"]].append(r)
+    for k, rs in by.items():
+        ccy = rs[0]["currency"]
+        asset, d = PAIR_FOR[ccy]
+        sc = scales.get(k)
+        sign = rule_sign(rs[0]["title"], ccy)
+        if not sc or sign is None:
+            continue
+        cells = {}
+        for h in HORIZONS:
+            right = wrong = 0
+            moves = []
+            for r in rs:
+                if not r["_s"] or abs(r["_s"] / sc) < SERIES_Z:
+                    continue
+                ret = _f(r[f"r{h}_{asset}"])
+                if ret is None:
+                    continue
+                hawk = 1 if r["_s"] * sign > 0 else -1
+                moves.append(ret * hawk * d)
+                o = outcome(ret, FLAT[asset])
+                if o:
+                    right += int(o == hawk * d)
+                    wrong += int(o != hawk * d)
+            n = right + wrong
+            if n >= 5:
+                absm = sorted(abs(x) for x in moves)
+                cells[f"{asset}|{h}"] = {"n": n, "hit": round(right / n, 3),
+                                         "abs_p50_pct": round(absm[len(absm) // 2], 4),
+                                         "abs_p80_pct": round(absm[min(len(absm) - 1, int(len(absm) * 0.8))], 4)}
+        if cells:
+            out[k] = {"scale": sc, "rule_sign": sign, "asset": asset, "cells": cells}
+    return out
+
+
 def series_table(rows: list[dict], model: dict) -> dict:
     """Descriptive per-series history for the cards (in-sample, labelled so):
     for a meaningful surprise (|z| ≥ SERIES_Z), how often XAU/… moved the way the
@@ -429,6 +477,14 @@ def series_table(rows: list[dict], model: dict) -> dict:
     return out
 
 
+def _all_scales(rows: list[dict]) -> dict:
+    vals = defaultdict(list)
+    for r in rows:
+        if r["_s"] not in (None, 0):
+            vals[r["_key"]].append(r["_s"])
+    return {k: s for k, v in vals.items() if (s := robust_scale(v))}
+
+
 def main():
     rows = load_rows()
     preds = walk_forward(rows)
@@ -463,6 +519,7 @@ def main():
 
     payload = {"generated_from": report["span"], "flat_pct": FLAT,
                "model": live, "series": series_table(rows, live),
+               "pair_series": pair_series_table(rows, _all_scales(rows)),
                "oos": report["oos"]}
     with open(LIVE_JSON, "w", encoding="utf-8") as f:
         json.dump(payload, f, ensure_ascii=False, separators=(",", ":"))
