@@ -4,11 +4,26 @@ on:
     # Weekdays only — economic releases concentrate Mon–Fri.
     # Pre-release window is [15, 25) minutes; running every 10 min catches every event.
     - cron: "*/10 * * * 1-5"
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      # Set by release_pinger.yml: XAU spot ~25 s before the print, recorded on
+      # the spot tape as the Released card's $-move base. Empty from cron-job.org.
+      spot_base:
+        description: "XAU spot just before the release (optional)"
+        required: false
+        default: ""
+      spot_base_ts:
+        description: "UTC ISO time of spot_base (optional)"
+        required: false
+        default: ""
 
 concurrency:
   group: gold-news
   cancel-in-progress: false
+
+permissions:
+  actions: write            # dispatch release_pinger.yml ahead of a release
+  contents: read
 
 jobs:
   run:
@@ -33,6 +48,10 @@ jobs:
       MACRO_WEBHOOK_URL:    ${{ secrets.MACRO_WEBHOOK_URL }}
       MACRO_WEBHOOK_SECRET: ${{ secrets.MACRO_WEBHOOK_SECRET }}
       PYTHONUNBUFFERED:   "1"
+      GH_TOKEN:           ${{ github.token }}
+      GITHUB_REPOSITORY:  ${{ github.repository }}
+      SPOT_BASE:          ${{ inputs.spot_base }}
+      SPOT_BASE_TS:       ${{ inputs.spot_base_ts }}
     steps:
       - uses: actions/checkout@v4
       # Last-good ForexFactory feed (src/calendar.py FF_CACHE_PATH): used only

@@ -54,7 +54,7 @@ def aggregate(rows: list[dict[str, Any]], cutoff: datetime) -> list[dict[str, An
     for r in rows:
         # `content:` rows are content-dedup markers (see digest.content_sig), not
         # a delivery — counting them would double every digest event in n_sent.
-        if str(r.get("route_type")) in ("content", "speech_skip"):
+        if str(r.get("route_type")) in ("content", "speech_skip", "ping"):
             continue            # markers, not deliveries (speech_skip: no quotes → no card)
         day = ict_day(r.get("sent_ts"))
         if day is None:
