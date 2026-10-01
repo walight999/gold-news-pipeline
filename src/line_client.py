@@ -84,7 +84,12 @@ def record_line_outcome(store, resp) -> None:
 
     # Monthly counter — auto-resets when the month rolls over.
     if counters.get("month") != cur_month:
-        counters = {"month": cur_month, "count": 0}
+        # Reset only the LOCAL counter. The LINE-API readings (api_*) and the
+        # previous month's final reading (prev_api_*) must survive — wiping
+        # them on the 2026-10-01 rollover lost September's billed usage before
+        # the monthly quota report could read it.
+        keep = {k: v for k, v in counters.items() if k.startswith(("api_", "prev_api_"))}
+        counters = {"month": cur_month, "count": 0, **keep}
 
     if success_n > 0:
         # At least one recipient delivered → LINE is alive; reset the failure
