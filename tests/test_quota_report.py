@@ -116,3 +116,15 @@ def test_billing_month_is_jst(monkeypatch):
     line_client.refresh_line_quota_from_api(s, "tok")
     b = json.loads(s.get("source_state", (LINE_PUSH_SOURCE_ID,))["items_last_hour"])
     assert b["api_month"] == "2026-10"
+
+
+def test_local_month_reset_keeps_api_readings(monkeypatch):
+    s = _store()
+    s.upsert("source_state", {"source_id": LINE_PUSH_SOURCE_ID, "items_last_hour": json.dumps(
+        {"month": "2026-09", "count": 900, "api_month": "2026-10", "api_usage": 55,
+         "api_limit": 35000, "prev_api_month": "2026-09", "prev_api_usage": 34037})})
+    monkeypatch.setattr("src.utils_time.now_ict", lambda: datetime(2026, 10, 1, 0, 5, tzinfo=ICT))
+    line_client.record_line_outcome(s, {"status": 200})
+    b = json.loads(s.get("source_state", (LINE_PUSH_SOURCE_ID,))["items_last_hour"])
+    assert (b["month"], b["count"]) == ("2026-10", 1)
+    assert (b["prev_api_month"], b["prev_api_usage"], b["api_usage"]) == ("2026-09", 34037, 55)
