@@ -187,6 +187,40 @@ def minute_calls(prints: list[tuple[str, str, str, str]]) -> list[dict]:
     return calls
 
 
+def minute_direction(prints: list[tuple[str, str, str, str]], asset: str = "XAU",
+                     h: int = 15) -> str | None:
+    """Learned composite direction for one release minute, UNGATED:
+    "bull" / "bear" for `asset` over `h` min, or None when no weighted series
+    printed. Used to grade a multi-release minute as one call."""
+    d = _load()
+    model = d.get("model") or {}
+    cell = f"{asset}|{h}"
+    from .calendar import _GOLD_IMPACT_RULES, is_statement_driven, CalEvent
+    from .fred import parse_forecast_value
+    from datetime import datetime
+    c = 0.0
+    for country, title, actual, forecast in prints:
+        if (country or "").upper() != "USD":
+            continue
+        key = f"USD|{title}"
+        sc = (model.get("scales") or {}).get(key)
+        w = float((model.get("weights") or {}).get(f"{key}@{cell}", 0.0))
+        a, f = parse_forecast_value(actual or ""), parse_forecast_value(forecast or "")
+        if not sc or not w or a is None or f is None:
+            continue
+        if is_statement_driven(CalEvent("x", title, "USD", "High", "", "", datetime(2024, 1, 1))):
+            continue
+        sign = next((-1 if inv else 1 for pat, inv, _ in _GOLD_IMPACT_RULES
+                     if pat.search(title.lower())), None)
+        if sign is None:
+            continue
+        c += w * sign * (a - f) / sc
+    if c == 0:
+        return None
+    dir_ = (1 if c > 0 else -1) * int((model.get("asset_dir") or {}).get(cell, 0))
+    return {1: "bull", -1: "bear"}.get(dir_)
+
+
 def minute_call_line_th(prints: list[tuple[str, str, str, str]]) -> str | None:
     """"🎯 สัญญาณรวมผ่านเกณฑ์: ทอง ↓ 5 นาที (แม่นย้อนหลัง 89%, n=85) · …"
     listing XAU first, then at most two other assets. None = no gated call."""
@@ -204,3 +238,12 @@ def minute_call_line_th(prints: list[tuple[str, str, str, str]]) -> str | None:
         if len(parts) == 3:
             break
     return "🎯 สัญญาณรวมผ่านเกณฑ์: " + " · ".join(parts)
+
+
+def minute_gated_xau(prints: list[tuple[str, str, str, str]]) -> str | None:
+    """The 🎯 gold call the card showed for this minute ("bull"/"bear"), or
+    None when no XAU cell cleared its gate."""
+    for c in minute_calls(prints):
+        if c["asset"] == "XAU":
+            return "bull" if c["dir"] > 0 else "bear"
+    return None

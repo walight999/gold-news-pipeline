@@ -59,6 +59,41 @@ def _to_float(v: Any) -> float | None:
     return f
 
 
+def collapse_minutes(rows: list[dict[str, Any]], minute_dir=None) -> list[dict[str, Any]]:
+    """Grade releases that print in the SAME minute as one call.
+
+    The tape answers the minute, not each line: on 2026-09-30 ADP/Core PCE/GDP
+    carried opposite calls and the per-line grading had to score some of them
+    wrong whatever gold did. A group of ≥2 calendar rows sharing a release
+    minute becomes ONE row graded on what the card SHOWED: `minute_dir(group)`
+    = the gated 🎯 gold call ("bull"/"bear"/None); without one, the common
+    direction of the individual pills if they all agree, else neutral (the
+    card made no call → not graded). Speech rows and singleton minutes pass
+    through unchanged."""
+    groups: dict[str, list[dict[str, Any]]] = {}
+    out: list[dict[str, Any]] = []
+    for r in rows:
+        if str(r.get("routed_as") or "") != "calendar_post":
+            out.append(r)
+            continue
+        groups.setdefault(str(r.get("first_seen_ts") or "")[:16], []).append(r)
+    for _, g in sorted(groups.items()):
+        if len(g) == 1:
+            out.append(g[0])
+            continue
+        d = minute_dir(g) if minute_dir else None
+        if d not in ("bull", "bear"):
+            # No 🎯 call on the card: grade only if every directional pill in
+            # the minute agreed; conflicting pills = the card made no call.
+            votes = {x.get("predicted_dir") for x in g if x.get("predicted_dir") in ("bull", "bear")}
+            d = votes.pop() if len(votes) == 1 else "neutral"
+        rep = dict(g[0])
+        rep["predicted_dir"] = d
+        rep["title"] = " + ".join(str(x.get("title") or "") for x in g)[:300]
+        out.append(rep)
+    return out
+
+
 def grade(predicted_dir: str, r15_pct: float, flat_pct: float = DEFAULT_FLAT_PCT) -> str:
     """Grade one directional call against the actual 15-min %-move.
 

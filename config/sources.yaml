@@ -57,6 +57,17 @@ x_accounts:
 #               the watchdog raises the CRITICAL `apify_budget_exhausted` alert
 # While gold is shut (Sat 05:00 → Mon 05:00 ICT) intervals × weekend_multiplier.
 # Event-mode bursts keep their cadence unless tight — that's where spend pays.
+# Headlines dropped right after parsing (2026-10-01 review of the first FJ RSS
+# day: breaking 12.6 → 28/day, 20 of them FinancialJuice). Two FJ line types
+# cost quota for nothing:
+#   - FJElite = FinancialJuice's paid-tier promo ("Goldman Sachs: PCE - FJElite")
+#   - "<indicator> Actual X (Forecast Y, Previous Z)" = the data print itself,
+#     which the Released card already delivers ~2 min after the release.
+# Regexes are case-insensitive; `sources` limits a filter to those source ids.
+noise_filters:
+  - {pattern: "FJElite", sources: [financialjuice, x_financialjuice]}
+  - {pattern: "\\bActual\\b[^()]*\\((Forecast|Previous)\\b", sources: [financialjuice, x_financialjuice]}
+
 apify_budget:
   enabled: true
   refresh_min: 30

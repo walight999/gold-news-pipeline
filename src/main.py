@@ -297,6 +297,26 @@ def _record_spot_tape(store) -> float | None:
         return None
 
 
+def _drop_noise(items, filters: list[dict[str, Any]]):
+    """Drop headlines matching config `noise_filters` (see sources.yaml)."""
+    import re
+    compiled = []
+    for f in filters:
+        try:
+            compiled.append((re.compile(str(f.get("pattern") or ""), re.I),
+                             set(f.get("sources") or [])))
+        except re.error:
+            log.warning("noise filter ignored (bad regex): %r", f.get("pattern"))
+    if not compiled:
+        return items
+    kept = [it for it in items
+            if not any(rx.search(it.title or "") and (not srcs or it.source_id in srcs)
+                       for rx, srcs in compiled)]
+    if len(kept) != len(items):
+        log.info("noise filter: dropped %d item(s)", len(items) - len(kept))
+    return kept
+
+
 async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
     src_cfg, kw_cfg, sched_cfg = _load_configs()
 
@@ -392,6 +412,7 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
 
     items = normalize(raw_entries)
     log.info("items normalized: %d (from %d entries)", len(items), len(raw_entries))
+    items = _drop_noise(items, src_cfg.get("noise_filters") or [])
     _record_spot_tape(store)
     # Speech / statement windows (FOMC, Fed Chair, Trump, ECB…): keep the live
     # quote headlines while a window is open — calendar_check reads them.
@@ -2213,6 +2234,11 @@ async def run_scorecard() -> int:
     log.info("scorecard gradeability (flat=%.2f%%, using %s): %s", flat_pct, sc_window,
              {w: f"{d['graded']}g/{d['flat']}f/{d['pending']}p" for w, d in grad.items()})
 
+    # One grade per release minute (see scorecard.collapse_minutes).
+    from .release_stats import minute_gated_xau
+    todays = scorecard.collapse_minutes(
+        todays, lambda g: minute_gated_xau([(x.get("country"), x.get("title"), x.get("actual"),
+                                             x.get("forecast")) for x in g]))
     card = scorecard.build_scorecard(todays, flat_pct=flat_pct, window=sc_window)
 
     # Persist the daily aggregate (source of truth for the rolling trend).
