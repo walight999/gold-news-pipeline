@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-10-02T04:15:55Z",
-      "title": "fed · Inflation",
-      "source": "Cnbc",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-02T04:15:55Z",
+      "ts": "2026-10-02T10:35:46Z",
       "title": "global · Other",
       "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-02T04:15:55Z",
+      "ts": "2026-10-02T10:35:46Z",
       "title": "global · Other",
       "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-02T04:15:55Z",
-      "title": "global · Other",
-      "source": "Cnbc",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-02T04:15:55Z",
-      "title": "global · Other",
-      "source": "Cnbc",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-02T04:15:55Z",
+      "ts": "2026-10-02T10:35:46Z",
       "title": "us · Usd Yields",
       "source": "Cnbc",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-02T04:15:55Z",
+      "ts": "2026-10-02T10:35:46Z",
+      "title": "us · Jobs",
+      "source": "Investing Cb",
+      "score": 0.5,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-02T10:35:46Z",
       "title": "us · Jobs",
       "source": "Cnbc",
       "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-02T04:15:55Z",
+      "ts": "2026-10-02T10:35:46Z",
       "title": "mideast · Geopolitics · risk off",
       "source": "Cnbc",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-02T04:15:55Z",
-      "title": "fed · Rate Policy",
-      "source": "Financialjuice",
-      "score": 0.5,
+      "ts": "2026-10-02T10:35:46Z",
+      "title": "global · Other",
+      "source": "Cnbc",
+      "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-02T04:15:55Z",
-      "title": "mideast · Geopolitics · risk off",
-      "source": "Financialjuice",
-      "score": 0.3,
+      "ts": "2026-10-02T10:35:46Z",
+      "title": "global · Other · risk off",
+      "source": "Cnbc",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-02T10:35:46Z",
+      "title": "global · Other",
+      "source": "Cnbc",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-02T10:35:46Z",
+      "title": "fed · Rate Policy",
+      "source": "Cnbc",
+      "score": 0.5,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-10-02T04:20:44.775084Z"
+  "written_at": "2026-10-02T10:39:49.974285Z"
 }
