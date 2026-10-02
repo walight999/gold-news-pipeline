@@ -339,6 +339,61 @@ def current_session(now, sessions: list[dict[str, Any]]) -> tuple[dict[str, Any]
     return cur, start.astimezone(now.tzinfo), day_start.astimezone(now.tzinfo)
 
 
+# Story-level dedup (2026-10-02): one speaker / place often produces several
+# headlines in a burst (Kashkari x6 in a day, Logan x3 in one minute, Tokyo CPI
+# x3) that the English-title near-dup can't see because the wording differs.
+# Key = the proper nouns of the title minus institutions/currencies/data names
+# and analyst houses (those recur across UNRELATED stories). A candidate sharing
+# a key with a post inside `story_window_hours` is skipped.
+_GENERIC_NAMES = set("""
+fed fomc ecb boj boe rba rbnz snb pboc boc imf opec us usa uk eu un usd eur jpy gbp
+aud cad chf nzd cny xau xag xauusd dollar euro yen pound franc yuan gold silver oil brent
+wti treasury treasuries price prices forecast forecasts cpi pce ppi nfp gdp pmi ism jolts
+japanese japan australian australia british britain china chinese eurozone euro-zone
+european europe germany german america american swiss canada canadian korea korean
+india indian inflation rate rates bank banks central markets market economic economy
+index data report actual previous poll consensus outlook analysis update weekly daily
+the and for with says said sees may will new after amid as at by from
+ing commerzbank deutsche goldman sachs rabobank mufg ubs citi jpmorgan barclays hsbc
+nomura socgen bofa wells fargo morgan stanley ocbc maybank fjelite fxstreet reuters
+higher lower long short high low record time key global world unemployment employment
+jobs sales retail trade housing manufacturing services consumer business industrial
+production growth yields yield bond bonds stocks equities risk risks
+january february march april june july august september october november december
+monday tuesday wednesday thursday friday saturday sunday
+""".split())
+_NAME_RE = re.compile(r"[A-Za-z]+")
+
+
+def _story_keys(title: str) -> set[str]:
+    """Capitalised non-generic words. Sentence-initial words (title start, or
+    right after ':' / '-' / '–') are capitalised anyway, so they count only when
+    they read as a name: followed by ':' or "'s" ("Logan: …", "Trump's …") or by
+    a lowercase word ("Tokyo core CPI" ✓, but "Gold falls" is generic anyway)."""
+    t = title or ""
+    keys: set[str] = set()
+    for m in _NAME_RE.finditer(t):
+        w = m.group(0)
+        if not w[0].isupper() or len(w) < 3 or w.lower() in _GENERIC_NAMES:
+            continue
+        if t[m.end():m.end() + 1] == "-":     # "Conflict-driven" is not a name
+            continue
+        before = t[:m.start()].rstrip()
+        if not before or before[-1] in ":-–—":
+            after = t[m.end():]
+            if not (re.match(r"\s*(:|['’]s)", after) or re.match(r"\s+[a-z]", after)):
+                continue
+        keys.add(w.lower())
+    return keys
+
+
+def _closing(tweet: str) -> str:
+    """The last ~45 chars of a posted tweet's body (hashtag line dropped) — fed
+    back to the composer so it stops reusing the same closing phrase."""
+    body = (tweet or "").replace(tweet_writer.TAGS, "").strip()
+    return body[-45:].strip(" .…")
+
+
 def mirror_events(store, candidates: list[dict[str, Any]],
                   cfg: dict[str, Any] | None = None, *,
                   composer: Callable[..., str | None] = tweet_writer.compose_tweet,
@@ -357,6 +412,7 @@ def mirror_events(store, candidates: list[dict[str, Any]],
     max_run = int(cfg.get("max_items", 5))
     model = str(cfg.get("model") or os.environ.get("SQUAWK_MODEL") or DEFAULT_COMPOSE_MODEL)
     dup_threshold = float(cfg.get("dup_similarity", 0.7))
+    story_window = timedelta(hours=float(cfg.get("story_window_hours", 3)))
 
     now = now or now_utc()
     sessions = cfg.get("sessions") or DEFAULT_SESSIONS
@@ -372,12 +428,19 @@ def mirror_events(store, candidates: list[dict[str, Any]],
     sess_count = _posted_since(rows, sess_start)
     hour_count = _posted_since(rows, now - timedelta(hours=1))
     recent_texts = []
+    recent_keys: set[str] = set()
+    closings: list[str] = []
     for r in rows:
         ts = parse_iso(str(r.get("ts_utc") or ""))
         if ts is not None and ts >= day_start:
             recent_texts.append(str(r.get("fs_text") or ""))
+        if ts is not None and ts >= now - story_window:
+            recent_keys |= _story_keys(str(r.get("fs_text") or ""))
+        if str(r.get("tweet_text") or "").strip():
+            closings.append(_closing(str(r.get("tweet_text"))))
+    closings = closings[-8:]
 
-    posted = n_dup = n_neardup = n_fail = 0
+    posted = n_dup = n_neardup = n_story = n_weak = n_fail = 0
     for c in candidates:
         if today_count + posted >= cap_day:
             log.info("x_autopost: daily cap %d reached", cap_day)
@@ -398,13 +461,28 @@ def mirror_events(store, candidates: list[dict[str, Any]],
         if _is_near_dup(text, recent_texts, dup_threshold):
             n_neardup += 1
             continue
+        keys = _story_keys(text)
+        if keys & recent_keys:
+            n_story += 1
+            log.info("x_autopost: same story within %s (%s): %s", story_window,
+                     ",".join(sorted(keys & recent_keys)), text[:80])
+            continue
         try:
             tweet = composer(headline_th=c.get("headline_th"), body_th=c.get("body_th"),
                              impact_th=c.get("impact_th"), category=c.get("category"),
-                             en_title=text, en_summary=None, model=model)
+                             en_title=text, en_summary=None, model=model,
+                             autopost=True, avoid_closings=closings)
         except Exception:  # noqa: BLE001
             log.exception("x_autopost: compose failed event=%s", c.get("event_id"))
             tweet = None
+        if tweet == tweet_writer.SKIP:
+            # Composer judged the gold link too weak — keep the quota for news
+            # that moves gold. Not logged to squawk_log: the event never
+            # becomes a candidate again (sent_log idempotency upstream).
+            n_weak += 1
+            recent_keys |= keys
+            log.info("x_autopost: weak gold link, skipped: %s", text[:80])
+            continue
         if not tweet:
             n_fail += 1
             continue
@@ -416,6 +494,8 @@ def mirror_events(store, candidates: list[dict[str, Any]],
             continue
         seen.add(fid)
         recent_texts.append(text)
+        recent_keys |= keys
+        closings = (closings + [_closing(tweet)])[-8:]
         posted += 1
         log.info("x_autopost: POSTED %s | %s", url, " ".join(tweet.split())[:150])
         row = [iso_utc(now), to_ict(now).strftime("%Y-%m-%d %H:%M:%S"),
@@ -425,7 +505,7 @@ def mirror_events(store, candidates: list[dict[str, Any]],
         except Exception:  # noqa: BLE001
             log.exception("x_autopost: log append failed (tweet WAS posted: %s)", url)
     log.info("x_autopost: posted %d of %d candidates (day %d/%d, %s %d/%d, hour %d/%d) "
-             "[dup=%d near-dup=%d fail=%d]", posted, len(candidates),
+             "[dup=%d near-dup=%d same-story=%d weak=%d fail=%d]", posted, len(candidates),
              today_count + posted, cap_day, sess["name"], sess_count + posted, cap_sess,
-             hour_count + posted, cap_hour, n_dup, n_neardup, n_fail)
+             hour_count + posted, cap_hour, n_dup, n_neardup, n_story, n_weak, n_fail)
     return posted

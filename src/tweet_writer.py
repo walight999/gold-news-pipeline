@@ -126,10 +126,36 @@ def _fit(tweet: str) -> str:
 DEFAULT_MODEL = "claude-haiku-4-5-20251001"
 
 
+SKIP = "SKIP"
+
+# Extra rules for UNREVIEWED auto-posts (squawk events mode), from the
+# 2026-10-02 review of 77 live posts: a guessed rate direction ("RBA คงดอกเบี้ย"
+# for a 'meets forecasts' hike), a tweet about Tokyo CPI under an NFP headline
+# (an FXStreet roundup whose summary led with another story), ~1/3 of posts
+# closing "กดดันทองในระยะสั้น", 4 posts clipped mid-sentence, and ~10
+# "ผลต่อทองจำกัด" posts spending the daily quota on non-gold news.
+_AUTOPOST_RULES = """
+EXTRA RULES (this post goes out automatically, nobody reviews it):
+- ข้อเท็จจริงต้องมาจาก NEWS CONTEXT เท่านั้น. ห้ามเดาว่าธนาคารกลาง "ขึ้น/คง/ลด" ดอกเบี้ย
+  ถ้าข้อมูลไม่ได้ระบุชัด. "meets forecasts" / "in line" แปลว่า "ตรงคาด" ไม่ได้แปลว่า "คงดอกเบี้ย"
+  ในกรณีนั้นให้รายงานแค่ตัวเลขและว่าตรงคาด.
+- เรื่องหลักของโพสต์ต้องเป็นเรื่องใน English title. ถ้า Thai headline/detail พูดถึงเรื่องอื่น
+  (เช่นบทสรุปตลาดหลายเรื่อง) ให้ยึด English title แล้วใช้ข้อมูลส่วนที่เกี่ยวกับเรื่องนั้นเท่านั้น.
+  ถ้า Thai headline/detail ไม่มีข้อมูลเรื่องเดียวกับ English title เลย (เช่น title พูดถึงรายงาน
+  การจ้างงานสหรัฐฯ แต่ detail พูดถึง CPI ญี่ปุ่น) ห้ามเขียน ให้ตอบ {"tweet": "SKIP"}.
+- ห้ามปิดท้ายด้วยวลีสำเร็จรูปซ้ำๆ. โพสต์ล่าสุดของแบรนด์ปิดแบบนี้ไปแล้ว ห้ามใช้ซ้ำหรือใกล้เคียง:
+{AVOID}
+- เนื้อหา (ไม่รวมบรรทัดแฮชแท็ก) ไม่เกิน 200 ตัวอักษร และต้องจบประโยคสมบูรณ์.
+- ถ้าข่าวนี้ไม่มีผลต่อทองคำอย่างมีนัยสำคัญ (คือคุณจะต้องเขียนว่า "ผลต่อทองจำกัด") ห้ามเขียนโพสต์
+  ให้ตอบ {"tweet": "SKIP"} แทน. แบรนด์โพสต์เฉพาะข่าวที่ขยับทองได้จริง.
+"""
+
+
 def compose_tweet(*, headline_th: str | None, body_th: list[str] | None,
                   impact_th: str | None, category: str | None,
                   en_title: str | None, en_summary: str | None,
-                  model: str = DEFAULT_MODEL) -> str | None:
+                  model: str = DEFAULT_MODEL, autopost: bool = False,
+                  avoid_closings: list[str] | None = None) -> str | None:
     """Return a @tradetongkam-voice Thai tweet, or None if Claude is unavailable
     or the call fails (caller falls back to the simple template).
 
@@ -152,6 +178,10 @@ def compose_tweet(*, headline_th: str | None, body_th: list[str] | None,
         .replace("{en_title}", (en_title or "")[:300])
         .replace("{en_summary}", (en_summary or "")[:600])
     )
+    if autopost:
+        avoid = "\n".join(f"  · {c}" for c in (avoid_closings or [])[:8]) or "  · (none yet)"
+        prompt = prompt.replace("\nNEWS CONTEXT:", _AUTOPOST_RULES.replace("{AVOID}", avoid)
+                                + "\nNEWS CONTEXT:")
     for attempt in range(2):
         try:
             resp = client.messages.create(
@@ -163,7 +193,13 @@ def compose_tweet(*, headline_th: str | None, body_th: list[str] | None,
             tweet = (d or {}).get("tweet") if isinstance(d, dict) else None
             if not tweet:
                 raise ValueError("no tweet field in Claude output")
+            if autopost and str(tweet).strip().upper() == SKIP:
+                return SKIP
             tweet = _sanitize(str(tweet))
+            if autopost and len(tweet) > TWEET_LIMIT:
+                # Never ship a mid-sentence "…" clip on an unreviewed post: ask
+                # for a complete shorter version once, clip only as a last resort.
+                tweet = _shorten(client, model, tweet) or tweet
             return _fit(tweet)
         except Exception as e:  # noqa: BLE001
             s = str(e)
@@ -173,3 +209,23 @@ def compose_tweet(*, headline_th: str | None, body_th: list[str] | None,
             log.warning("compose_tweet failed: %s", e)
             return None
     return None
+
+
+def _shorten(client, model: str, tweet: str) -> str | None:
+    """One follow-up call: rewrite an over-long post into complete sentences
+    under the limit. None on failure (caller falls back to _fit's clip)."""
+    try:
+        resp = client.messages.create(
+            model=model, max_tokens=400,
+            messages=[{"role": "user", "content": (
+                "ย่อโพสต์ภาษาไทยนี้ให้เนื้อหา (ไม่รวมบรรทัดแฮชแท็ก) ไม่เกิน 190 ตัวอักษร "
+                "จบประโยคสมบูรณ์ คงข้อเท็จจริงเดิมทั้งหมด ห้ามเพิ่มข้อมูลใหม่ ห้ามใช้ em-dash. "
+                f"บรรทัดสุดท้ายต้องเป็น: {TAGS}\n\nโพสต์:\n{tweet}\n\n"
+                'Return ONLY JSON: {"tweet": "<post>"}')}],
+        )
+        d = _extract_json(resp.content[0].text)
+        t = (d or {}).get("tweet") if isinstance(d, dict) else None
+        return _sanitize(str(t)) if t else None
+    except Exception as e:  # noqa: BLE001 — best-effort
+        log.warning("tweet shorten failed: %s", e)
+        return None
