@@ -87,7 +87,9 @@ def test_daily_cap_and_per_run_limit():
     rows = [_row(120 + i, fid=f"ev:x{i}", text=f"UNRELATED STORY NUMBER {i} ALPHA BETA") for i in range(19)]
     cands = [_cand(i, t) for i, t in enumerate(TITLES)]
     kw = dict(composer=lambda **k: "t", poster=lambda t: "u", now=NOW)
-    assert sq.mirror_events(FakeStore(rows), cands, {"cap_per_day": 20, "cap_per_hour": 9}, **kw) == 1
+    one_session = [{"name": "all", "start": 5, "cap": 99}]   # isolate the DAILY cap
+    assert sq.mirror_events(FakeStore(rows), cands, {"cap_per_day": 20, "cap_per_hour": 9,
+                                                     "sessions": one_session}, **kw) == 1
     assert sq.mirror_events(FakeStore(), cands, {"cap_per_hour": 9, "max_items": 2}, **kw) == 2
 
 
@@ -123,3 +125,48 @@ def test_record_without_compose_makes_no_claude_call(monkeypatch):
         headline_th="หัวข่าว", body_th=["เนื้อหา"], impact_th="ผลต่อทอง",
         source="FXStreet", url="https://example.com", compose=False)
     assert rec["tweet_text"] == "" and rec["headline_th"] == "หัวข่าว"
+
+
+# ---------------- session quotas (2026-10-02) ----------------
+
+def _at(ict_hour, day=2, minute=0):
+    """UTC datetime for 2026-10-<day> <ict_hour>:<minute> ICT."""
+    return datetime(2026, 10, day, ict_hour, minute, tzinfo=UTC) - timedelta(hours=7)         if ict_hour >= 7 else datetime(2026, 10, day - 1, ict_hour + 17, minute, tzinfo=UTC)
+
+
+def test_current_session_boundaries_and_wrap():
+    S = sq.DEFAULT_SESSIONS
+    s, start, day = sq.current_session(_at(10), S)
+    assert s["name"] == "asia" and start == _at(5) and day == _at(5)
+    s, start, _ = sq.current_session(_at(14), S)
+    assert s["name"] == "europe" and start == _at(14)
+    s, start, day = sq.current_session(_at(19, minute=30), S)
+    assert s["name"] == "us" and start == _at(19) and day == _at(5)
+    # 02:00 ICT on the 3rd is still the 2nd's US session and trading day
+    s, start, day = sq.current_session(_at(2, day=3), S)
+    assert s["name"] == "us" and start == _at(19) and day == _at(5)
+
+
+def _row_at(ts, i):
+    ict = ts + timedelta(hours=7)
+    return {"ts_utc": ts.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "ts_ict": ict.strftime("%Y-%m-%d %H:%M:%S"), "fs_id": f"ev:p{i}",
+            "fs_text": f"UNRELATED STORY NUMBER {i} ALPHA BETA", "tweet_text": "x",
+            "posted": "https://x.com/i/0"}
+
+
+def test_full_asia_session_does_not_starve_us_session():
+    # NFP-day replay: asia already used its 5 (and more under the old flat cap)
+    rows = [_row_at(_at(6) + timedelta(minutes=10 * i), i) for i in range(8)]
+    cands = [_cand(i, t) for i, t in enumerate(TITLES)]
+    kw = dict(composer=lambda **k: "t", poster=lambda t: "u")
+    cfg = {"cap_per_day": 20, "cap_per_hour": 9, "max_items": 9}
+    assert sq.mirror_events(FakeStore(rows), cands, cfg, now=_at(12), **kw) == 0   # asia full
+    assert sq.mirror_events(FakeStore(rows), cands, cfg, now=_at(20), **kw) == 7   # us open
+
+
+def test_us_session_cap_spans_midnight():
+    rows = [_row_at(_at(22) + timedelta(minutes=10 * i), i) for i in range(10)]   # us: 10 used
+    n = sq.mirror_events(FakeStore(rows), [_cand(1, TITLES[0])], {"cap_per_hour": 99},
+                         composer=lambda **k: "t", poster=lambda t: "u", now=_at(1, day=3))
+    assert n == 0

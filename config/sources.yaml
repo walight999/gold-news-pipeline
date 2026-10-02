@@ -103,8 +103,16 @@ squawk:
   source: events
   cap_per_hour: 4             # events mode: spread the day's cap (on 2026-09-25 a
                               # single UN-speech burst used all 20 by 02:00 ICT)
+  # Per-session quotas (ICT hours; each runs until the next start, US wraps past
+  # midnight; the 20/day "day" starts 05:00 ICT). 2026-10-02: the flat 20/day was
+  # full by 14:36 ICT on NFP day — the budget now lands where gold moves.
+  sessions:
+    - {name: asia,   start: 5,  cap: 5}
+    - {name: europe, start: 14, cap: 5}
+    - {name: us,     start: 19, cap: 10}
   handle: FirstSquawk
-  cap_per_day: 20             # hard ceiling on tweets/day (X is $0.015/post ⇒ ≤$0.30/day).
+  cap_per_day: 25             # SAFETY ceiling only (2026-10-02) — the real budget is the
+                              # session quotas below (5+5+10 = 20/day). Max $0.375/day at $0.015/post.
                               # Confirmed 2026-09-22 after White approved the Sonnet+new-prompt voice.
   max_items: 5                # scrape at most this many per run (cost guard)
   # 2026-09-27: when `handle` is also in x_accounts.handles (it is), the mirror
