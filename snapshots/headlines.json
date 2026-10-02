@@ -2,70 +2,70 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-10-02T16:25:46Z",
+      "ts": "2026-10-02T16:55:51Z",
       "title": "global · Other",
       "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-02T16:25:46Z",
+      "ts": "2026-10-02T16:55:51Z",
       "title": "israel · Geopolitics",
       "source": "Bbc World",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-02T16:25:46Z",
+      "ts": "2026-10-02T16:55:51Z",
       "title": "global · Other",
       "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-02T16:25:46Z",
+      "ts": "2026-10-02T16:55:51Z",
       "title": "global · Other",
       "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-02T16:25:46Z",
+      "ts": "2026-10-02T16:55:51Z",
       "title": "russia · Geopolitics",
       "source": "Bbc World",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-02T16:25:46Z",
+      "ts": "2026-10-02T16:55:51Z",
       "title": "us · Geopolitics",
       "source": "Bbc World",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-02T16:25:46Z",
+      "ts": "2026-10-02T16:55:51Z",
       "title": "mideast · Geopolitics · risk off",
       "source": "Bbc World",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-02T16:25:46Z",
+      "ts": "2026-10-02T16:55:51Z",
       "title": "global · Other",
       "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-02T16:25:46Z",
+      "ts": "2026-10-02T16:55:51Z",
       "title": "russia · Geopolitics",
       "source": "Bbc World",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-02T16:25:46Z",
+      "ts": "2026-10-02T16:55:51Z",
       "title": "global · Other",
       "source": "Bbc World, Cnbc",
       "score": 0.1,
@@ -73,5 +73,5 @@
     }
   ],
   "count": 10,
-  "written_at": "2026-10-02T16:30:42.661102Z"
+  "written_at": "2026-10-02T21:10:39.031941Z"
 }
