@@ -309,6 +309,36 @@ def _posted_since(rows: list[dict[str, Any]], since) -> int:
     return n
 
 
+# Session quotas (2026-10-02): a flat 20/day filled by 14:36 ICT on NFP day,
+# leaving nothing for the US session — the hours gold actually moves. The day's
+# budget is split by session (ICT hours; each runs until the next one starts,
+# the last wraps past midnight), and the "day" itself starts with the first
+# session (05:00 ICT) so the US session isn't cut in half at midnight.
+DEFAULT_SESSIONS = [
+    {"name": "asia", "start": 5, "cap": 5},
+    {"name": "europe", "start": 14, "cap": 5},
+    {"name": "us", "start": 19, "cap": 10},
+]
+
+
+def current_session(now, sessions: list[dict[str, Any]]) -> tuple[dict[str, Any], Any, Any]:
+    """(session, session_start_utc, trading_day_start_utc) for `now`."""
+    ss = sorted(sessions, key=lambda x: int(x["start"]))
+    ict = to_ict(now)
+    midnight = ict.replace(hour=0, minute=0, second=0, microsecond=0)
+    cur, start = None, None
+    for x in ss:
+        if ict.hour >= int(x["start"]):
+            cur, start = x, midnight + timedelta(hours=int(x["start"]))
+    if cur is None:   # before the first session ⇒ still in yesterday's last one
+        cur = ss[-1]
+        start = midnight - timedelta(days=1) + timedelta(hours=int(cur["start"]))
+    day_start = start.replace(hour=int(ss[0]["start"]))
+    if day_start > start:
+        day_start -= timedelta(days=1)
+    return cur, start.astimezone(now.tzinfo), day_start.astimezone(now.tzinfo)
+
+
 def mirror_events(store, candidates: list[dict[str, Any]],
                   cfg: dict[str, Any] | None = None, *,
                   composer: Callable[..., str | None] = tweet_writer.compose_tweet,
@@ -329,21 +359,31 @@ def mirror_events(store, candidates: list[dict[str, Any]],
     dup_threshold = float(cfg.get("dup_similarity", 0.7))
 
     now = now or now_utc()
-    today_ict = to_ict(now).strftime("%Y-%m-%d")
+    sessions = cfg.get("sessions") or DEFAULT_SESSIONS
+    sess, sess_start, day_start = current_session(now, sessions)
+    cap_sess = int(sess.get("cap", cap_day))
     try:
         _, rows = store.read_feed(MIRROR_TAB)
     except Exception:  # noqa: BLE001
         log.exception("x_autopost: read squawk_log failed")
         return 0   # can't dedup ⇒ don't risk double-posting
-    seen, today_count = _seen_and_today_count(rows, today_ict)
+    seen = {str(r.get("fs_id") or "").strip() for r in rows if r.get("fs_id")}
+    today_count = _posted_since(rows, day_start)
+    sess_count = _posted_since(rows, sess_start)
     hour_count = _posted_since(rows, now - timedelta(hours=1))
-    recent_texts = [str(r.get("fs_text") or "") for r in rows
-                    if str(r.get("ts_ict") or "")[:10] == today_ict]
+    recent_texts = []
+    for r in rows:
+        ts = parse_iso(str(r.get("ts_utc") or ""))
+        if ts is not None and ts >= day_start:
+            recent_texts.append(str(r.get("fs_text") or ""))
 
     posted = n_dup = n_neardup = n_fail = 0
     for c in candidates:
         if today_count + posted >= cap_day:
             log.info("x_autopost: daily cap %d reached", cap_day)
+            break
+        if sess_count + posted >= cap_sess:
+            log.info("x_autopost: %s-session cap %d reached", sess["name"], cap_sess)
             break
         if hour_count + posted >= cap_hour:
             log.info("x_autopost: hourly cap %d reached — rest wait", cap_hour)
@@ -384,8 +424,8 @@ def mirror_events(store, candidates: list[dict[str, Any]],
             store.append_feed(MIRROR_TAB, MIRROR_HEADERS, [row])
         except Exception:  # noqa: BLE001
             log.exception("x_autopost: log append failed (tweet WAS posted: %s)", url)
-    log.info("x_autopost: posted %d of %d candidates (today %d/%d, hour %d/%d) "
+    log.info("x_autopost: posted %d of %d candidates (day %d/%d, %s %d/%d, hour %d/%d) "
              "[dup=%d near-dup=%d fail=%d]", posted, len(candidates),
-             today_count + posted, cap_day, hour_count + posted, cap_hour,
-             n_dup, n_neardup, n_fail)
+             today_count + posted, cap_day, sess["name"], sess_count + posted, cap_sess,
+             hour_count + posted, cap_hour, n_dup, n_neardup, n_fail)
     return posted
