@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-10-05T15:06:36Z",
+      "ts": "2026-10-05T22:05:50Z",
+      "title": "us · Usd Yields · hawkish",
+      "source": "Fxstreet",
+      "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-05T22:05:50Z",
+      "title": "global · Other",
+      "source": "Financialjuice",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-05T22:05:50Z",
       "title": "mideast · Geopolitics · risk off",
-      "source": "Bbc World",
+      "source": "Financialjuice",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-05T15:06:36Z",
-      "title": "russia · Geopolitics · risk off",
-      "source": "Bbc World",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-05T15:06:36Z",
-      "title": "ukraine · Geopolitics · risk off",
-      "source": "Cnbc",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-05T15:06:36Z",
-      "title": "global · Other",
-      "source": "Cnbc",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-05T15:06:36Z",
-      "title": "global · Other",
-      "source": "Bbc World",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-05T15:06:36Z",
-      "title": "global · Other",
-      "source": "Cnbc",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-05T15:06:36Z",
-      "title": "global · Other",
-      "source": "Bbc World",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-05T15:06:36Z",
-      "title": "global · Other",
-      "source": "Bbc World",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-05T15:06:36Z",
-      "title": "global · Other · dovish",
-      "source": "Cnbc",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-05T15:06:36Z",
+      "ts": "2026-10-05T22:05:50Z",
       "title": "mideast · Geopolitics",
-      "source": "Cnbc",
+      "source": "Financialjuice",
       "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-05T22:05:50Z",
+      "title": "fed · Rate Policy",
+      "source": "Financialjuice",
+      "score": 0.5,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-05T22:05:50Z",
+      "title": "global · Other · dovish",
+      "source": "Financialjuice",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-05T22:05:50Z",
+      "title": "global · Other",
+      "source": "Financialjuice, Fxstreet",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-05T22:05:50Z",
+      "title": "us · Growth",
+      "source": "Financialjuice",
+      "score": 0.2,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-05T22:05:50Z",
+      "title": "mideast · Geopolitics · risk off",
+      "source": "Financialjuice",
+      "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-05T22:05:50Z",
+      "title": "global · Other · dovish",
+      "source": "Financialjuice",
+      "score": 0.1,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-10-05T15:07:15.745575Z"
+  "written_at": "2026-10-05T22:07:28.111333Z"
 }
