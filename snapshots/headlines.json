@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-10-04T21:10:57Z",
+      "ts": "2026-10-05T00:01:58Z",
+      "title": "mideast · Geopolitics · risk off",
+      "source": "Bbc World, Aljazeera",
+      "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-05T00:01:58Z",
       "title": "fed · Rate Policy · hawkish",
       "source": "Marketwatch",
       "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-04T21:10:57Z",
+      "ts": "2026-10-05T00:01:58Z",
       "title": "us · Inflation",
       "source": "Marketwatch",
       "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-04T21:10:57Z",
+      "ts": "2026-10-05T00:01:58Z",
       "title": "us · Inflation",
       "source": "Financialjuice",
       "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-04T21:10:57Z",
-      "title": "us · Jobs · dovish",
-      "source": "Fxstreet",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-04T21:10:57Z",
+      "ts": "2026-10-05T00:01:58Z",
       "title": "mideast · Geopolitics",
-      "source": "Financialjuice",
+      "source": "Financialjuice, Investing Commodities",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-04T21:10:57Z",
+      "ts": "2026-10-05T00:01:58Z",
       "title": "russia · Geopolitics · risk off",
-      "source": "Financialjuice",
+      "source": "Bbc World, Financialjuice",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-04T21:10:57Z",
+      "ts": "2026-10-05T00:01:58Z",
       "title": "mideast · Geopolitics",
       "source": "Financialjuice",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-04T21:10:57Z",
-      "title": "ukraine · Geopolitics · risk off",
-      "source": "Cnbc",
+      "ts": "2026-10-05T00:01:58Z",
+      "title": "russia · Geopolitics · risk off",
+      "source": "Bbc World",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-04T21:10:57Z",
-      "title": "mideast · Geopolitics · risk off",
-      "source": "Cnbc",
+      "ts": "2026-10-05T00:01:58Z",
+      "title": "israel · Geopolitics",
+      "source": "Bbc World",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-04T21:10:57Z",
-      "title": "us · Usd Yields",
-      "source": "Marketwatch",
+      "ts": "2026-10-05T00:01:58Z",
+      "title": "israel · Geopolitics",
+      "source": "Aljazeera",
       "score": 0.3,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-10-04T21:14:36.194876Z"
+  "written_at": "2026-10-05T00:04:08.261699Z"
 }
