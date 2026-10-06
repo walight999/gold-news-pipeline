@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-10-05T22:05:50Z",
-      "title": "us · Usd Yields · hawkish",
-      "source": "Fxstreet",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-05T22:05:50Z",
+      "ts": "2026-10-06T02:21:18Z",
       "title": "global · Other",
-      "source": "Financialjuice",
+      "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-05T22:05:50Z",
-      "title": "mideast · Geopolitics · risk off",
-      "source": "Financialjuice",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-05T22:05:50Z",
-      "title": "mideast · Geopolitics",
-      "source": "Financialjuice",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-05T22:05:50Z",
-      "title": "fed · Rate Policy",
-      "source": "Financialjuice",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-05T22:05:50Z",
-      "title": "global · Other · dovish",
-      "source": "Financialjuice",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-05T22:05:50Z",
+      "ts": "2026-10-06T02:21:18Z",
       "title": "global · Other",
-      "source": "Financialjuice, Fxstreet",
+      "source": "Investing Cb",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-05T22:05:50Z",
-      "title": "us · Growth",
-      "source": "Financialjuice",
+      "ts": "2026-10-06T02:21:18Z",
+      "title": "uk · Growth",
+      "source": "Investing Cb",
       "score": 0.2,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-05T22:05:50Z",
-      "title": "mideast · Geopolitics · risk off",
-      "source": "Financialjuice",
+      "ts": "2026-10-06T02:21:18Z",
+      "title": "us · Inflation",
+      "source": "Investing Cb",
+      "score": 0.5,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-06T02:21:18Z",
+      "title": "us · Geopolitics · risk on",
+      "source": "Investing Cb",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-05T22:05:50Z",
-      "title": "global · Other · dovish",
-      "source": "Financialjuice",
+      "ts": "2026-10-06T02:21:18Z",
+      "title": "global · Other",
+      "source": "Cnbc",
       "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-06T02:21:18Z",
+      "title": "global · Other",
+      "source": "Cnbc",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-06T02:21:18Z",
+      "title": "global · Other",
+      "source": "Cnbc",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-06T02:21:18Z",
+      "title": "us · Growth",
+      "source": "Investing Cb",
+      "score": 0.2,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-06T02:21:18Z",
+      "title": "us · Growth",
+      "source": "Investing Cb",
+      "score": 0.2,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-10-05T22:07:28.111333Z"
+  "written_at": "2026-10-06T02:24:01.852628Z"
 }
