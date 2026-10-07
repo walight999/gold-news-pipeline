@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-10-07T00:50:59Z",
+      "ts": "2026-10-07T06:51:02Z",
       "title": "global · Other",
       "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-07T00:50:59Z",
+      "ts": "2026-10-07T06:51:02Z",
       "title": "global · Other",
       "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-07T00:50:59Z",
-      "title": "global · Other",
-      "source": "Bbc World",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-07T00:50:59Z",
-      "title": "global · Other",
-      "source": "Bbc World",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-07T00:50:59Z",
-      "title": "global · Other · risk off",
-      "source": "Bbc World",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-07T00:50:59Z",
-      "title": "us · Geopolitics · risk off",
+      "ts": "2026-10-07T06:51:02Z",
+      "title": "russia · Geopolitics · risk off",
       "source": "Bbc World",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-07T00:50:59Z",
+      "ts": "2026-10-07T06:51:02Z",
       "title": "global · Other",
       "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-07T00:50:59Z",
+      "ts": "2026-10-07T06:51:02Z",
+      "title": "us · Geopolitics",
+      "source": "Bbc World",
+      "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-07T06:51:02Z",
+      "title": "russia · Geopolitics",
+      "source": "Bbc World",
+      "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-07T06:51:02Z",
       "title": "global · Other",
       "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-07T00:50:59Z",
+      "ts": "2026-10-07T06:51:02Z",
+      "title": "wgc · Gold Flow",
+      "source": "Bbc World",
+      "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-07T06:51:02Z",
+      "title": "global · Other",
+      "source": "Bbc World, Financialjuice",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-07T06:51:02Z",
       "title": "mideast · Geopolitics",
-      "source": "Bbc World",
+      "source": "Bbc World, Financialjuice",
       "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-07T00:50:59Z",
-      "title": "global · Other",
-      "source": "Bbc World",
-      "score": 0.1,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-10-07T00:54:27.006422Z"
+  "written_at": "2026-10-07T06:52:50.000700Z"
 }
