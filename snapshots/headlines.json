@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-10-07T06:51:02Z",
+      "ts": "2026-10-07T14:11:00Z",
       "title": "global · Other",
-      "source": "Bbc World",
+      "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-07T06:51:02Z",
-      "title": "global · Other",
-      "source": "Bbc World",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-07T06:51:02Z",
-      "title": "russia · Geopolitics · risk off",
-      "source": "Bbc World",
+      "ts": "2026-10-07T14:11:00Z",
+      "title": "mideast · Geopolitics · risk off",
+      "source": "Cnbc",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-07T06:51:02Z",
+      "ts": "2026-10-07T14:11:00Z",
       "title": "global · Other",
-      "source": "Bbc World",
+      "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-07T06:51:02Z",
-      "title": "us · Geopolitics",
-      "source": "Bbc World",
+      "ts": "2026-10-07T14:11:00Z",
+      "title": "global · Other",
+      "source": "Cnbc",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-07T14:11:00Z",
+      "title": "global · Other · risk on",
+      "source": "Cnbc",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-07T14:11:00Z",
+      "title": "global · Other",
+      "source": "Cnbc",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-07T14:11:00Z",
+      "title": "us · Usd Yields · dovish",
+      "source": "Cnbc",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-07T06:51:02Z",
+      "ts": "2026-10-07T14:11:00Z",
+      "title": "global · Other",
+      "source": "Cnbc",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-07T14:11:00Z",
+      "title": "mideast · Geopolitics · risk off",
+      "source": "Forexlive",
+      "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-07T14:11:00Z",
       "title": "russia · Geopolitics",
-      "source": "Bbc World",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-07T06:51:02Z",
-      "title": "global · Other",
-      "source": "Bbc World",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-07T06:51:02Z",
-      "title": "wgc · Gold Flow",
-      "source": "Bbc World",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-07T06:51:02Z",
-      "title": "global · Other",
-      "source": "Bbc World, Financialjuice",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-07T06:51:02Z",
-      "title": "mideast · Geopolitics",
-      "source": "Bbc World, Financialjuice",
+      "source": "Cnbc",
       "score": 0.3,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-10-07T06:52:50.000700Z"
+  "written_at": "2026-10-07T14:14:19.677818Z"
 }
