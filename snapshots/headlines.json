@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-10-08T06:25:55Z",
+      "ts": "2026-10-08T13:50:52Z",
+      "title": "fed · Rate Policy · hawkish",
+      "source": "Cnbc",
+      "score": 0.5,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-08T13:50:52Z",
+      "title": "global · Other",
+      "source": "Cnbc",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-08T13:50:52Z",
+      "title": "fed · Rate Policy · dovish",
+      "source": "Cnbc",
+      "score": 0.5,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-08T13:50:52Z",
+      "title": "global · Other",
+      "source": "Cnbc",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-08T13:50:52Z",
       "title": "mideast · Geopolitics",
-      "source": "Financialjuice",
+      "source": "Cnbc",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-08T06:25:55Z",
-      "title": "mideast · Geopolitics · risk off",
-      "source": "Forexlive, Financialjuice",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-08T06:25:55Z",
+      "ts": "2026-10-08T13:50:52Z",
       "title": "global · Other",
-      "source": "Forexlive, Financialjuice",
+      "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-08T06:25:55Z",
+      "ts": "2026-10-08T13:50:52Z",
       "title": "global · Other",
-      "source": "Financialjuice",
+      "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-08T06:25:55Z",
-      "title": "us · Usd Yields · hawkish",
+      "ts": "2026-10-08T13:50:52Z",
+      "title": "global · Other",
+      "source": "Cnbc",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-08T13:50:52Z",
+      "title": "us · Usd Yields",
       "source": "Forexlive",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-08T06:25:55Z",
-      "title": "us · Geopolitics · risk off",
-      "source": "Forexlive",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-08T06:25:55Z",
-      "title": "us · Inflation",
-      "source": "Financialjuice",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-08T06:25:55Z",
+      "ts": "2026-10-08T13:50:52Z",
       "title": "global · Other",
-      "source": "Financialjuice",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-08T06:25:55Z",
-      "title": "fed · Rate Policy",
       "source": "Forexlive",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-08T06:25:55Z",
-      "title": "global · Other · risk on",
-      "source": "Financialjuice",
       "score": 0.1,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-10-08T06:28:32.161602Z"
+  "written_at": "2026-10-08T13:54:51.159448Z"
 }
