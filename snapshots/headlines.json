@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-10-07T20:01:14Z",
-      "title": "global · Other",
-      "source": "Forexlive",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-07T20:01:14Z",
-      "title": "fed · Rate Policy",
-      "source": "Forexlive",
+      "ts": "2026-10-08T00:16:39Z",
+      "title": "boe · Rate Policy",
+      "source": "Investing Cb",
       "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-07T20:01:14Z",
-      "title": "fed · Inflation · dovish",
-      "source": "Forexlive",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-07T20:01:14Z",
-      "title": "us · Usd Yields · hawkish",
-      "source": "Forexlive",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-07T20:01:14Z",
-      "title": "us · Usd Yields · risk off",
-      "source": "Forexlive",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-07T20:01:14Z",
+      "ts": "2026-10-08T00:16:39Z",
       "title": "global · Other",
-      "source": "Forexlive",
+      "source": "Investing Cb",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-07T20:01:14Z",
-      "title": "us · Usd Yields",
-      "source": "Forexlive",
-      "score": 0.3,
+      "ts": "2026-10-08T00:16:39Z",
+      "title": "global · Other",
+      "source": "Investing Cb",
+      "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-07T20:01:14Z",
-      "title": "us · Usd Yields",
-      "source": "Fxstreet",
-      "score": 0.3,
+      "ts": "2026-10-08T00:16:39Z",
+      "title": "global · Other",
+      "source": "Investing Cb",
+      "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-07T20:01:14Z",
-      "title": "us · Geopolitics · risk off",
-      "source": "Forexlive",
-      "score": 0.3,
+      "ts": "2026-10-08T00:16:39Z",
+      "title": "global · Other",
+      "source": "Cnbc",
+      "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-07T20:01:14Z",
-      "title": "us · Usd Yields",
-      "source": "Forexlive",
-      "score": 0.3,
+      "ts": "2026-10-08T00:16:39Z",
+      "title": "us · Inflation",
+      "source": "Investing Cb",
+      "score": 0.5,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-08T00:16:39Z",
+      "title": "global · Other",
+      "source": "Cnbc, Investing Cb",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-08T00:16:39Z",
+      "title": "us · Inflation",
+      "source": "Investing Cb",
+      "score": 0.5,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-08T00:16:39Z",
+      "title": "global · Other",
+      "source": "Cnbc, Forexlive",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-08T00:16:39Z",
+      "title": "global · Other",
+      "source": "Investing Cb",
+      "score": 0.1,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-10-07T20:04:11.521144Z"
+  "written_at": "2026-10-08T00:19:00.196830Z"
 }
