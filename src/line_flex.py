@@ -832,13 +832,21 @@ def scorecard_bubble(data: dict[str, Any], date_label: str,
         ]
         rows.append({"type": "box", "layout": "horizontal", "margin": "md",
                      "contents": chips})
+        # Split by call type — each graded on its own horizon (scorecard.collapse_minutes):
+        # 🎯 gated composite at the gate's horizon (5m), hand-rule pills at the default.
+        g_n = int(data.get("n_gated_graded", 0) or 0)
+        g_ok = int(data.get("n_gated_correct", 0) or 0)
+        if n_graded:
+            rows.append({"type": "text", "size": "xs", "color": "#6B7280", "margin": "sm",
+                         "wrap": True,
+                         "text": f"🎯 สัญญาณรวม {g_ok}/{g_n}  ·  กฎรายตัว {n_correct - g_ok}/{n_graded - g_n}"})
         if n_pending:
             rows.append({"type": "text", "size": "xs", "color": "#9CA3AF",
                          "margin": "xs",
-                         "text": f"⏳ รอราคา 15 นาที {n_pending} (ตลาดปิด/ยังไม่ครบ)"})
+                         "text": f"⏳ รอราคา {n_pending} (ตลาดปิด/ยังไม่ครบ)"})
 
         rows.append({"type": "separator", "margin": "lg"})
-        rows.append({"type": "text", "text": "แรงเหวี่ยง 15 นาที", "size": "xs",
+        rows.append({"type": "text", "text": "แรงเหวี่ยงหลังตัวเลขออก", "size": "xs",
                      "color": "#9CA3AF", "weight": "bold", "margin": "md"})
         up = _to_float_or_none(data.get("sum_up_usd"))
         down = _to_float_or_none(data.get("sum_down_usd"))
@@ -865,7 +873,8 @@ def scorecard_bubble(data: dict[str, Any], date_label: str,
                 rows.append({"type": "text", "text": f"• {head}", "size": "sm",
                              "color": "#374151", "wrap": True, "margin": "sm"})
                 rows.append({"type": "text",
-                             "text": f"   เราว่า{said} · จริงทอง {r15_txt} ({usd_txt})",
+                             "text": f"   เราว่า{said} · จริงทอง {r15_txt} ({usd_txt})"
+                                     + (f" ใน {m['window'].replace('m', '')} นาที" if m.get("window") else ""),
                              "size": "xs", "color": "#6B7280", "wrap": True})
 
     if rolling_pct is not None:
