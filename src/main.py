@@ -3026,7 +3026,9 @@ async def run_calendar_check() -> int:
             pending_post.append({"ev": ev, "sent_key": sent_key, "bubble": bubble,
                                  "alt": alt, "on_delivered": cal_row,
                                  "print": (ev.country, ev.title, actual_text or "",
-                                           ev.forecast or "")})
+                                           ev.forecast or ""),
+                                 "actual": actual_text, "surprise": surprise,
+                                 "xau_move": xau_move})
             # Telegram is independent of LINE — push regardless of the LINE result.
             # detail_th (Thai LINE rewrite) is omitted; the worker renders English.
             if tg_news:
@@ -3047,6 +3049,16 @@ async def run_calendar_check() -> int:
         post_pushed = _push_calendar_groups(
             line, target, pending_post, sched_cfg, store,
             route_type="calendar_post", priority=PRIORITY_CORE)
+        # X: the released numbers as one tweet per release minute. Independent
+        # of the LINE result (quota shedding must not silence X); deduped in
+        # squawk_log by release minute. Best-effort.
+        try:
+            from . import x_release
+            src_cfg, _, _ = _load_configs()
+            x_release.post_release_minutes(
+                store, pending_post, (src_cfg.get("squawk") or {}).get("release_posts"))
+        except Exception:
+            log.exception("x_release failed")
 
     # Speech / statement cards (mid-way + final) from the collected quotes.
     try:

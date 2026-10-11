@@ -128,6 +128,16 @@ squawk:
                               # containment vs one already mirrored today >= this
                               # (FS re-posts the same story in different words). Lower
                               # = more aggressive de-duping.
+  # Released-number tweets (src/x_release.py, 2026-10-11): calendar_check posts
+  # the actual vs forecast + spot $ move + typical 15-min range, one tweet per
+  # release minute, ~2 min after the print. Facts only, NO gold direction call
+  # (verdict accuracy not publishable yet). Counts toward the quotas above.
+  release_posts:
+    enabled: true
+    countries: [USD]
+    impacts: [High]
+    cap_per_day: 6
+    max_prints: 4               # lines per tweet when several print the same minute
   # Gold-mover filter: a headline is mirrored only if it contains one of these
   # (case-insensitive). Omit to use the module's DEFAULT_KEYWORDS (gold / USD /
   # Fed / yields / inflation / BoJ+ECB / safe-haven). Add terms to widen.
