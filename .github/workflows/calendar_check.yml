@@ -47,6 +47,11 @@ jobs:
       # Alert-bot next-event window gate (push_next_event_window). Env-gated.
       MACRO_WEBHOOK_URL:    ${{ secrets.MACRO_WEBHOOK_URL }}
       MACRO_WEBHOOK_SECRET: ${{ secrets.MACRO_WEBHOOK_SECRET }}
+      # @tradetongkam released-number tweets (src/x_release.py). Env-gated.
+      X_API_KEY:             ${{ secrets.X_API_KEY }}
+      X_API_SECRET:          ${{ secrets.X_API_SECRET }}
+      X_ACCESS_TOKEN:        ${{ secrets.X_ACCESS_TOKEN }}
+      X_ACCESS_TOKEN_SECRET: ${{ secrets.X_ACCESS_TOKEN_SECRET }}
       PYTHONUNBUFFERED:   "1"
       GH_TOKEN:           ${{ github.token }}
       GITHUB_REPOSITORY:  ${{ github.repository }}
