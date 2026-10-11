@@ -23,6 +23,8 @@ import json
 from datetime import datetime, timedelta
 from typing import Any
 
+from . import delivery_stats
+
 # A 15-min move at/above this (%) counts as a real directional move — same
 # threshold precision_report uses, so the two agree.
 HIT_PCT = 0.15
@@ -211,7 +213,8 @@ def tuning_candidates(routing: list[dict[str, Any]], scorecard: dict[str, Any],
 def build_weekly_report(now_utc: datetime, *, delivery_rows: list[dict[str, Any]],
                         scorecard_rows: list[dict[str, Any]], calibration_rows: list[dict[str, Any]],
                         source_rows: list[dict[str, Any]], classifier_health_row: dict[str, Any] | None,
-                        days: int = 7, flat_pct: float = 0.10) -> dict[str, Any]:
+                        days: int = 7, flat_pct: float = 0.10,
+                        sent_rows: list[dict[str, Any]] | None = None) -> dict[str, Any]:
     """Assemble the full weekly report dict. `days` = look-back window."""
     cutoff_utc = now_utc - timedelta(days=days)
     since_date_ict = (now_utc - timedelta(days=days)).strftime("%Y-%m-%d")
@@ -227,4 +230,7 @@ def build_weekly_report(now_utc: datetime, *, delivery_rows: list[dict[str, Any]
         "classifier_cost": classifier_cost(classifier_health_row),
         "sources": source_snapshot(source_rows, now_utc),
         "tuning_candidates": tuning_candidates(routing, scard, grade),
+        # print → Released card latency over the window (live sent_log rows)
+        "release_latency": (delivery_stats.release_latency_rows(sent_rows, cutoff_utc)
+                            if sent_rows else None),
     }

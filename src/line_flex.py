@@ -754,6 +754,10 @@ def _fmt_usd(v: float | None) -> str:
     return f"{sign}${abs(v):.1f}"
 
 
+def _fmt_secs(s: int) -> str:
+    return f"{s}s" if s < 60 else f"{s // 60}m{s % 60:02d}s"
+
+
 def weekly_report_bubble(rep: dict[str, Any], week_label: str) -> dict[str, Any]:
     """Compact 1:1 weekly performance card from `weekly_report.build_weekly_report`.
     Private operator dashboard — accuracy trend, delivery volume, and the top
@@ -777,6 +781,13 @@ def weekly_report_bubble(rep: dict[str, Any], week_label: str) -> dict[str, Any]
         top = " · ".join(f"{k} {v}" for k, v in list(br.items())[:4])
         rows.append({"type": "text", "text": top, "size": "xs", "color": "#6B7280",
                      "margin": "xs", "wrap": True})
+    # Print → Released card on LINE. The 🎯 call is a 5-min call, so a median
+    # past ~5 min means the card mostly lands after the move it describes.
+    lat = rep.get("release_latency")
+    if lat:
+        rows.append({"type": "text", "size": "xs", "color": "#6B7280", "margin": "xs", "wrap": True,
+                     "text": f"⏱ การ์ด Released ถึงหลังตัวเลขออก: กลาง {_fmt_secs(lat['p50_s'])} · "
+                             f"p90 {_fmt_secs(lat['p90_s'])} (n={lat['n']})"})
 
     rows.append({"type": "separator", "margin": "lg"})
     if cands:

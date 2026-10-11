@@ -2667,11 +2667,18 @@ def _push_calendar_groups(line, target, pending, sched_cfg, store, *,
                                  store=store, priority=priority)
             if not _delivered(resp):
                 continue
+            sent_at = now_utc()
             for c in chunk:
-                store.upsert("sent_log", {
+                row = {
                     "event_id": c["sent_key"], "route_type": route_type,
-                    "sent_ts": iso_utc(now_utc()), "line_status": resp["status"],
-                })
+                    "sent_ts": iso_utc(sent_at), "line_status": resp["status"],
+                }
+                if route_type == "calendar_post":
+                    # print → card latency (delivery_stats.release_latency)
+                    row["release_ts"] = iso_utc(c["ev"].dt_utc)
+                    log.info("calendar_post latency %ds: %s", int((sent_at - c["ev"].dt_utc).total_seconds()),
+                             getattr(c["ev"], "title", c["sent_key"]))
+                store.upsert("sent_log", row)
                 if c["on_delivered"]:
                     store.upsert("calibration_log", c["on_delivered"])
                 delivered += 1
@@ -3361,6 +3368,7 @@ async def run_weekly_report() -> int:
         source_rows=store.all_rows("source_state"),
         classifier_health_row=store.get("source_state", ("_classifier_health",)),
         flat_pct=flat_pct,
+        sent_rows=store.all_rows("sent_log"),
     )
 
     # Detailed breakdown to the run log (readable via `gh run view --log`).
@@ -3375,6 +3383,7 @@ async def run_weekly_report() -> int:
     log.info("routing (top by n): %s", [f"{r['topic']}·{r['route']} n={r['n']} "
              f"hit={r['hit_pct']}% mv={r['avg_abs_move']}%" for r in rep["routing"][:8]])
     log.info("classifier cost: %s | sources: %s", rep["classifier_cost"], rep["sources"])
+    log.info("release card latency (print → LINE): %s", rep["release_latency"] or "no data yet")
     for c in rep["tuning_candidates"]:
         log.info("TUNING CANDIDATE: %s", c)
     if not rep["tuning_candidates"]:

@@ -151,6 +151,9 @@ SCHEMAS: dict[str, list[str]] = {
     ],
     "sent_log": [
         "event_id", "route_type", "sent_ts", "line_status", "updated_at",
+        # Released cards only: the print time, so sent_ts − release_ts = how
+        # late the card reached LINE (delivery_stats.release_latency).
+        "release_ts",
     ],
     "calibration_log": [
         "event_id", "first_seen_ts", "topic_bucket", "entity", "direction_label",
@@ -190,6 +193,8 @@ SCHEMAS: dict[str, list[str]] = {
     # already carries history. ~365 rows/year.
     "delivery_daily": [
         "date_ict", "n_sent", "n_failed", "by_route", "updated_at",
+        # JSON {n, p50_s, p90_s, max_s}: print → Released card on LINE.
+        "release_latency",
     ],
     "health_log": [
         "source_id", "warning_type", "warning_ts", "resolved_ts", "updated_at",
