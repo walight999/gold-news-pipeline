@@ -2300,7 +2300,11 @@ async def run_scorecard() -> int:
     # advertising goes public (scorecard.public_accuracy_ok).
     tg_news = telegram_news.TelegramNewsClient.from_env(store=store)
     if tg_news:
-        detail = scorecard.rolling_accuracy_detail(sc_rows, days=30, as_of=for_date)
+        # Public = the 🎯 gated calls only (graded at their own horizon), the
+        # call the card advertises with a backtest %. Rule pills stay private.
+        detail = scorecard.rolling_accuracy_detail(
+            sc_rows, days=int(sc_cfg.get("public_window_days", 180)), as_of=for_date,
+            gated_only=bool(sc_cfg.get("public_gated_only", True)))
         publish, why = scorecard.public_accuracy_ok(
             detail,
             min_calls=int(sc_cfg.get("public_min_calls", scorecard.DEFAULT_PUBLIC_MIN_CALLS)),

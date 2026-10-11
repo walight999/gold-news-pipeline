@@ -78,10 +78,16 @@ scorecard:
   #   "15 นาที" label on the scorecard card (line_flex.scorecard_bubble).
   window: "15m"
   flat_pct: 0.10
-  # Public gate for the free Telegram bot's "directional accuracy" line (30
-  # calendar days, call-weighted). Below EITHER bar nothing is published and the
-  # worker's cached number ages out (~10d) — a % on a few calls, or under a
-  # coin flip, undercuts the credibility it's meant to build.
+  # Public gate for the free Telegram bot's "directional accuracy" line
+  # (call-weighted over public_window_days calendar days). Below EITHER bar
+  # nothing is published and the worker's cached number ages out (~10d) — a %
+  # on a few calls, or under a coin flip, undercuts the credibility it's meant
+  # to build. public_gated_only: count only the 🎯 gated calls (graded at their
+  # own 5m horizon); rule pills stay private. Gated calls are RARE (backtest:
+  # 83 XAU calls in ~5.7 years ≈ 1-2/month), so expect the public line to stay
+  # withheld for a long time at 30 calls — that is the honest outcome.
+  public_gated_only: true
+  public_window_days: 180
   public_min_calls: 30
   public_min_accuracy: 0.55
 

@@ -98,3 +98,21 @@ def test_bubble_shows_gated_vs_rule_split_and_miss_window():
     walk(scorecard_bubble(data, "2/10/26"))
     assert any("1/1" in t and "0/1" in t for t in texts)        # 🎯 1/1 · rule 0/1
     assert any(t.rstrip().endswith("15 นาที") for t in texts)  # "15 นาที"
+
+
+def test_public_detail_can_count_gated_calls_only():
+    from datetime import date
+    hist = [
+        {"date_ict": "2026-09-01", "n_correct": 5, "n_graded": 11},                  # pre-column day
+        {"date_ict": "2026-10-12", "n_correct": 2, "n_graded": 4,
+         "n_gated_correct": 1, "n_gated_graded": 1},
+        {"date_ict": "2026-10-13", "n_correct": 1, "n_graded": 2,
+         "n_gated_correct": 1, "n_gated_graded": 2},
+    ]
+    d = scorecard.rolling_accuracy_detail(hist, days=180, as_of=date(2026, 10, 13), gated_only=True)
+    assert d == {"accuracy": round(2 / 3, 4), "correct": 2, "total": 3, "days": 180}
+    allc = scorecard.rolling_accuracy_detail(hist, days=180, as_of=date(2026, 10, 13))
+    assert allc["total"] == 17
+    # no gated calls in window -> nothing to publish
+    assert scorecard.rolling_accuracy_detail(hist[:1], days=180, as_of=date(2026, 10, 13),
+                                             gated_only=True) is None

@@ -291,12 +291,16 @@ def public_accuracy_ok(detail: dict[str, Any] | None,
 
 
 def rolling_accuracy_detail(scorecard_rows: list[dict[str, Any]], days: int = 30,
-                            as_of: date | None = None) -> dict[str, Any] | None:
+                            as_of: date | None = None,
+                            gated_only: bool = False) -> dict[str, Any] | None:
     """Call-weighted accuracy over the last `days` calendar days:
-    {accuracy: 0..1, correct, total, days}. None when nothing was graded."""
+    {accuracy: 0..1, correct, total, days}. None when nothing was graded.
+    `gated_only` counts just the 🎯 gated calls (n_gated_* columns; days
+    before those columns existed contribute nothing)."""
     window = _window_rows(scorecard_rows, days, as_of)
-    tot_correct = sum(int(_to_float(r.get("n_correct")) or 0) for r in window)
-    tot_graded = sum(int(_to_float(r.get("n_graded")) or 0) for r in window)
+    c_col, g_col = ("n_gated_correct", "n_gated_graded") if gated_only else ("n_correct", "n_graded")
+    tot_correct = sum(int(_to_float(r.get(c_col)) or 0) for r in window)
+    tot_graded = sum(int(_to_float(r.get(g_col)) or 0) for r in window)
     if not tot_graded:
         return None
     return {
