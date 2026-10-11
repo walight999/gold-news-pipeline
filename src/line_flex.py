@@ -801,7 +801,7 @@ def weekly_report_bubble(rep: dict[str, Any], week_label: str) -> dict[str, Any]
 
 
 def scorecard_bubble(data: dict[str, Any], date_label: str,
-                     rolling_pct: float | None = None) -> dict[str, Any]:
+                     rolling: dict[str, Any] | None = None) -> dict[str, Any]:
     """EOD directional-accuracy scoreboard for the 1:1 chat. `data` is the dict
     from `scorecard.build_scorecard` (n_correct/n_wrong/n_flat/n_pending/
     n_graded/accuracy_pct/sum_up_usd/sum_down_usd/misses). Private operator card
@@ -868,10 +868,16 @@ def scorecard_bubble(data: dict[str, Any], date_label: str,
                              "text": f"   เราว่า{said} · จริงทอง {r15_txt} ({usd_txt})",
                              "size": "xs", "color": "#6B7280", "wrap": True})
 
-    if rolling_pct is not None:
-        rows.append({"type": "separator", "margin": "lg"})
-        rows.append({"type": "text", "margin": "md", "size": "xs", "color": "#9CA3AF",
-                     "text": f"แม่นเฉลี่ย 7 วัน: {rolling_pct:.0f}%  ·  log เต็มใน Sheet"})
+    # `rolling` = scorecard.rolling_accuracy_detail over 7 calendar days. The
+    # call count rides along — a % on 3 calls is not a % on 30.
+    rows.append({"type": "separator", "margin": "lg"})
+    if rolling:
+        roll_txt = (f"7 วันล่าสุด: แม่น {rolling['accuracy'] * 100:.0f}% "
+                    f"({rolling['correct']}/{rolling['total']} calls)")
+    else:
+        roll_txt = "7 วันล่าสุด: ยังไม่มี call ที่ให้คะแนนได้"
+    rows.append({"type": "text", "margin": "md", "size": "xs", "color": "#9CA3AF", "wrap": True,
+                 "text": f"{roll_txt}  ·  log เต็มใน Sheet"})
 
     title = f"🎯 สรุปความแม่นยำ · {date_label}" if date_label else "🎯 สรุปความแม่นยำ"
     return {
