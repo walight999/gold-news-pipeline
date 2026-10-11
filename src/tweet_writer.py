@@ -14,6 +14,8 @@ from __future__ import annotations
 
 import json
 import logging
+import random
+import re
 
 from .translator import _get_anthropic_client
 
@@ -22,6 +24,45 @@ log = logging.getLogger("tweet_writer")
 # Brand hashtag line for NEWS posts (their #ข่าวทอง set, not #XAUUSD).
 TAGS = "#ทองวันนี้ #ข่าวทอง #เทรดทอง #ทองคำ"
 TWEET_LIMIT = 280
+
+# Auto-posts (squawk events mode) rotate the hashtag line so the feed doesn't
+# carry the identical 4-tag block on every post (a bot tell, 2026-10-11 review).
+# CORE tags always stay (they carry the search views); 2 extras are picked per
+# post — topic tags first when the story matches, the rest from the brand pool.
+CORE_TAGS = ("#ทองวันนี้", "#ทองคำ")
+POOL_TAGS = ("#ข่าวทอง", "#เทรดทอง", "#ราคาทอง", "#ลงทุนทองคำ", "#ข่าวเศรษฐกิจ")
+TOPIC_TAGS = (
+    (re.compile(r"fed|fomc|เฟด|powell|พาวเวล", re.I), "#เฟด"),
+    (re.compile(r"ดอลลาร์|dollar|dxy", re.I), "#ดอลลาร์"),
+    (re.compile(r"เงินเฟ้อ|inflation|\bcpi\b|\bpce\b", re.I), "#เงินเฟ้อ"),
+    (re.compile(r"ดอกเบี้ย|rate (hike|cut)|yields?\b|ยีลด์", re.I), "#ดอกเบี้ย"),
+    (re.compile(r"อิหร่าน|อิสราเอล|iran|israel|สงคราม|ภูมิรัฐศาสตร์|hormuz|ฮอร์มุซ", re.I), "#ภูมิรัฐศาสตร์"),
+)
+
+
+def pick_tags(text: str = "", rng: random.Random | None = None) -> str:
+    """CORE tags + 2 rotating extras (max 1 topic tag, rest from POOL_TAGS),
+    extras shuffled so consecutive posts don't share one fixed line."""
+    rng = rng or random
+    topics = [t for rx, t in TOPIC_TAGS if rx.search(text or "")]
+    extras = [rng.choice(topics)] if topics else []
+    extras += rng.sample([t for t in POOL_TAGS if t not in extras], 2 - len(extras))
+    rng.shuffle(extras)
+    return " ".join(CORE_TAGS[:1] + tuple(extras) + CORE_TAGS[1:])
+
+
+# The composer is told to SKIP weak-gold-link stories, but in the 2026-10-05..09
+# live posts it still wrote ~1 in 6 that end by admitting the link is weak
+# ("ผลต่อทองยังเล็กน้อย", "ผลต่อทองมีอยู่แต่ไม่ใช่แรงขับหลัก"). Deterministic
+# backstop: an auto-post containing such a phrase is SKIPped, not posted.
+_WEAK_LINK = re.compile(
+    r"(ผล|ผลกระทบ|นัย)(ต่อ|กับ)?(ราคา)?ทอง[^\n#]{0,30}?"
+    r"(เล็กน้อย|จำกัด|ไม่มาก|ไม่ชัด|ไม่ใช่(ปัจจัย|แรงขับ|ตัวขับ|ตัวแปร)(หลัก)?|ไม่ได้เป็น(ปัจจัย|แรงขับ)หลัก)"
+    r"|ทอง[^\n#]{0,20}?ทางอ้อม[^\n#]{0,15}?(เล็กน้อย|จำกัด)")
+
+
+def is_weak_link(tweet: str) -> bool:
+    return bool(_WEAK_LINK.search(tweet or ""))
 
 _PROMPT = """You write Thai tweets for @tradetongkam, a gold (XAU/USD) trading brand.
 Given one news item, write ONE tweet in the brand's exact voice.
@@ -92,15 +133,21 @@ def _extract_json(text: str) -> dict | None:
     return None
 
 
-def _sanitize(t: str) -> str:
+def _sanitize(t: str, tags: str = TAGS) -> str:
     t = (t or "").replace("—", " ").replace("–", " ").replace("―", " ").strip()
+    if tags != TAGS:
+        # Rotated tags: drop the model's own hashtag line(s) and use ours.
+        lines = t.split("\n")
+        while lines and lines[-1].strip().startswith("#"):
+            lines.pop()
+        t = "\n".join(lines).rstrip()
     # Ensure the brand hashtag line is present exactly once at the end.
-    if TAGS not in t:
-        t = t.rstrip() + "\n" + TAGS
+    if tags not in t:
+        t = t.rstrip() + "\n" + tags
     return t
 
 
-def _fit(tweet: str) -> str:
+def _fit(tweet: str, tags: str = TAGS) -> str:
     """Ensure the tweet fits TWEET_LIMIT, trimming the body (never the hashtag
     line) at a PHRASE boundary so it never ends mid-word. Thai separates phrases
     with spaces, so we back off to the last space/newline/sentence mark rather
@@ -108,10 +155,10 @@ def _fit(tweet: str) -> str:
     (e.g. 'ทองหา…', 'จุดสำคัญ…'). Adds '…' only when content was actually cut."""
     if len(tweet) <= TWEET_LIMIT:
         return tweet
-    head = tweet[: -len(TAGS)].rstrip() if tweet.endswith(TAGS) else tweet
-    room = TWEET_LIMIT - len(TAGS) - 2          # head + "…\n" + tags
+    head = tweet[: -len(tags)].rstrip() if tweet.endswith(tags) else tweet
+    room = TWEET_LIMIT - len(tags) - 2          # head + "…\n" + tags
     if room <= 0:
-        return TAGS
+        return tags
     clipped = head[:room]
     # Back off to the last phrase boundary; only honor it if it keeps enough of
     # the sentence (>=60% of room) so we don't collapse to a stub.
@@ -120,7 +167,7 @@ def _fit(tweet: str) -> str:
     if cut >= int(room * 0.6):
         clipped = clipped[:cut]
     clipped = clipped.rstrip(" \n.,")
-    return clipped + "…\n" + TAGS
+    return clipped + "…\n" + tags
 
 
 DEFAULT_MODEL = "claude-haiku-4-5-20251001"
@@ -146,8 +193,10 @@ EXTRA RULES (this post goes out automatically, nobody reviews it):
 - ห้ามปิดท้ายด้วยวลีสำเร็จรูปซ้ำๆ. โพสต์ล่าสุดของแบรนด์ปิดแบบนี้ไปแล้ว ห้ามใช้ซ้ำหรือใกล้เคียง:
 {AVOID}
 - เนื้อหา (ไม่รวมบรรทัดแฮชแท็ก) ไม่เกิน 200 ตัวอักษร และต้องจบประโยคสมบูรณ์.
-- ถ้าข่าวนี้ไม่มีผลต่อทองคำอย่างมีนัยสำคัญ (คือคุณจะต้องเขียนว่า "ผลต่อทองจำกัด") ห้ามเขียนโพสต์
-  ให้ตอบ {"tweet": "SKIP"} แทน. แบรนด์โพสต์เฉพาะข่าวที่ขยับทองได้จริง.
+- ถ้าข่าวนี้ไม่มีผลต่อทองคำอย่างมีนัยสำคัญ (คือคุณจะต้องเขียนว่า "ผลต่อทองจำกัด" / "ผลต่อทองเล็กน้อย" /
+  "ผลต่อทองมีแต่ไม่ใช่ปัจจัยหลัก" หรือความหมายเดียวกัน) ห้ามเขียนโพสต์ ให้ตอบ {"tweet": "SKIP"} แทน.
+  แบรนด์โพสต์เฉพาะข่าวที่ขยับทองได้จริง. ข่าวธนาคารกลางอื่น (BoJ/BoE/ECB/BoC) ที่ไม่กระทบดอลลาร์
+  หรือ yields สหรัฐฯ ชัดเจน มักเข้าข่ายนี้.
 """
 
 
@@ -195,12 +244,16 @@ def compose_tweet(*, headline_th: str | None, body_th: list[str] | None,
                 raise ValueError("no tweet field in Claude output")
             if autopost and str(tweet).strip().upper() == SKIP:
                 return SKIP
-            tweet = _sanitize(str(tweet))
+            if autopost and is_weak_link(str(tweet)):
+                log.info("compose_tweet: weak gold link phrase -> SKIP")
+                return SKIP
+            tags = pick_tags(f"{en_title or ''} {headline_th or ''} {tweet}") if autopost else TAGS
+            tweet = _sanitize(str(tweet), tags)
             if autopost and len(tweet) > TWEET_LIMIT:
                 # Never ship a mid-sentence "…" clip on an unreviewed post: ask
                 # for a complete shorter version once, clip only as a last resort.
-                tweet = _shorten(client, model, tweet) or tweet
-            return _fit(tweet)
+                tweet = _shorten(client, model, tweet, tags) or tweet
+            return _fit(tweet, tags)
         except Exception as e:  # noqa: BLE001
             s = str(e)
             transient = any(c in s for c in (" 529", " 503", " 502", " 504", "overloaded", "rate_limit"))
@@ -211,7 +264,7 @@ def compose_tweet(*, headline_th: str | None, body_th: list[str] | None,
     return None
 
 
-def _shorten(client, model: str, tweet: str) -> str | None:
+def _shorten(client, model: str, tweet: str, tags: str = TAGS) -> str | None:
     """One follow-up call: rewrite an over-long post into complete sentences
     under the limit. None on failure (caller falls back to _fit's clip)."""
     try:
@@ -220,12 +273,12 @@ def _shorten(client, model: str, tweet: str) -> str | None:
             messages=[{"role": "user", "content": (
                 "ย่อโพสต์ภาษาไทยนี้ให้เนื้อหา (ไม่รวมบรรทัดแฮชแท็ก) ไม่เกิน 190 ตัวอักษร "
                 "จบประโยคสมบูรณ์ คงข้อเท็จจริงเดิมทั้งหมด ห้ามเพิ่มข้อมูลใหม่ ห้ามใช้ em-dash. "
-                f"บรรทัดสุดท้ายต้องเป็น: {TAGS}\n\nโพสต์:\n{tweet}\n\n"
+                f"บรรทัดสุดท้ายต้องเป็น: {tags}\n\nโพสต์:\n{tweet}\n\n"
                 'Return ONLY JSON: {"tweet": "<post>"}')}],
         )
         d = _extract_json(resp.content[0].text)
         t = (d or {}).get("tweet") if isinstance(d, dict) else None
-        return _sanitize(str(t)) if t else None
+        return _sanitize(str(t), tags) if t else None
     except Exception as e:  # noqa: BLE001 — best-effort
         log.warning("tweet shorten failed: %s", e)
         return None

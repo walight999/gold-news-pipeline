@@ -390,7 +390,10 @@ def _story_keys(title: str) -> set[str]:
 def _closing(tweet: str) -> str:
     """The last ~45 chars of a posted tweet's body (hashtag line dropped) — fed
     back to the composer so it stops reusing the same closing phrase."""
-    body = (tweet or "").replace(tweet_writer.TAGS, "").strip()
+    lines = (tweet or "").strip().split("\n")
+    while lines and lines[-1].strip().startswith("#"):
+        lines.pop()                                # rotated hashtag line
+    body = "\n".join(lines).strip()
     return body[-45:].strip(" .…")
 
 

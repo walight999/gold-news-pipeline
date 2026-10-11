@@ -132,7 +132,8 @@ def test_autopost_prompt_carries_fact_and_topic_rules(monkeypatch):
     assert "meets forecasts" in p and "ห้ามเดา" in p           # no guessed direction
     assert "English title" in p                                # anchor on the title
     assert "· กดดันทองในระยะสั้น" in p                          # closings to avoid
-    assert out.endswith(tw.TAGS)
+    tag_line = out.split("\n")[-1].split()                     # rotated, core kept
+    assert tag_line[0] == "#ทองวันนี้" and tag_line[-1] == "#ทองคำ"
 
 
 def test_autopost_skip_verdict(monkeypatch):
@@ -156,4 +157,5 @@ def test_overlong_autopost_is_rewritten_not_clipped(monkeypatch):
 def test_overlong_autopost_falls_back_to_clip_if_shorten_fails(monkeypatch):
     long_body = "ประโยคยาวมาก " * 30
     out, _ = _compose(monkeypatch, ['{"tweet": "%s"}' % long_body, "not json"], autopost=True)
-    assert len(out) <= tw.TWEET_LIMIT and out.endswith(tw.TAGS)
+    assert len(out) <= tw.TWEET_LIMIT and out.endswith("#ทองคำ")
+    assert out.split("\n")[-1].startswith("#ทองวันนี้")
