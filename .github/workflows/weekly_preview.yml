@@ -29,6 +29,10 @@ jobs:
       # CHUM News Bot (Telegram) — week-ahead card (T0-5). Env-gated no-op.
       NEWS_BOT_WEBHOOK_URL: ${{ secrets.NEWS_BOT_WEBHOOK_URL }}
       NEWS_BOT_SECRET:      ${{ secrets.NEWS_BOT_SECRET }}
+      # Gold Week Ahead email (src/newsletter.py). Env-gated no-op when unset.
+      RESEND_API_KEY:     ${{ secrets.RESEND_API_KEY }}
+      RESEND_SEGMENT_ID:  ${{ secrets.RESEND_SEGMENT_ID }}
+      NEWSLETTER_FROM:    ${{ secrets.NEWSLETTER_FROM }}
       PYTHONUNBUFFERED:   "1"
     steps:
       - uses: actions/checkout@v4

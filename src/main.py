@@ -973,6 +973,15 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
             except Exception:  # noqa: BLE001 — mirror is best-effort, never block the run
                 log.exception("run_once: squawk_mirror piggyback failed")
 
+    # Growth CTA (twice a week): invite X followers into Telegram / the Gold
+    # Week Ahead email. Self-gated on day/hour/sent_log + X creds.
+    if mode == "cron":
+        try:
+            from . import x_cta
+            x_cta.maybe_post(store, (src_cfg.get("growth") or {}).get("cta"))
+        except Exception:  # noqa: BLE001
+            log.exception("run_once: x_cta failed")
+
     # 9. Flush state
     store.flush()
     cs = news_alert.run_cache_stats()
@@ -2421,7 +2430,11 @@ async def run_weekly_preview() -> int:
     # collapse to a single send once FF JSON has the next-week data.
     target_mon = cal.next_workweek_monday_ict().strftime("%Y-%m-%d")
     sent_key = f"weekly:{target_mon}"
-    if store.get("sent_log", (sent_key, "weekly_preview")):
+    from . import newsletter
+    line_done = bool(store.get("sent_log", (sent_key, "weekly_preview")))
+    # The Gold Week Ahead email rides the same run; a slot that already sent
+    # LINE still retries an email that failed (Resend down) — and vice versa.
+    if line_done and (not newsletter.enabled() or newsletter.already_sent(store, target_mon)):
         log.info("weekly_preview already sent for week-of %s — skipping", target_mon)
         store.flush()
         return 0
@@ -2470,6 +2483,12 @@ async def run_weekly_preview() -> int:
     def _short(dt):
         return f"{dt.day}/{dt.month}/{dt.year % 100}"
     week_label = f"{_short(start)} – {_short(end)}"
+
+    newsletter.send_week_ahead(store, filtered, target_mon,
+                               f"{_short(start)}-{_short(end)}")
+    if line_done:
+        store.flush()
+        return 0
 
     bubble = weekly_preview_bubble(filtered, effects, week_label)
     if bubble is None:
