@@ -597,7 +597,9 @@ def mirror_events(store, candidates: list[dict[str, Any]],
         today_tails.append(_ends_on_gold(tweet))
         closings = (closings + [_closing(tweet)])[-8:]
         posted += 1
-        log.info("x_autopost: POSTED %s | %s", url, " ".join(tweet.split())[:150])
+        tells = tweet_writer.thai_tells(tweet)
+        log.info("x_autopost: POSTED %s | tells=%d%s | %s", url, len(tells),
+                 f" ({','.join(tells)})" if tells else "", " ".join(tweet.split())[:150])
         row = [iso_utc(now), to_ict(now).strftime("%Y-%m-%d %H:%M:%S"),
                fid, text[:280], tweet, url or "posted"]
         try:

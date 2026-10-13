@@ -208,7 +208,37 @@ EXTRA RULES (this post goes out automatically, nobody reviews it):
 - ใช้คำอังกฤษได้ไม่เกิน 1 คำต่อโพสต์ (ไม่นับชื่อคน/สถาบัน/ตัวย่อตัวเลขอย่าง CPI, NFP).
   เขียนเป็นไทยแทน เช่น hawkish → "สายเข้ม", dovish → "สายผ่อนคลาย", yields → "ยีลด์",
   safe-haven → "สินทรัพย์ปลอดภัย".
+- วลีสำเร็จรูปที่ทำให้โพสต์อ่านเหมือนบอท (นับจาก 61 โพสต์จริงของแบรนด์) ใช้ได้รวมไม่เกิน 2 วลีต่อโพสต์:
+  "ในระยะสั้น", "ในจังหวะนี้", "ในทิศนี้/ทิศทางนี้", "ได้แรงหนุน/มีแรงหนุน", "เผชิญแรงกด/รับแรงกด",
+  "ทางอ้อม", "ส่งสัญญาณ", "เปิดทาง/เปิดช่อง/เปิดโอกาส", "ซึ่งเป็นปัจจัย…", "อย่างมีนัยสำคัญ",
+  "…แบบนี้". แทนที่ด้วยข้อเท็จจริง เช่น อ้างสิ่งที่คนพูดจริงแทน "ส่งสัญญาณ", บอกส่วนต่างตัวเลข
+  แทน "อย่างมีนัยสำคัญ". ทุกประโยคต้องเพิ่มข้อมูลใหม่ ประโยคปิดที่แค่ย้ำทิศทาง ("ทองมีแรงกด") ให้ตัดทิ้ง.
 """
+
+# Thai stock phrases from docs/THAI-AI-TELLS.md (2026-10-13, 61 live posts).
+# Counted per post for the POSTED log line so the next review can see whether
+# the prompt rule above is holding; not a hard gate.
+THAI_TELLS: list[tuple[str, re.Pattern]] = [
+    ("ระยะสั้น", re.compile(r"ระยะสั้น|กรอบสั้น")),
+    ("ในจังหวะนี้", re.compile(r"ในจังหวะนี้|ในช่วงนี้|ในตอนนี้")),
+    ("ทิศนี้", re.compile(r"ทิศทางนี้|ในทิศนี้")),
+    ("แรงหนุน", re.compile(r"(ได้|มี|รับ)แรงหนุน")),
+    ("แรงกด", re.compile(r"(เผชิญ|รับ|เป็น)แรงกด")),
+    ("ทางอ้อม", re.compile(r"ทางอ้อม")),
+    ("ส่งสัญญาณ", re.compile(r"ส่งสัญญาณ")),
+    ("เปิดทาง", re.compile(r"เปิด(ทาง|ช่อง|โอกาส|พื้นที่)")),
+    ("ซึ่งเป็น", re.compile(r"ซึ่งเป็น(ปัจจัย|แรง|สภาพ|บรรยากาศ)")),
+    ("นัยสำคัญ", re.compile(r"อย่างมีนัยสำคัญ")),
+    ("แบบนี้", re.compile(r"(สัญญาณ|ท่าที|ตัวเลข|ถ้อยคำ|ถ้อยแถลง|มุมมอง)[^\n]{0,12}?แบบนี้")),
+    ("อานิสงส์", re.compile(r"อานิสงส์|ได้ประโยชน์")),
+]
+
+
+def thai_tells(text: str) -> list[str]:
+    """Names of the Thai stock phrases present in `text` (hashtag line ignored)."""
+    body = "\n".join(l for l in (text or "").split("\n") if not l.strip().startswith("#"))
+    return [name for name, rx in THAI_TELLS if rx.search(body)]
+
 
 # Added when the item has no Thai detail at all (only a headline reached us —
 # the 2026-10-12 Trump/Iran post invented "at the negotiating table").
