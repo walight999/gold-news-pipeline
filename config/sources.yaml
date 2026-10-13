@@ -128,6 +128,11 @@ squawk:
                               # containment vs one already mirrored today >= this
                               # (FS re-posts the same story in different words). Lower
                               # = more aggressive de-duping.
+  topic_window_hours: 48      # one result post + one preview post per recurring release /
+                              # survey (NFP, CPI, claims, FOMC minutes…) per region in this
+                              # window (2026-10-13: NFP was posted 5x in 4 days)
+  gold_tail_max_ratio: 0.5    # once this share of today's posts closed on "…ทอง", the
+                              # composer is asked to end the next one on what markets watch
   # Released-number tweets (src/x_release.py, 2026-10-11): calendar_check posts
   # the actual vs forecast + spot $ move + typical 15-min range, one tweet per
   # release minute, ~2 min after the print. Facts only, NO gold direction call

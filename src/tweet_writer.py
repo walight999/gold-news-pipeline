@@ -197,6 +197,31 @@ EXTRA RULES (this post goes out automatically, nobody reviews it):
   "ผลต่อทองมีแต่ไม่ใช่ปัจจัยหลัก" หรือความหมายเดียวกัน) ห้ามเขียนโพสต์ ให้ตอบ {"tweet": "SKIP"} แทน.
   แบรนด์โพสต์เฉพาะข่าวที่ขยับทองได้จริง. ข่าวธนาคารกลางอื่น (BoJ/BoE/ECB/BoC) ที่ไม่กระทบดอลลาร์
   หรือ yields สหรัฐฯ ชัดเจน มักเข้าข่ายนี้.
+- แยก "สิ่งที่เกิดแล้ว" กับ "สิ่งที่อาจเกิด" ให้ชัด. ถ้า NEWS CONTEXT บอกแค่ว่า "อาจ" หนุน/กด
+  ค่าเงิน ยีลด์ หรือทอง ห้ามเขียนเหมือนเกิดขึ้นแล้ว (ห้าม "GBP แข็งขึ้น ดอลลาร์อ่อนตัว"
+  ถ้าข่าวไม่ได้รายงานราคาที่ขยับจริง) ให้ใช้ "อาจ" / "ถ้า...จะ" / "ตลาดจับตาว่า".
+- ห้ามเติมข้อมูลที่ไม่มีใน NEWS CONTEXT: ห้ามใส่ "ต่ำ/สูงกว่าที่คาด" ถ้าไม่มีตัวเลขคาดการณ์,
+  ห้ามใส่บริบทเพิ่ม (เช่น "กลางโต๊ะเจรจา"), ห้ามเอาการตีความของผู้เขียนข่าวไปใส่ปากคนพูด.
+  บอกตำแหน่งให้ถูก (เช่น "อดีตประธาน Fed").
+- ไม่จำเป็นต้องจบทุกโพสต์ด้วยผลต่อทอง และห้ามใช้สูตร "ข่าว → สัญญาณ hawkish/dovish → ดอลลาร์ →
+  ทองระยะสั้น" เป็นแบบตายตัว. บางโพสต์จบที่ตัวเลข หรือสิ่งที่ตลาดจะจับตาต่อก็พอ.
+- ใช้คำอังกฤษได้ไม่เกิน 1 คำต่อโพสต์ (ไม่นับชื่อคน/สถาบัน/ตัวย่อตัวเลขอย่าง CPI, NFP).
+  เขียนเป็นไทยแทน เช่น hawkish → "สายเข้ม", dovish → "สายผ่อนคลาย", yields → "ยีลด์",
+  safe-haven → "สินทรัพย์ปลอดภัย".
+"""
+
+# Added when the item has no Thai detail at all (only a headline reached us —
+# the 2026-10-12 Trump/Iran post invented "at the negotiating table").
+_TITLE_ONLY_RULE = """
+- ข่าวนี้มีแค่หัวข่าว ไม่มีรายละเอียด: เขียนเฉพาะสิ่งที่หัวข่าวบอก ห้ามเติมบริบท สาเหตุ หรือตัวเลขใดๆ.
+  ห้ามตีความว่าคำพูดนี้ "บ่งว่า/สะท้อนว่า" อะไร. เขียนแค่ใครพูดหรือทำอะไร (ระบุให้ชัดว่าพูดถึงประเทศไหน)
+  แล้วจบด้วยประเด็นที่ตลาดจะจับตา 1 ประโยคก็พอ.
+"""
+
+# Added when most of today's posts already closed on a gold clause.
+_VARY_ENDING_RULE = """
+- โพสต์วันนี้ส่วนใหญ่จบด้วยผลต่อทองไปแล้ว โพสต์นี้ให้จบที่ข้อเท็จจริง หรือสิ่งที่ตลาดจะจับตาต่อ
+  ไม่ต้องสรุปผลต่อทองในประโยคสุดท้าย.
 """
 
 
@@ -204,7 +229,8 @@ def compose_tweet(*, headline_th: str | None, body_th: list[str] | None,
                   impact_th: str | None, category: str | None,
                   en_title: str | None, en_summary: str | None,
                   model: str = DEFAULT_MODEL, autopost: bool = False,
-                  avoid_closings: list[str] | None = None) -> str | None:
+                  avoid_closings: list[str] | None = None,
+                  vary_ending: bool = False) -> str | None:
     """Return a @tradetongkam-voice Thai tweet, or None if Claude is unavailable
     or the call fails (caller falls back to the simple template).
 
@@ -229,8 +255,12 @@ def compose_tweet(*, headline_th: str | None, body_th: list[str] | None,
     )
     if autopost:
         avoid = "\n".join(f"  · {c}" for c in (avoid_closings or [])[:8]) or "  · (none yet)"
-        prompt = prompt.replace("\nNEWS CONTEXT:", _AUTOPOST_RULES.replace("{AVOID}", avoid)
-                                + "\nNEWS CONTEXT:")
+        rules = _AUTOPOST_RULES.replace("{AVOID}", avoid)
+        if not body.strip():
+            rules += _TITLE_ONLY_RULE
+        if vary_ending:
+            rules += _VARY_ENDING_RULE
+        prompt = prompt.replace("\nNEWS CONTEXT:", rules + "\nNEWS CONTEXT:")
     for attempt in range(2):
         try:
             resp = client.messages.create(
@@ -238,10 +268,15 @@ def compose_tweet(*, headline_th: str | None, body_th: list[str] | None,
                 max_tokens=400,
                 messages=[{"role": "user", "content": prompt}],
             )
-            d = _extract_json(resp.content[0].text)
+            raw = resp.content[0].text or ""
+            d = _extract_json(raw)
             tweet = (d or {}).get("tweet") if isinstance(d, dict) else None
+            if not tweet and autopost and raw.strip().strip('"{}').upper().startswith(SKIP):
+                # A bare SKIP without the JSON wrapper (2026-10-12 BoE Mann
+                # "no tweet field") is still a skip, not a failure.
+                return SKIP
             if not tweet:
-                raise ValueError("no tweet field in Claude output")
+                raise ValueError(f"no tweet field in Claude output: {raw[:120]!r}")
             if autopost and str(tweet).strip().upper() == SKIP:
                 return SKIP
             if autopost and is_weak_link(str(tweet)):
