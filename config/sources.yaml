@@ -200,6 +200,15 @@ squawk:
 # validate ONCE with `python -m src.main --mode apify_probe --target truth`
 # (costs one actor call), fix `field_map` if the probe extracts 0, THEN flip
 # enabled: true. Gated by APIFY_TOKEN like everything Apify.
+# Growth phase 2 (2026-10-12): invite X followers into owned channels.
+growth:
+  cta:                          # src/x_cta.py, piggybacks the news cron
+    enabled: true
+    days: [0, 3]                # Mon + Thu (ICT). Link posts cost $0.20 on X.
+    hour_ict: 9
+    until_hour_ict: 21
+    telegram_url: "https://t.me/FinisitNews_bot?start=x"
+    signup_url: ""              # Gold Week Ahead signup page; set once it's live
 truth_social:
   enabled: false  # 2026-09-27 OFF (Apify budget): parsebird bills $0.017 PER CALL
                   # even when empty, 1 call/handle → 1,499 calls = $24.16 = 83% of the
