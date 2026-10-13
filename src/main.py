@@ -2259,7 +2259,8 @@ async def run_scorecard() -> int:
         "accuracy_pct": round(card["accuracy_pct"], 1),
         "sum_up_usd": card["sum_up_usd"], "sum_down_usd": card["sum_down_usd"],
     })
-    rolling = scorecard.rolling_accuracy(store.all_rows("scorecard_daily"), days=7)
+    sc_rows = store.all_rows("scorecard_daily")
+    rolling = scorecard.rolling_accuracy_detail(sc_rows, days=7, as_of=for_date)
 
     target = _private_target()
     if not target:
@@ -2270,7 +2271,7 @@ async def run_scorecard() -> int:
         return 0
 
     short_date = f"{for_date.day}/{for_date.month}/{for_date.year % 100}"
-    bubble = scorecard_bubble(card, short_date, rolling_pct=rolling)
+    bubble = scorecard_bubble(card, short_date, rolling=rolling)
     alt = f"🎯 ความแม่นยำ {short_date}: ถูก {card['n_correct']}/{card['n_graded']}"
     line = LineClient.from_env()
     ok, reason = quota_allows(store, PRIORITY_CORE)
@@ -2292,17 +2293,28 @@ async def run_scorecard() -> int:
     # Surface the rolling accuracy publicly: push to the free news bot, which shows it
     # on the weekly track-record card (T0-1 — the strongest free->paid credibility line).
     # Best-effort + env-gated; never affects the scorecard run.
+    # Gated: only a sample big enough to mean something AND a rate worth
+    # advertising goes public (scorecard.public_accuracy_ok).
     tg_news = telegram_news.TelegramNewsClient.from_env(store=store)
     if tg_news:
-        detail = scorecard.rolling_accuracy_detail(store.all_rows("scorecard_daily"), days=30)
-        if detail:
+        detail = scorecard.rolling_accuracy_detail(sc_rows, days=30, as_of=for_date)
+        publish, why = scorecard.public_accuracy_ok(
+            detail,
+            min_calls=int(sc_cfg.get("public_min_calls", scorecard.DEFAULT_PUBLIC_MIN_CALLS)),
+            min_accuracy=float(sc_cfg.get("public_min_accuracy",
+                                          scorecard.DEFAULT_PUBLIC_MIN_ACCURACY)))
+        if not publish:
+            log.info("scorecard public accuracy withheld: %s", why)
+        else:
             try:
                 tg_news.post_accuracy(detail)
             except Exception as e:  # noqa: BLE001
                 log.warning("scorecard news-bot push failed: %s", e)
 
     store.flush()
-    log.info("scorecard %s done: %s | rolling7d=%s", date_key, card.get("n_graded"), rolling)
+    log.info("scorecard %s done: %s graded | last 7 calendar days=%s", date_key,
+             card.get("n_graded"),
+             f"{rolling['correct']}/{rolling['total']}" if rolling else "no calls")
     return 0
 
 

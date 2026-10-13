@@ -5,10 +5,13 @@ flat band, daily aggregation (counts, $ sums, miss ordering, pending), and the
 7-day rolling accuracy. No I/O — main.run_scorecard wires these to the store."""
 from __future__ import annotations
 
+from datetime import date
+
 from src.scorecard import (
     build_scorecard,
     grade,
     gradeability,
+    public_accuracy_ok,
     rolling_accuracy,
     rolling_accuracy_detail,
     verdict_to_dir,
@@ -188,3 +191,42 @@ def test_rolling_accuracy_detail_shape():
 def test_rolling_accuracy_detail_none_when_no_history():
     assert rolling_accuracy_detail([]) is None
     assert rolling_accuracy_detail([{"date_ict": "2026-06-26", "n_correct": 0, "n_graded": 0}]) is None
+
+
+def test_rolling_window_is_calendar_days_not_last_n_graded_rows():
+    # Regression (2026-10): quiet days must age old calls out. The old code took
+    # the last 7 rows that graded anything, so calls from weeks back stayed in a
+    # "7-day" number that never moved.
+    hist = [
+        {"date_ict": "2026-09-15", "n_correct": 0, "n_graded": 10},
+        {"date_ict": "2026-10-06", "n_correct": 0, "n_graded": 0},
+        {"date_ict": "2026-10-08", "n_correct": 2, "n_graded": 3},
+    ]
+    d = rolling_accuracy_detail(hist, days=7, as_of=date(2026, 10, 9))
+    assert d == {"accuracy": round(2 / 3, 4), "correct": 2, "total": 3, "days": 7}
+    # nothing graded inside the window -> None, even with older history
+    assert rolling_accuracy(hist, days=7, as_of=date(2026, 10, 30)) is None
+
+
+def test_rolling_window_edges_inclusive_and_bad_dates_skipped():
+    hist = [
+        {"date_ict": "2026-10-03", "n_correct": 1, "n_graded": 1},   # 7th day back: in
+        {"date_ict": "2026-10-02", "n_correct": 0, "n_graded": 5},   # 8th: out
+        {"date_ict": "", "n_correct": 0, "n_graded": 9},             # undated: ignored
+        {"date_ict": "garbage", "n_correct": 0, "n_graded": 9},
+    ]
+    assert rolling_accuracy(hist, days=7, as_of=date(2026, 10, 9)) == 100.0
+
+
+def test_public_accuracy_gate():
+    ok, _ = public_accuracy_ok({"accuracy": 0.6, "correct": 18, "total": 30, "days": 30})
+    assert ok
+    ok, why = public_accuracy_ok({"accuracy": 0.9, "correct": 9, "total": 10, "days": 30})
+    assert not ok and "sample" in why
+    ok, why = public_accuracy_ok({"accuracy": 0.4545, "correct": 15, "total": 33, "days": 30})
+    assert not ok and "accuracy" in why
+    ok, why = public_accuracy_ok(None)
+    assert not ok
+    # thresholds are configurable
+    assert public_accuracy_ok({"accuracy": 0.5, "correct": 5, "total": 10, "days": 30},
+                              min_calls=10, min_accuracy=0.5)[0]

@@ -22,6 +22,7 @@ Grading model (honest by construction):
 """
 from __future__ import annotations
 
+from datetime import date, timedelta
 from typing import Any
 
 # A move smaller than this (in %) within 15 min is treated as "flat" — the
@@ -214,25 +215,61 @@ def build_scorecard(rows: list[dict[str, Any]], flat_pct: float = DEFAULT_FLAT_P
     }
 
 
-def rolling_accuracy(scorecard_rows: list[dict[str, Any]], days: int = 7) -> float | None:
-    """Average directional accuracy over the most recent `days` scorecard_daily
-    rows that actually graded at least one call. None when there's no history."""
-    usable = [r for r in scorecard_rows if _to_float(r.get("n_graded"))]
-    usable.sort(key=lambda r: r.get("date_ict") or "", reverse=True)
-    window = usable[:days]
-    tot_correct = sum(int(_to_float(r.get("n_correct")) or 0) for r in window)
-    tot_graded = sum(int(_to_float(r.get("n_graded")) or 0) for r in window)
-    if not tot_graded:
-        return None
-    return tot_correct / tot_graded * 100.0
+def _window_rows(scorecard_rows: list[dict[str, Any]], days: int,
+                 as_of: date | None) -> list[dict[str, Any]]:
+    """scorecard_daily rows whose date_ict falls in the `days` CALENDAR days
+    ending at `as_of` (inclusive); `as_of` None → anchor on the newest row.
+
+    Calendar days, not "the last N rows that graded something": a quiet stretch
+    must age old calls out, not freeze them (2026-10: the 1:1 card read "7 วัน"
+    while summing calls from 3+ weeks back)."""
+    dated = []
+    for r in scorecard_rows:
+        try:
+            d = date.fromisoformat(str(r.get("date_ict") or "")[:10])
+        except ValueError:
+            continue
+        dated.append((d, r))
+    if not dated:
+        return []
+    anchor = as_of or max(d for d, _ in dated)
+    lo = anchor - timedelta(days=days - 1)
+    return [r for d, r in dated if lo <= d <= anchor]
 
 
-def rolling_accuracy_detail(scorecard_rows: list[dict[str, Any]], days: int = 30) -> dict[str, Any] | None:
-    """Like rolling_accuracy but returns the full breakdown for the public scorecard
-    push to the free news bot: {rate: 0..1, correct, total, days}. None on no history."""
-    usable = [r for r in scorecard_rows if _to_float(r.get("n_graded"))]
-    usable.sort(key=lambda r: r.get("date_ict") or "", reverse=True)
-    window = usable[:days]
+def rolling_accuracy(scorecard_rows: list[dict[str, Any]], days: int = 7,
+                     as_of: date | None = None) -> float | None:
+    """Percent form of rolling_accuracy_detail (0..100). None on no graded calls."""
+    d = rolling_accuracy_detail(scorecard_rows, days=days, as_of=as_of)
+    return d["accuracy"] * 100.0 if d else None
+
+
+# Public gate defaults (overridable via schedule.yaml::scorecard). The free bot
+# advertises this number as a credibility line — a hit-rate on a handful of
+# calls, or one under a coin flip, does the opposite. Below the gate nothing is
+# published; the worker's cached line ages out on its own (KV TTL ~10d).
+DEFAULT_PUBLIC_MIN_CALLS = 30
+DEFAULT_PUBLIC_MIN_ACCURACY = 0.55
+
+
+def public_accuracy_ok(detail: dict[str, Any] | None,
+                       min_calls: int = DEFAULT_PUBLIC_MIN_CALLS,
+                       min_accuracy: float = DEFAULT_PUBLIC_MIN_ACCURACY) -> tuple[bool, str]:
+    """(publishable, reason): a big-enough sample AND a rate worth advertising."""
+    if not detail:
+        return False, "no graded calls in window"
+    if detail["total"] < min_calls:
+        return False, f"sample {detail['total']} < {min_calls} calls"
+    if detail["accuracy"] < min_accuracy:
+        return False, f"accuracy {detail['accuracy']:.0%} < {min_accuracy:.0%}"
+    return True, "ok"
+
+
+def rolling_accuracy_detail(scorecard_rows: list[dict[str, Any]], days: int = 30,
+                            as_of: date | None = None) -> dict[str, Any] | None:
+    """Call-weighted accuracy over the last `days` calendar days:
+    {accuracy: 0..1, correct, total, days}. None when nothing was graded."""
+    window = _window_rows(scorecard_rows, days, as_of)
     tot_correct = sum(int(_to_float(r.get("n_correct")) or 0) for r in window)
     tot_graded = sum(int(_to_float(r.get("n_graded")) or 0) for r in window)
     if not tot_graded:
