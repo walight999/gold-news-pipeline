@@ -281,10 +281,26 @@ _PLACE_PATCH = [
 def _patch_places(text: str) -> str:
     """Apply the place glossary post-translation. Same rationale as
     `_patch_names` — the Google fallback leaves geographic proper nouns in
-    English; force the canonical Thai form. Idempotent on Thai output."""
+    English; force the canonical Thai form. Idempotent on Thai output.
+    Also applies `_THAI_TERM_PATCH` (wrong-but-real Thai words)."""
     for pat, repl in _PLACE_PATCH:
         text = pat.sub(repl, text)
+    for pat, repl in _THAI_TERM_PATCH:
+        text = pat.sub(repl, text)
     return text
+
+
+# Real Thai words the models keep choosing for the WRONG concept (2026-10-13
+# read of 1,499 sent cards). Unlike garble these are orthographically valid, so
+# no structural check catches them — patch the exact forms instead.
+# - ภูมิศาสตร์ (geography) / ธรณีศาสตร์ (geology) for "geopolitical": 178 cards
+#   (12%), always in "ความเสี่ยงทาง…/ความตึงเครียดทาง…". Physical geography
+#   never appears in gold-news copy, so the blanket swap is safe here.
+# - "minutes" (FOMC/BoJ minutes) rendered as นาที (60 seconds): 7 cards.
+_THAI_TERM_PATCH = [
+    (re.compile(r"(?<!รัฐ)ภูมิศาสตร์|ธรณีศาสตร์"), "ภูมิรัฐศาสตร์"),
+    (re.compile(r"(?:เอกสาร)?นาที(?:การ)?ประชุม"), "รายงานการประชุม"),
+]
 
 
 # Em-dash (U+2014) and horizontal bar (U+2015) are the single top AI-slop tell
