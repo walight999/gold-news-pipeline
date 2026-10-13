@@ -450,6 +450,7 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
     health_target = os.environ.get("LINE_HEALTH_TARGET", "")
 
     xau_now: Any = _UNSET
+    breaking_story_seen: list[str] | None = None   # lazy: titles sent recently
     for d in decisions:
         ev = d.event
         # first_seen must survive across runs. normalize() stamps every item
@@ -488,6 +489,18 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
             # idempotency
             existing = store.get("sent_log", (ev.event_id, d.route.value))
             if existing:
+                continue
+            # Near-identical headline already in the group within the story
+            # window → don't push it again (near-dup only: a NEW remark from
+            # the same speaker can be real breaking news).
+            if breaking_story_seen is None:
+                breaking_story_seen = digest.recent_sent_titles(
+                    store, now_utc(),
+                    float(sched_cfg["digest"].get("story_window_hours", 6)))
+            why = digest.same_story(ev.representative_title, breaking_story_seen, near_only=True)
+            if why:
+                log.info("%s: same story already sent (%s) skipped event_id=%s: %s",
+                         d.route.value, why, ev.event_id, ev.representative_title[:80])
                 continue
             # Classify + rewrite into a structured Thai market alert. Skips
             # the push entirely when the classifier rejects the item
@@ -555,6 +568,7 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
                     "sent_ts": iso_utc(now_utc()),
                     "line_status": resp["status"],
                 })
+                breaking_story_seen.append(ev.representative_title)
                 try:
                     if d.route.value in draft_routes:
                         social_records.append(social_feed.record_news_event(
@@ -717,6 +731,10 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
             # `content:` marker only guards ACROSS rounds (it's written after the
             # push), so same-round dups need this in-memory guard.
             seen_sigs: set[str] = set()
+            # Story dedup: vs what the group already got in the last few hours,
+            # and vs cards already picked this round (digest.same_story).
+            story_h = float(sched_cfg["digest"].get("story_window_hours", 6))
+            story_seen = digest.recent_sent_titles(store, now_utc(), story_h)
             from .utils_time import parse_iso as _parse_iso
             for row in candidates:
                 if len(cards) >= max_cards:
@@ -729,6 +747,11 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
                     continue
                 if sig:
                     seen_sigs.add(sig)
+                why = digest.same_story(title, story_seen)
+                if why:
+                    log.info("digest: same story already sent (%s) skipped event_id=%s: %s",
+                             why, row.get("event_id"), title[:80])
+                    continue
                 summary = str(row.get("summary") or "")
                 src_list = [s for s in str(row.get("source_list") or "").split(",") if s]
                 first_seen = _parse_iso(row.get("first_seen_ts"))
@@ -757,6 +780,7 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
                 if a.should_send and not a.is_fallback and relevant:
                     cards.append(card)
                     kept_rows.append(row)
+                    story_seen.append(title)
                 elif a.should_send and a.is_fallback and relevant and allow_fallback:
                     # Hold for degraded mode — published only if no real card
                     # survives the whole round (see below).

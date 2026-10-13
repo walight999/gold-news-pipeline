@@ -23,6 +23,11 @@ digest:
   max_cards: 4
   max_events: 12    # classify pool ceiling: rank window candidates by score,
                     # classify down the list until max_cards keepers are found.
+  # Story dedup (2026-10-13, 12% of sent cards repeated a story): skip a digest
+  # candidate that repeats a news card sent in the last N hours (near-identical
+  # headline, or shared name + word overlap — digest.same_story). Breaking /
+  # alert use the same window but only the near-identical rule.
+  story_window_hours: 6
   # Topic buckets that never enter the digest pool (2026-08-13). Measured over
   # the live sheet: `other` was 1611 of 3366 stored events and 560 of the 1326
   # digest-eligible rows (42% of the pool) — and across 342 digest sends, ZERO
