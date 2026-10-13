@@ -22,7 +22,7 @@ RSS (16 sources) + Apify X (7 accounts) + ForexFactory
 normalize → dedup.cluster → scorer.score → router.decide
         │
         ├─► LINE: breaking / alert / digest(=newsupdate) / eod_recap / health
-        │     news_alert.classify_and_rewrite (Claude Haiku → Thai), line_flex, line_client
+        │     news_alert.classify_and_rewrite (Claude Sonnet 5 → Thai), line_flex, line_client
         │     → LINE_NEWS_TARGET = "U160…(1:1),C7b49469…(group 'News Update')"
         │     ⚠ Routing since 2026-07-18 (main._group_targets / _private_target):
         │       news cards (breaking/alert/digest/calendar/weekly) → group C… ONLY;
@@ -174,7 +174,7 @@ with no 15m bar show as ⏳ pending, not wrong.
   FinancialJuice's own RSS (`financialjuice` source, free, browser UA, org
   x_financialjuice) keeps squawk headlines + speech quotes flowing when
   Apify is out.
-- `news_alert.py` — Claude Haiku classify + Thai rewrite for LINE. **Do not
+- `news_alert.py` — Claude Sonnet 5 classify + Thai rewrite for LINE. **Do not
   repurpose for social** — keep LINE and social independent. Also owns
   `explain_calendar_release()` — short Thai "what this print means for gold"
   for Released-News cards (Claude Haiku → Gemini → None, cached in
@@ -293,12 +293,20 @@ the 2026-07-18 silent-week incident. Env-gated no-op until both are set. May
 reuse @FinisitNews_bot's token; the chat_id must be the operator's PRIVATE DM,
 not the public subscriber group. Wired into news_cron / event_mode / watchdog.
 
-**Classifier provider chain** (`news_alert.classify_and_rewrite`): Claude Haiku
-(primary) → **Gemini `gemini-2.0-flash`** (secondary, `GEMINI_API_KEY`, free tier,
-same prompt+JSON contract) → literal Google-Translate fallback (`category="Other"`,
-never cached). The Gemini tier exists so an Anthropic outage / monthly spend cap
-no longer drops card quality — it just switches model. Optional `GEMINI_MODEL`
-overrides the model id.
+**Classifier provider chain** (`news_alert.classify_and_rewrite`): Claude
+**Sonnet 5** on BOTH routes since 2026-10-14 (`CLAUDE_CLASSIFY_MODEL` /
+`CLAUDE_BREAKING_MODEL` override; thinking disabled, `CLAUDE_CLASSIFY_THINKING=low`
+for adaptive-low) → **Gemini `GEMINI_DEFAULT_MODEL` = `gemini-3.6-flash`**
+(secondary, `GEMINI_API_KEY`; `gemini-2.0-flash` was shut down 2026-06-01, so the
+tier was dead until this change) → literal Google-Translate fallback
+(`category="Other"`, never cached). The ~5.9K-token static rules block (everything
+above `INPUT:` in `_SYSTEM_PROMPT`) is sent as a **cached system block** — keep
+per-call `{placeholders}` BELOW `INPUT:` or caching breaks. Monthly brake is in
+**dollars**: `CLASSIFIER_MONTHLY_USD_CAP` (default $40, tracked as
+`month_cost_usd` on `_classifier_health`); the token cap only applies when
+`CLASSIFIER_MONTHLY_TOKEN_CAP` is set. After any model/provider change run the
+**`llm-probe`** workflow (`--mode llm_probe`): one fixed headline per provider,
+logs model/tokens/$, red if a provider fails.
 ⚠️ `LINE_CHANNEL_TOKEN` was pasted in chat 2026-06-11 — rotation pending.
 
 ## Cost model (~ a few $/month)
@@ -309,7 +317,7 @@ overrides the model id.
   `schedule:` block. If `gh run list` shows only `schedule` events and morning
   (22:00-06:00 UTC) coverage drops, the external dispatcher is dead — see
   **`docs/DISPATCHER-CRON.md`** (setup + the 2026-06-23 GAS-dispatcher outage).
-- Claude Haiku (rewrite + tweet voice): ~$1-3/mo.
+- Claude classifier (Sonnet 5 + cached prompt): ~$0.006/item ≈ $11-15/mo at Oct-2026 volume (measured with `llm_probe`).
 - Apify X scraper (kaitoeasyapi): ~$0.18/1k tweets, min-interval guard → ~$2-10/mo
   of the $30 budget.
 - X API posting (pay-per-use since 2026-02): **$0.015/post WITHOUT a link**,

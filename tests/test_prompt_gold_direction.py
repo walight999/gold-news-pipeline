@@ -31,7 +31,11 @@ def test_today_is_injected(monkeypatch):
     monkeypatch.setattr(ut, "now_ict", lambda: fixed)
     p = _build_prompt("Fed's Waller speaks", "", "x", "1.0")
     assert "TODAY: 2026-10-13" in p
-    assert "TODAY is 2026-10-13" in p
+    # the date lives only in the per-item INPUT block (the rules block above it
+    # is the cached static prefix and must not change day to day)
+    from src.news_alert import _prompt_parts
+    static, user = _prompt_parts("Fed's Waller speaks", "", "x", "1.0")
+    assert "TODAY: 2026-10-13" in user and "2026-10-13" not in static
     for ph in ("{today}", "{title}", "{summary}", "{source_id}", "{age_hours}"):
         assert ph not in p
 

@@ -90,6 +90,39 @@ def _persisted_first_seen(store, ev):
     return best
 
 
+_PROBE_TITLE = "Fed's Waller: more rate hikes may be needed if inflation stays sticky"
+
+
+def run_llm_probe() -> int:
+    """Classify one fixed headline on every configured provider, bypassing the
+    cache and store, and log model / JSON-ok / tokens / $ (manual check after a
+    model change — llm_probe.yml). Claude runs twice: the 2nd call should be far
+    cheaper if prompt caching is hitting. Non-zero exit if a configured provider
+    fails, so the Actions run goes red."""
+    failed = []
+    probes = [("claude-digest", lambda: news_alert._classify_claude_with_usage(
+                   _PROBE_TITLE, "", "probe", "0.5")),
+              ("claude-digest(2nd, cached)", lambda: news_alert._classify_claude_with_usage(
+                   _PROBE_TITLE, "", "probe", "0.5")),
+              ("claude-breaking", lambda: news_alert._classify_claude_with_usage(
+                   _PROBE_TITLE, "", "probe", "0.5", high_quality=True))]
+    if os.environ.get("GEMINI_API_KEY", "").strip():
+        probes.append(("gemini", lambda: news_alert._classify_gemini_with_usage(
+            _PROBE_TITLE, "", "probe", "0.5")))
+    else:
+        log.info("llm_probe: GEMINI_API_KEY unset — gemini skipped")
+    for name, fn in probes:
+        alert, tin, tout = fn()
+        if alert is None:
+            log.error("llm_probe %-26s FAILED (no parseable result)", name)
+            failed.append(name)
+            continue
+        log.info("llm_probe %-26s ok model=%s action=%s bias=%s tokens=%d/%d cost=$%.5f | %s | %s",
+                 name, alert.model, alert.action, alert.gold_bias, tin, tout, alert.cost_usd,
+                 alert.headline_th, alert.impact_th)
+    return 1 if failed else 0
+
+
 def _card_flags(alert, *parts: str) -> str:
     """content_log.flags for a card: pipeline markers + which model wrote it."""
     model = getattr(alert, "model", "") or ""
@@ -3652,7 +3685,7 @@ def main(argv: list[str] | None = None) -> int:
         "watchdog", "social_post", "social_seed", "daily_brief", "fb_post",
         "video_brief", "reel_post", "artwork", "tweet_post", "backfill_xau",
         "precision_report", "scorecard", "macro", "content_review", "apify_probe",
-        "weekly_report", "squawk_mirror",
+        "weekly_report", "squawk_mirror", "llm_probe",
     ), default="cron")
     p.add_argument("--event-duration-min", type=int, default=30)
     p.add_argument("--event-sleep-sec", type=int, default=60)
@@ -3661,6 +3694,8 @@ def main(argv: list[str] | None = None) -> int:
     args = p.parse_args(argv)
     if args.mode == "apify_probe":
         return run_apify_probe(args.target)
+    if args.mode == "llm_probe":
+        return run_llm_probe()
     if args.mode == "event":
         return asyncio.run(run_event_mode(args.event_duration_min, args.event_sleep_sec))
     if args.mode == "calendar_daily":

@@ -1,0 +1,24 @@
+name: llm-probe
+# Manual check after a model / provider change: classifies one fixed headline on
+# Claude (digest + breaking defaults) and Gemini, logs model, tokens and $ cost.
+# Sends nothing to LINE and touches no state.
+on:
+  workflow_dispatch: {}
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      GEMINI_API_KEY:    ${{ secrets.GEMINI_API_KEY }}
+      PYTHONUNBUFFERED:  "1"
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: python -m src.main --mode llm_probe

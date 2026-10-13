@@ -70,6 +70,9 @@ class MarketAlert:
     # content_log.flags — the 2026-10-13 quality read could not tell which
     # model produced the worst cards.
     model: str = ""
+    # Transient (NOT serialized): $ this result cost (classify + any repair),
+    # fed to the monthly $ brake. 0 for cache hits / fallback / unpriced models.
+    cost_usd: float = 0.0
     # Transient (NOT serialized): grammar-QC issue labels found on this rewrite,
     # for logging + content_log visibility. Empty after a successful repair. The
     # cached copy is the post-repair text, so cache hits need no flags.
@@ -136,6 +139,56 @@ def _norm_conf(v) -> str:
 
 
 _REJECTED_NO_TITLE = MarketAlert(action="reject", reason="empty title")
+
+# Secondary provider. gemini-2.0-flash was shut down 2026-06-01 (Google
+# deprecations page) — every call since then errored and the chain silently fell
+# to the literal Google-Translate path. gemini-3.6-flash is Google's listed
+# replacement. Verify with `--mode llm_probe` after changing it.
+GEMINI_DEFAULT_MODEL = "gemini-3.6-flash"
+
+
+# $ per 1M tokens (input, output), Anthropic first-party rates. Cache writes
+# (5-min TTL) bill at 1.25x input, cache reads at 0.1x. Prefix-matched so a
+# dated id ("claude-haiku-4-5-20251001") resolves. Unknown model → $0 and a
+# warning, so a new model never silently disables the brake's arithmetic.
+_PRICES_PER_MTOK = {
+    "claude-haiku-4-5": (1.0, 5.0),
+    "claude-sonnet-4-6": (3.0, 15.0),
+    "claude-sonnet-5": (2.0, 10.0),
+    "claude-opus-5": (5.0, 25.0),
+}
+
+
+def claude_cost_usd(model: str, usage) -> float:
+    """Dollar cost of one Messages API response from its `usage`."""
+    price = next((v for k, v in _PRICES_PER_MTOK.items() if (model or "").startswith(k)), None)
+    if price is None:
+        log.warning("no price for model %s — cost counted as $0", model)
+        return 0.0
+    p_in, p_out = price
+    g = lambda f: int(getattr(usage, f, 0) or 0)  # noqa: E731
+    return (g("input_tokens") * p_in + g("cache_creation_input_tokens") * p_in * 1.25
+            + g("cache_read_input_tokens") * p_in * 0.1 + g("output_tokens") * p_out) / 1e6
+
+
+# Models that run adaptive thinking when `thinking` is omitted (Sonnet 5,
+# Opus 5…). The classifier is a short JSON rewrite: CLAUDE_CLASSIFY_THINKING
+# "off" (default) disables it; "low" = adaptive at effort low (more output
+# tokens). Older models (Haiku 4.5, Sonnet 4.6) don't think by default → no kwargs.
+_THINKS_BY_DEFAULT = ("claude-sonnet-5", "claude-opus-5")
+
+
+def _claude_thinking_kwargs(model: str) -> dict:
+    if not (model or "").startswith(_THINKS_BY_DEFAULT):
+        return {}
+    if os.environ.get("CLAUDE_CLASSIFY_THINKING", "off").strip().lower() == "low":
+        return {"thinking": {"type": "adaptive"}, "output_config": {"effort": "low"}}
+    return {"thinking": {"type": "disabled"}}
+
+
+def _response_text(resp) -> str:
+    """Concatenated text blocks (a thinking block may come first)."""
+    return "".join(getattr(b, "text", "") for b in resp.content if getattr(b, "type", "") == "text")
 
 
 def _has_cjk_in_alert(alert: MarketAlert) -> bool:
@@ -244,7 +297,7 @@ Gold is priced in US dollars. Every impact chain must obey these signs:
 - Minor geopolitics (local clash, routine statement, talks continuing) is NOT a gold driver —
   don't paste a generic "หนุน safe-haven" line onto it; say the effect is limited.
 
-DATES & FACTS: TODAY is {today} (ICT). Use only years/months that appear in the source or follow
+DATES & FACTS: TODAY (ICT date) is given in the INPUT block. Use only years/months that appear in the source or follow
 from TODAY ("next year" = the year after TODAY's year). NEVER write an older year (e.g. 2024/2025)
 unless the source says it. A scheduled release that has not happened yet is "ตลาดรอ…", never a result.
 Keep the country right: a UK/EU/Japan story stays UK/EU/Japan — never "สหรัฐฯ".
@@ -490,32 +543,43 @@ def reset_cache_stats() -> None:
         _RUN_STATS[k] = 0
 
 
-def _month_tokens_over_cap(store: "Store | None") -> bool:
-    """True when this month's classifier token spend has crossed the hard cap —
-    the caller then skips Claude and drops to Gemini (free) / literal fallback.
+def _month_spend_over_cap(store: "Store | None") -> bool:
+    """True when this month's classifier spend has crossed a hard cap — the
+    caller then skips Claude and drops to Gemini / literal fallback.
 
-    This is the only in-repo brake on LLM spend (the Anthropic console cap is
-    external and may not be set). Override or disable via the
-    CLASSIFIER_MONTHLY_TOKEN_CAP env var; 0 disables. Default ~8M tokens keeps
-    the classifier a few $/mo even during a noisy news week. The counter resets
-    on month rollover, so the brake self-releases."""
+    The only in-repo brake on classifier LLM spend. Since 2026-10-14 it is a
+    DOLLAR cap (CLASSIFIER_MONTHLY_USD_CAP, default $40; 0 disables): with prompt
+    caching a token count no longer tracks cost (a cached read is 0.1x), and the
+    old 8M-token default was on pace to trip ~Oct 26 and push the last days of
+    every month onto the fallback. A token cap still applies when
+    CLASSIFIER_MONTHLY_TOKEN_CAP is set explicitly. Self-releases on month
+    rollover."""
     if store is None:
         return False
     try:
-        cap = int(os.environ.get("CLASSIFIER_MONTHLY_TOKEN_CAP", "8000000"))
-    except ValueError:
-        cap = 8_000_000
-    if cap <= 0:
-        return False
-    try:
         c = get_classifier_counters(store, source_id=None)
-        total = int(c.get("month_tokens_in", 0)) + int(c.get("month_tokens_out", 0))
     except Exception:  # noqa: BLE001 — the brake must never crash classification
         return False
-    if total >= cap:
-        log.warning("classifier monthly token cap reached (%d >= %d) — skipping "
-                    "Claude, using Gemini/fallback until month rolls over", total, cap)
+    try:
+        usd_cap = float(os.environ.get("CLASSIFIER_MONTHLY_USD_CAP", "40"))
+    except ValueError:
+        usd_cap = 40.0
+    spent = float(c.get("month_cost_usd", 0) or 0)
+    if usd_cap > 0 and spent >= usd_cap:
+        log.warning("classifier monthly $ cap reached ($%.2f >= $%.2f) — skipping "
+                    "Claude, using Gemini/fallback until month rolls over", spent, usd_cap)
         return True
+    tok_env = os.environ.get("CLASSIFIER_MONTHLY_TOKEN_CAP", "").strip()
+    if tok_env:
+        try:
+            tok_cap = int(tok_env)
+        except ValueError:
+            tok_cap = 0
+        total = int(c.get("month_tokens_in", 0)) + int(c.get("month_tokens_out", 0))
+        if tok_cap > 0 and total >= tok_cap:
+            log.warning("classifier monthly token cap reached (%d >= %d) — skipping "
+                        "Claude, using Gemini/fallback until month rolls over", total, tok_cap)
+            return True
     return False
 
 
@@ -561,7 +625,7 @@ def _repair_grammar_llm(alert: "MarketAlert", issues: list[str]) -> "MarketAlert
     client = _get_anthropic_client()
     if not client:
         return None
-    model = os.environ.get("GRAMMAR_REPAIR_MODEL", "claude-sonnet-4-6").strip()
+    model = os.environ.get("GRAMMAR_REPAIR_MODEL", "claude-sonnet-5").strip()
     prompt = (_GRAMMAR_REPAIR_PROMPT
               .replace("{issues}", ", ".join(issues) or "awkward Thai")
               .replace("{headline}", alert.headline_th or "")
@@ -572,9 +636,12 @@ def _repair_grammar_llm(alert: "MarketAlert", issues: list[str]) -> "MarketAlert
         if _gap < _MIN_CLAUDE_GAP_S:
             _t.sleep(_MIN_CLAUDE_GAP_S - _gap)
         _LAST_CLAUDE_CALL[0] = _t.time()
-        resp = client.messages.create(model=model, max_tokens=900,
-                                      messages=[{"role": "user", "content": prompt}])
-        d = _parse_json_lenient(resp.content[0].text)
+        extra = _claude_thinking_kwargs(model)
+        resp = client.messages.create(model=model,
+                                      max_tokens=2000 if "output_config" in extra else 900,
+                                      messages=[{"role": "user", "content": prompt}], **extra)
+        d = _parse_json_lenient(_response_text(resp))
+        repair_cost = claude_cost_usd(model, getattr(resp, "usage", None))
     except Exception as e:  # noqa: BLE001 — best-effort; keep original on any failure
         log.warning("grammar repair failed: %s", e)
         return None
@@ -596,7 +663,8 @@ def _repair_grammar_llm(alert: "MarketAlert", issues: list[str]) -> "MarketAlert
         tone=alert.tone, category=alert.category,
         headline_th=headline, body_th=body, impact_th=impact,
         gold_bias=alert.gold_bias, gold_confidence=alert.gold_confidence,
-        reason=alert.reason, model=f"{alert.model}+repair:{model}")
+        reason=alert.reason, model=f"{alert.model}+repair:{model}",
+        cost_usd=alert.cost_usd + repair_cost)
 
 
 def _apply_grammar_qc(alert: "MarketAlert") -> "MarketAlert":
@@ -624,7 +692,8 @@ def _apply_grammar_qc(alert: "MarketAlert") -> "MarketAlert":
     # policy as the CJK guard): a card with "ดовish" in it reads as broken.
     if "foreign_script" in out.grammar_flags:
         log.warning("foreign script survived repair — rejecting '%s'", (out.headline_th or "")[:70])
-        return MarketAlert(action="reject", reason="foreign-script-in-rewrite")
+        return MarketAlert(action="reject", reason="foreign-script-in-rewrite",
+                           model=out.model, cost_usd=out.cost_usd)
     return out
 
 
@@ -689,7 +758,7 @@ def classify_and_rewrite(
     # Claude entirely and drop to Gemini (free) → fallback. There is NO other
     # in-repo gate on LLM spend, so a noisy news week could otherwise run unbounded.
     result, tin, tout = (None, 0, 0)
-    if not _month_tokens_over_cap(store):
+    if not _month_spend_over_cap(store):
         result, tin, tout = _classify_claude_with_usage(
             title, summary or "", source_id, age_h_str, high_quality=high_quality)
     if result is None:
@@ -719,7 +788,7 @@ def classify_and_rewrite(
     _record_classifier_outcome(store, source_id, result,
                                 used_fallback=used_fallback, cache_hit=False,
                                 tokens_in=tin, tokens_out=tout,
-                                high_quality=high_quality)
+                                high_quality=high_quality, cost_usd=result.cost_usd)
     return result
 
 
@@ -732,6 +801,7 @@ def _record_classifier_outcome(
     tokens_in: int = 0,
     tokens_out: int = 0,
     high_quality: bool = False,
+    cost_usd: float = 0.0,
 ) -> None:
     """Increment classifier counters with a 24h rolling window so
     degradation alerts trigger on RECENT failure rate, not a months-old
@@ -800,6 +870,12 @@ def _record_classifier_outcome(
                 blob["month_tokens_out"] = 0
                 blob["month_hq_tokens_in"] = 0
                 blob["month_hq_tokens_out"] = 0
+                blob["month_cost_usd"] = 0.0
+                blob["month_hq_cost_usd"] = 0.0
+            blob["month_cost_usd"] = round(float(blob.get("month_cost_usd", 0) or 0) + cost_usd, 6)
+            if high_quality:
+                blob["month_hq_cost_usd"] = round(
+                    float(blob.get("month_hq_cost_usd", 0) or 0) + cost_usd, 6)
             blob["month_tokens_in"] = int(blob.get("month_tokens_in", 0)) + tokens_in
             blob["month_tokens_out"] = int(blob.get("month_tokens_out", 0)) + tokens_out
             if high_quality:
@@ -854,6 +930,7 @@ def get_classifier_counters(store, source_id: str | None = None) -> dict[str, in
         totals["month"] = blob.get("month", "")
         totals["month_tokens_in"] = int(blob.get("month_tokens_in", 0))
         totals["month_tokens_out"] = int(blob.get("month_tokens_out", 0))
+        totals["month_cost_usd"] = float(blob.get("month_cost_usd", 0) or 0)
     return totals
 
 
@@ -922,14 +999,32 @@ def _parse_json_lenient(text: str) -> dict | None:
         return None
 
 
+# The prompt splits at "INPUT:" into a STATIC part (rules, glossary, examples —
+# ~5.9K tokens, identical on every call) and the per-item INPUT block. Claude
+# gets the static part as a cached system block (prompt caching: cache reads
+# bill at 0.1x), so it must contain NO per-call value — keep {placeholders}
+# below the INPUT: line.
+_PROMPT_SPLIT = "INPUT:"
+
+
+def _prompt_parts(title: str, summary: str, source_id: str, age_h: str) -> tuple[str, str]:
+    """(static rules, rendered per-item input) — see _PROMPT_SPLIT."""
+    static, tail = _SYSTEM_PROMPT.split(_PROMPT_SPLIT, 1)
+    return static.rstrip(), _render_input(_PROMPT_SPLIT + tail, title, summary, source_id, age_h)
+
+
 def _build_prompt(title: str, summary: str, source_id: str, age_h: str) -> str:
-    """Render the shared classify+rewrite prompt. Used by every LLM
-    provider so Claude and Gemini produce identically-shaped JSON."""
+    """Render the shared classify+rewrite prompt as ONE string (Gemini and
+    tests). Claude uses _prompt_parts so the static part can be cached."""
+    return _render_input(_SYSTEM_PROMPT, title, summary, source_id, age_h)
+
+
+def _render_input(template: str, title: str, summary: str, source_id: str, age_h: str) -> str:
     # Avoid str.format() because the JSON schema in the prompt has many
     # unescaped braces — use .replace() for the placeholders.
     from .utils_time import now_ict
     return (
-        _SYSTEM_PROMPT
+        template
         .replace("{source_id}", source_id or "unknown")
         .replace("{age_hours}", age_h)
         .replace("{today}", now_ict().strftime("%Y-%m-%d"))
@@ -1000,7 +1095,7 @@ def _classify_gemini_with_usage(
     and JSON contract as Claude so card quality is preserved, instead of
     dropping to the literal Google-Translate fallback.
 
-    Gated by GEMINI_API_KEY. Calls the free `gemini-2.0-flash` model via
+    Gated by GEMINI_API_KEY. Calls GEMINI_DEFAULT_MODEL (override GEMINI_MODEL) via
     the REST endpoint (httpx — no extra SDK dependency). Returns
     (alert, input_tokens, output_tokens); tokens come from usageMetadata.
     Any failure returns (None, 0, 0) so the caller falls through."""
@@ -1009,7 +1104,7 @@ def _classify_gemini_with_usage(
     api_key = os.environ.get("GEMINI_API_KEY", "").strip()
     if not api_key:
         return None, 0, 0
-    model = os.environ.get("GEMINI_MODEL", "gemini-2.0-flash").strip()
+    model = os.environ.get("GEMINI_MODEL", GEMINI_DEFAULT_MODEL).strip()
     prompt = _build_prompt(title, summary, source_id, age_h)
     url = (
         f"https://generativelanguage.googleapis.com/v1beta/models/"
@@ -1019,7 +1114,9 @@ def _classify_gemini_with_usage(
         "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {
             "temperature": 0.2,
-            "maxOutputTokens": 900,
+            # Gemini 2.5+ count thinking inside maxOutputTokens — 900 (sized for
+            # 2.0 Flash) could truncate the JSON on a thinking model.
+            "maxOutputTokens": 4096,
             "responseMimeType": "application/json",
         },
     }
@@ -1089,10 +1186,15 @@ def _classify_claude_with_usage(
     # of what the reader sees) → Haiku by default, but overridable via
     # CLAUDE_CLASSIFY_MODEL so grammar quality can be lifted to Sonnet without a
     # code change when Haiku's Thai reads too stiff (2026-09-10 quality report).
-    model = (os.environ.get("CLAUDE_BREAKING_MODEL", "claude-sonnet-4-6").strip()
+    # 2026-10-14: both routes default to Sonnet 5 ($2/$10, cheaper than the old
+    # Sonnet 4.6 breaking model). The 2026-10-13 read of 1,499 cards scored
+    # digest/Haiku 3.04/5 vs breaking/Sonnet 3.95; with the ~5.9K-token static
+    # prompt cached, Sonnet 5 on every route costs less than Haiku+Sonnet 4.6 did.
+    model = (os.environ.get("CLAUDE_BREAKING_MODEL", "claude-sonnet-5").strip()
              if high_quality
-             else os.environ.get("CLAUDE_CLASSIFY_MODEL", "claude-haiku-4-5-20251001").strip())
-    prompt = _build_prompt(title, summary, source_id, age_h)
+             else os.environ.get("CLAUDE_CLASSIFY_MODEL", "claude-sonnet-5").strip())
+    static, user = _prompt_parts(title, summary, source_id, age_h)
+    extra = _claude_thinking_kwargs(model)
     last_exc: Exception | None = None
     for attempt in range(4):
         try:
@@ -1106,18 +1208,26 @@ def _classify_claude_with_usage(
             _LAST_CLAUDE_CALL[0] = _t.time()
             resp = client.messages.create(
                 model=model,
-                max_tokens=900,
-                messages=[{"role": "user", "content": prompt}],
+                max_tokens=2000 if "output_config" in extra else 900,
+                # Static rules as a cached system block (reads bill at 0.1x);
+                # the per-item INPUT goes in the user turn.
+                system=[{"type": "text", "text": static,
+                         "cache_control": {"type": "ephemeral"}}],
+                messages=[{"role": "user", "content": user}],
+                **extra,
             )
-            text = resp.content[0].text
+            text = _response_text(resp)
             alert = _alert_from_text(text)
             if alert is None:
                 raise ValueError(f"unparseable JSON from Claude: {text[:200]}...")
             alert.model = model
-            # Token usage — Anthropic SDK exposes it on resp.usage
+            # Token usage — input counts cached + uncached prompt tokens so the
+            # volume metrics stay comparable; $ cost prices each kind properly.
             usage = getattr(resp, "usage", None)
-            tin = int(getattr(usage, "input_tokens", 0) or 0)
+            tin = sum(int(getattr(usage, f, 0) or 0) for f in (
+                "input_tokens", "cache_creation_input_tokens", "cache_read_input_tokens"))
             tout = int(getattr(usage, "output_tokens", 0) or 0)
+            alert.cost_usd = claude_cost_usd(model, usage)
             return alert, tin, tout
         except Exception as e:
             last_exc = e
@@ -1387,12 +1497,12 @@ def _cal_explain_llm(prompt: str) -> str | None:
     api_key = os.environ.get("GEMINI_API_KEY", "").strip()
     if api_key:
         import httpx
-        model = os.environ.get("GEMINI_MODEL", "gemini-2.0-flash").strip()
+        model = os.environ.get("GEMINI_MODEL", GEMINI_DEFAULT_MODEL).strip()
         url = (f"https://generativelanguage.googleapis.com/v1beta/models/"
                f"{model}:generateContent")
         body = {
             "contents": [{"parts": [{"text": prompt}]}],
-            "generationConfig": {"temperature": 0.2, "maxOutputTokens": 600,
+            "generationConfig": {"temperature": 0.2, "maxOutputTokens": 2048,
                                  "responseMimeType": "application/json"},
         }
         try:
