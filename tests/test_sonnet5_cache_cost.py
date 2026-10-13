@@ -118,3 +118,22 @@ def test_gemini_default_is_not_the_retired_model():
     import inspect
     src = inspect.getsource(na)
     assert '"gemini-2.0-flash").strip()' not in src
+
+
+def test_gemini_error_reason_masks_ids():
+    class _R:
+        status_code = 402
+        text = ""
+
+        def json(self):
+            return {"error": {"code": 402, "status": "FAILED_PRECONDITION",
+                              "message": "Billing is disabled for project 123456789012."}}
+    assert na._gemini_error_reason(_R()) == "FAILED_PRECONDITION: Billing is disabled for project <n>."
+
+    class _Bad:
+        status_code = 402
+        text = "not json"
+
+        def json(self):
+            raise ValueError
+    assert na._gemini_error_reason(_Bad()) == "not json"
