@@ -240,6 +240,16 @@ def minute_call_line_th(prints: list[tuple[str, str, str, str]]) -> str | None:
     return "🎯 สัญญาณรวมผ่านเกณฑ์: " + " · ".join(parts)
 
 
+def minute_gated_xau_call(prints: list[tuple[str, str, str, str]]) -> tuple[str, str] | None:
+    """The 🎯 gold call the card showed for this minute WITH the horizon it was
+    made for: ("bull"|"bear", "5m"/"15m"/…), or None. minute_calls sorts XAU
+    first, shortest horizon first — the same cell minute_call_line_th prints."""
+    for c in minute_calls(prints):
+        if c["asset"] == "XAU":
+            return ("bull" if c["dir"] > 0 else "bear", f"{c['h']}m")
+    return None
+
+
 def minute_gated_xau(prints: list[tuple[str, str, str, str]]) -> str | None:
     """The 🎯 gold call the card showed for this minute ("bull"/"bear"), or
     None when no XAU cell cleared its gate."""

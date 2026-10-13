@@ -60,7 +60,8 @@ def _to_float(v: Any) -> float | None:
     return f
 
 
-def collapse_minutes(rows: list[dict[str, Any]], minute_dir=None) -> list[dict[str, Any]]:
+def collapse_minutes(rows: list[dict[str, Any]], minute_dir=None,
+                     gated_call=None) -> list[dict[str, Any]]:
     """Grade releases that print in the SAME minute as one call.
 
     The tape answers the minute, not each line: on 2026-09-30 ADP/Core PCE/GDP
@@ -69,8 +70,14 @@ def collapse_minutes(rows: list[dict[str, Any]], minute_dir=None) -> list[dict[s
     minute becomes ONE row graded on what the card SHOWED: `minute_dir(group)`
     = the gated 🎯 gold call ("bull"/"bear"/None); without one, the common
     direction of the individual pills if they all agree, else neutral (the
-    card made no call → not graded). Speech rows and singleton minutes pass
-    through unchanged."""
+    card made no call → not graded). Speech rows pass through unchanged.
+
+    `gated_call(group)` → ("bull"|"bear", window) | None is the 🎯 call with
+    the horizon it was made for (release_stats.minute_gated_xau_call). It is
+    checked for EVERY minute, singletons included, and wins: that row is graded
+    on `window` (e.g. "5m") instead of the scorecard default and tagged
+    call_kind="gated". Everything else is call_kind="rule" (the hand-rule pill)
+    on the default window — so the two are measured on their own horizons."""
     groups: dict[str, list[dict[str, Any]]] = {}
     out: list[dict[str, Any]] = []
     for r in rows:
@@ -79,6 +86,15 @@ def collapse_minutes(rows: list[dict[str, Any]], minute_dir=None) -> list[dict[s
             continue
         groups.setdefault(str(r.get("first_seen_ts") or "")[:16], []).append(r)
     for _, g in sorted(groups.items()):
+        gc = gated_call(g) if gated_call else None
+        if gc and gc[0] in ("bull", "bear"):
+            rep = dict(g[0])
+            rep["predicted_dir"], rep["grade_window"] = gc
+            rep["call_kind"] = "gated"
+            if len(g) > 1:
+                rep["title"] = " + ".join(str(x.get("title") or "") for x in g)[:300]
+            out.append(rep)
+            continue
         if len(g) == 1:
             out.append(g[0])
             continue
@@ -148,6 +164,7 @@ def build_scorecard(rows: list[dict[str, Any]], flat_pct: float = DEFAULT_FLAT_P
     `window` selects which `xau_return_<window>` column drives grading (5m/15m/
     30m/60m). Default 15m. A longer window develops larger moves so fewer calls
     fall in the flat band — see `gradeability` for the measured trade-off.
+    A row carrying `grade_window` (🎯 gated calls) is graded on that instead.
 
     `rows` should already be filtered to the target day. Each row is expected to
     carry `predicted_dir`, `xau_return_<window>`, and (ideally) `xau_base_price`
@@ -162,12 +179,14 @@ def build_scorecard(rows: list[dict[str, Any]], flat_pct: float = DEFAULT_FLAT_P
     sum_down_usd = 0.0
     misses: list[dict[str, Any]] = []
 
-    ret_col = f"xau_return_{window}"
+    n_gated_correct = n_gated_wrong = 0
     for r in rows:
         pdir = (r.get("predicted_dir") or "").strip()
         if pdir not in ("bull", "bear", "neutral"):
             continue
-        r15 = _to_float(r.get(ret_col))
+        # A 🎯 gated call is graded on the horizon it was made for (collapse_minutes).
+        gated = r.get("call_kind") == "gated"
+        r15 = _to_float(r.get(f"xau_return_{r.get('grade_window') or window}"))
         if r15 is None:
             # Directional call we made but can't grade yet (no price bar).
             if pdir in ("bull", "bear"):
@@ -184,8 +203,10 @@ def build_scorecard(rows: list[dict[str, Any]], flat_pct: float = DEFAULT_FLAT_P
         g = grade(pdir, r15, flat_pct)
         if g == "correct":
             n_correct += 1
+            n_gated_correct += gated
         elif g == "wrong":
             n_wrong += 1
+            n_gated_wrong += gated
             misses.append({
                 "title": r.get("title") or r.get("topic_bucket") or "(event)",
                 "country": r.get("country") or "",
@@ -193,6 +214,7 @@ def build_scorecard(rows: list[dict[str, Any]], flat_pct: float = DEFAULT_FLAT_P
                 "predicted_verdict_th": r.get("predicted_verdict_th") or "",
                 "r15_pct": r15,
                 "usd_move": usd_move,
+                "window": r.get("grade_window") or window,
             })
         else:
             n_flat += 1
@@ -209,6 +231,9 @@ def build_scorecard(rows: list[dict[str, Any]], flat_pct: float = DEFAULT_FLAT_P
         "n_pending": n_pending,
         "n_graded": n_graded,
         "accuracy_pct": accuracy_pct,
+        # 🎯 gated subset (graded at its own horizon); rule = total − gated.
+        "n_gated_correct": n_gated_correct,
+        "n_gated_graded": n_gated_correct + n_gated_wrong,
         "sum_up_usd": round(sum_up_usd, 2),
         "sum_down_usd": round(sum_down_usd, 2),
         "misses": misses,

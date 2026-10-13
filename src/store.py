@@ -181,6 +181,9 @@ SCHEMAS: dict[str, list[str]] = {
     "scorecard_daily": [
         "date_ict", "n_correct", "n_wrong", "n_flat", "n_pending", "n_graded",
         "accuracy_pct", "sum_up_usd", "sum_down_usd", "updated_at",
+        # 🎯 gated-call subset (graded at its own horizon). APPENDED after
+        # updated_at so existing rows keep their columns.
+        "n_gated_correct", "n_gated_graded",
     ],
     # One row per ICT day — what the channel actually DELIVERED, rolled up from
     # sent_log by maintain before its 30-day purge drops the detail. sent_log is

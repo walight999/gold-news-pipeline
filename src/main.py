@@ -2244,10 +2244,12 @@ async def run_scorecard() -> int:
              {w: f"{d['graded']}g/{d['flat']}f/{d['pending']}p" for w, d in grad.items()})
 
     # One grade per release minute (see scorecard.collapse_minutes).
-    from .release_stats import minute_gated_xau
+    # The 🎯 gated call is graded on its own horizon (gate = 5m); hand-rule pills
+    # stay on sc_window — see scorecard.collapse_minutes.
+    from .release_stats import minute_gated_xau_call
     todays = scorecard.collapse_minutes(
-        todays, lambda g: minute_gated_xau([(x.get("country"), x.get("title"), x.get("actual"),
-                                             x.get("forecast")) for x in g]))
+        todays, gated_call=lambda g: minute_gated_xau_call(
+            [(x.get("country"), x.get("title"), x.get("actual"), x.get("forecast")) for x in g]))
     card = scorecard.build_scorecard(todays, flat_pct=flat_pct, window=sc_window)
 
     # Persist the daily aggregate (source of truth for the rolling trend).
@@ -2258,6 +2260,7 @@ async def run_scorecard() -> int:
         "n_graded": card["n_graded"],
         "accuracy_pct": round(card["accuracy_pct"], 1),
         "sum_up_usd": card["sum_up_usd"], "sum_down_usd": card["sum_down_usd"],
+        "n_gated_correct": card["n_gated_correct"], "n_gated_graded": card["n_gated_graded"],
     })
     sc_rows = store.all_rows("scorecard_daily")
     rolling = scorecard.rolling_accuracy_detail(sc_rows, days=7, as_of=for_date)
