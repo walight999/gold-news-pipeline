@@ -137,6 +137,66 @@ def collect_window_events(
     return [r for _, _, r in out[:max_candidates]]
 
 
+# Story-level dedup for LINE (2026-10-13 read of 1,499 sent cards: 12% repeated
+# a story already in the group — Kashkari x6, Hammack x6, NFP x5 — under
+# different wording, which content_sig can't see). Reuses the X autopost's
+# token-containment + proper-noun helpers. Measured against the agents' labels:
+# near-dup alone ~91% precise; a shared name alone only ~20% (Trump/Iran span
+# unrelated stories), so a shared name also needs ≥STORY_JACCARD word overlap.
+STORY_JACCARD = 0.2
+_WORD_RE = re.compile(r"[a-z]+")
+
+
+def _words(t: str) -> set[str]:
+    return {w for w in _WORD_RE.findall((t or "").lower()) if len(w) > 3}
+
+
+def same_story(title: str, others: list[str], near_only: bool = False) -> str | None:
+    """Why `title` repeats one of `others` ("near-dup" / "story:<names>"), or
+    None. `near_only` (breaking/alert) skips the name rule — a fresh remark
+    from the same speaker can be real news there."""
+    from .squawk_mirror import _is_near_dup, _story_keys
+    if not title:
+        return None
+    if _is_near_dup(title, others, 0.7):
+        return "near-dup"
+    if near_only:
+        return None
+    keys, words = _story_keys(title), _words(title)
+    if not keys:
+        return None
+    for o in others:
+        shared = keys & _story_keys(o)
+        if not shared:
+            continue
+        ow = _words(o)
+        if words and ow and len(words & ow) / len(words | ow) >= STORY_JACCARD:
+            return "story:" + ",".join(sorted(shared))
+    return None
+
+
+def recent_sent_titles(store: Store, now: "datetime", hours: float) -> list[str]:
+    """English titles of news events delivered to the group (breaking / alert /
+    digest) in the last `hours`. sent_log has the ids, event_state the titles."""
+    from datetime import timedelta
+
+    from .utils_time import parse_iso
+    cutoff = now - timedelta(hours=hours)
+    ids = set()
+    for r in store.all_rows("sent_log"):
+        if str(r.get("route_type")) not in ("breaking", "alert", "digest"):
+            continue
+        ts = parse_iso(r.get("sent_ts"))
+        if ts is not None and ts >= cutoff:
+            ids.add(str(r.get("event_id") or ""))
+    titles = []
+    for eid in ids:
+        row = store.get("event_state", (eid,))
+        if row and str(row.get("title") or "").strip():
+            titles.append(str(row["title"]))
+    return titles
+
+
 def mark_sent(store: Store, slot: str, line_status: int) -> None:
     from .utils_time import iso_utc, now_utc
     key = digest_sent_key(slot)
