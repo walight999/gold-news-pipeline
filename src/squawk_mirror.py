@@ -387,6 +387,74 @@ def _story_keys(title: str) -> set[str]:
     return keys
 
 
+# Topic-level dedup across days (2026-10-13 review of 61 posts): one release
+# keeps generating headlines for days — NFP was posted 5x in 4 days (data,
+# bank notes, "gold holds gains", "NFP misses…", UOB), with two different
+# "missed by" figures 80 min apart; FOMC minutes had 4 previews in 24 h. The
+# story keys above can't see this (no shared proper noun). A recurring US/foreign
+# release or survey gets ONE result post and ONE preview post per
+# `topic_window_hours`; the release itself (x_release `rel:` rows) counts too.
+_TOPICS = [
+    ("claims", re.compile(r"jobless claims|unemployment claims|initial claims|continuing claims", re.I)),
+    ("jobs", re.compile(r"\bnfp\b|non-?farm|payrolls?|labou?r market|jobs (?:data|report|increased|growth)|unemployment rate|employment change", re.I)),
+    ("infl_exp", re.compile(r"expected inflation|inflation expectations?|inflation outlook|one-year outlook|1-year .*inflation", re.I)),
+    ("cpi", re.compile(r"\bcpi\b|consumer price|\bhicp\b", re.I)),
+    ("pce", re.compile(r"\bpce\b", re.I)),
+    ("ppi", re.compile(r"\bppi\b|producer price", re.I)),
+    ("minutes", re.compile(r"\bminutes\b", re.I)),
+    ("ism", re.compile(r"\bism\b", re.I)),
+    ("gdp", re.compile(r"\bgdp\b", re.I)),
+    ("retail", re.compile(r"retail sales", re.I)),
+]
+_REGIONS = [
+    # US first: "Australian Dollar … meets Fed minutes" is about the Fed.
+    ("US", re.compile(r"\bfed\b|\bfomc\b|\bu\.?s\.?\b|united states|american|\bnfp\b|non-?farm"
+                      r"|payrolls|\bism\b|\bpce\b|jolts|jobless claims", re.I)),
+    ("EU", re.compile(r"euro ?zone|euro area|\becb\b|german|france|french|italy|spain|harmoni[sz]ed", re.I)),
+    ("UK", re.compile(r"\buk\b|brit|\bboe\b|england", re.I)),
+    ("JP", re.compile(r"japan|\bboj\b|tokyo", re.I)),
+    ("AU", re.compile(r"australia|\brba\b", re.I)),
+    ("CA", re.compile(r"canad|\bboc\b", re.I)),
+    ("CN", re.compile(r"china|chinese|\bpboc\b", re.I)),
+    ("IN", re.compile(r"india|\brbi\b", re.I)),
+    ("CH", re.compile(r"swiss|switzerland|\bsnb\b", re.I)),
+    ("NZ", re.compile(r"new zealand|\brbnz\b", re.I)),
+]
+_PREVIEW_RE = re.compile(r"\b(ahead of|looms?|in focus|awaits?|eyes|to offer|preview|before)\b", re.I)
+
+
+def _topic_keys(title: str) -> set[str]:
+    """{"topic:<region>:<release>[:preview]"} for a recurring release/survey
+    headline; empty for anything else. Region defaults to US."""
+    t = title or ""
+    topic = next((name for name, rx in _TOPICS if rx.search(t)), None)
+    if not topic:
+        return set()
+    region = next((r for r, rx in _REGIONS if rx.search(t)), "US")
+    kind = ":preview" if _PREVIEW_RE.search(t) else ""
+    return {f"topic:{region}:{topic}{kind}"}
+
+
+_FIGURE_RE = re.compile(r"\d+(?:\.\d+)?\s?%|\d+(?:\.\d+)?\s?[kK]\b|\d{1,3}(?:,\d{3})+")
+
+
+def _figures(title: str) -> set[str]:
+    """Data figures in a headline ("4.7%", "197K", "29,000") — a same-topic
+    headline with a figure not posted before is NEW data, not a rehash."""
+    return {f.replace(" ", "").lower() for f in _FIGURE_RE.findall(title or "")}
+
+
+_GOLD_TAIL_RE = re.compile(r"ทอง")
+
+
+def _ends_on_gold(tweet: str) -> bool:
+    """Body (hashtag line dropped) closes on a gold-implication clause."""
+    lines = (tweet or "").strip().split("\n")
+    while lines and lines[-1].strip().startswith("#"):
+        lines.pop()
+    return bool(_GOLD_TAIL_RE.search("\n".join(lines)[-40:]))
+
+
 def _closing(tweet: str) -> str:
     """The last ~45 chars of a posted tweet's body (hashtag line dropped) — fed
     back to the composer so it stops reusing the same closing phrase."""
@@ -416,6 +484,8 @@ def mirror_events(store, candidates: list[dict[str, Any]],
     model = str(cfg.get("model") or os.environ.get("SQUAWK_MODEL") or DEFAULT_COMPOSE_MODEL)
     dup_threshold = float(cfg.get("dup_similarity", 0.7))
     story_window = timedelta(hours=float(cfg.get("story_window_hours", 3)))
+    topic_window = timedelta(hours=float(cfg.get("topic_window_hours", 48)))
+    gold_tail_max = float(cfg.get("gold_tail_max_ratio", 0.5))
 
     now = now or now_utc()
     sessions = cfg.get("sessions") or DEFAULT_SESSIONS
@@ -432,18 +502,29 @@ def mirror_events(store, candidates: list[dict[str, Any]],
     hour_count = _posted_since(rows, now - timedelta(hours=1))
     recent_texts = []
     recent_keys: set[str] = set()
+    recent_topics: set[str] = set()
+    topic_figs: dict[str, set[str]] = {}  # figures already posted per topic
     closings: list[str] = []
+    today_tails: list[bool] = []          # did today's posts close on gold?
     for r in rows:
         ts = parse_iso(str(r.get("ts_utc") or ""))
         if ts is not None and ts >= day_start:
             recent_texts.append(str(r.get("fs_text") or ""))
+            if str(r.get("posted") or "").strip() and str(r.get("tweet_text") or "").strip():
+                today_tails.append(_ends_on_gold(str(r.get("tweet_text"))))
         if ts is not None and ts >= now - story_window:
             recent_keys |= _story_keys(str(r.get("fs_text") or ""))
+        if (ts is not None and ts >= now - topic_window
+                and str(r.get("posted") or "").strip()):
+            fs = str(r.get("fs_text") or "")
+            for k in _topic_keys(fs):
+                recent_topics.add(k)
+                topic_figs.setdefault(k, set()).update(_figures(fs))
         if str(r.get("tweet_text") or "").strip():
             closings.append(_closing(str(r.get("tweet_text"))))
     closings = closings[-8:]
 
-    posted = n_dup = n_neardup = n_story = n_weak = n_fail = 0
+    posted = n_dup = n_neardup = n_story = n_topic = n_weak = n_fail = 0
     for c in candidates:
         if today_count + posted >= cap_day:
             log.info("x_autopost: daily cap %d reached", cap_day)
@@ -470,11 +551,23 @@ def mirror_events(store, candidates: list[dict[str, Any]],
             log.info("x_autopost: same story within %s (%s): %s", story_window,
                      ",".join(sorted(keys & recent_keys)), text[:80])
             continue
+        topics = _topic_keys(text)
+        figs = _figures(text)
+        fresh = bool(figs) and all(not figs <= topic_figs.get(k, set()) for k in topics & recent_topics)
+        if topics & recent_topics and not fresh:
+            n_topic += 1
+            log.info("x_autopost: same topic within %s (%s): %s", topic_window,
+                     ",".join(sorted(topics & recent_topics)), text[:80])
+            continue
+        # Most of today's posts already closed on "…→ ทอง": ask this one to end
+        # on what the market watches instead (the 2026-10-13 review: 48/61
+        # posts closed on gold, reading as a template).
+        vary = len(today_tails) >= 2 and sum(today_tails) / len(today_tails) >= gold_tail_max
         try:
             tweet = composer(headline_th=c.get("headline_th"), body_th=c.get("body_th"),
                              impact_th=c.get("impact_th"), category=c.get("category"),
                              en_title=text, en_summary=None, model=model,
-                             autopost=True, avoid_closings=closings)
+                             autopost=True, avoid_closings=closings, vary_ending=vary)
         except Exception:  # noqa: BLE001
             log.exception("x_autopost: compose failed event=%s", c.get("event_id"))
             tweet = None
@@ -498,6 +591,10 @@ def mirror_events(store, candidates: list[dict[str, Any]],
         seen.add(fid)
         recent_texts.append(text)
         recent_keys |= keys
+        recent_topics |= topics
+        for k in topics:
+            topic_figs.setdefault(k, set()).update(figs)
+        today_tails.append(_ends_on_gold(tweet))
         closings = (closings + [_closing(tweet)])[-8:]
         posted += 1
         log.info("x_autopost: POSTED %s | %s", url, " ".join(tweet.split())[:150])
@@ -508,7 +605,8 @@ def mirror_events(store, candidates: list[dict[str, Any]],
         except Exception:  # noqa: BLE001
             log.exception("x_autopost: log append failed (tweet WAS posted: %s)", url)
     log.info("x_autopost: posted %d of %d candidates (day %d/%d, %s %d/%d, hour %d/%d) "
-             "[dup=%d near-dup=%d same-story=%d weak=%d fail=%d]", posted, len(candidates),
-             today_count + posted, cap_day, sess["name"], sess_count + posted, cap_sess,
-             hour_count + posted, cap_hour, n_dup, n_neardup, n_story, n_weak, n_fail)
+             "[dup=%d near-dup=%d same-story=%d same-topic=%d weak=%d fail=%d]", posted,
+             len(candidates), today_count + posted, cap_day, sess["name"], sess_count + posted,
+             cap_sess, hour_count + posted, cap_hour, n_dup, n_neardup, n_story, n_topic,
+             n_weak, n_fail)
     return posted
