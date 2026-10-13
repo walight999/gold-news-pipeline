@@ -2712,6 +2712,9 @@ def _push_calendar_groups(line, target, pending, sched_cfg, store, *,
                 })
                 if c["on_delivered"]:
                     store.upsert("calibration_log", c["on_delivered"])
+                elif c.get("ungraded"):
+                    log.info("calendar card delivered, not graded (%s): %s %s",
+                             c["ungraded"], c["ev"].country, c["ev"].title)
                 delivered += 1
     return delivered
 
@@ -3061,8 +3064,19 @@ async def run_calendar_check() -> int:
                     "surprise": surprise or "",
                     "xau_return_60m": "",
                 }
+            # Why a delivered card leaves nothing for the scorecard — logged on
+            # delivery so "cards went out, 0 graded" is explainable from the run.
+            ungraded = None
+            if not pred_dir:
+                if actual_text is None or actual_value is None:
+                    ungraded = "no actual"
+                elif fred.parse_forecast_value(ev.forecast) is None:
+                    ungraded = "no numeric forecast"
+                else:
+                    ungraded = f"verdict has no gold direction ({(verdict or '')[:40]!r})"
             pending_post.append({"ev": ev, "sent_key": sent_key, "bubble": bubble,
                                  "alt": alt, "on_delivered": cal_row,
+                                 "ungraded": ungraded,
                                  "print": (ev.country, ev.title, actual_text or "",
                                            ev.forecast or ""),
                                  "actual": actual_text, "surprise": surprise,

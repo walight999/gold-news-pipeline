@@ -71,3 +71,26 @@ def test_more_than_12_same_minute_splits(monkeypatch):
     n = _run([_item(str(i), T0) for i in range(14)], line, s, monkeypatch)
     assert n == 14
     assert [len(c["contents"]) if c["type"] == "carousel" else 1 for _, c in line.calls] == [12, 2]
+
+
+def test_delivered_ungraded_card_logs_its_reason(monkeypatch, caplog):
+    # 2026-10-09: two Released cards went out, the scorecard graded 0 rows and
+    # no log said why. A delivered card with no calibration row now names it.
+    line, s = _Line(), _store()
+    ev = SimpleNamespace(dt_utc=T0, country="USD", title="UoM Sentiment")
+    item = {"ev": ev, "sent_key": "u", "bubble": {"type": "bubble"}, "alt": "alt u",
+            "on_delivered": None, "ungraded": "no numeric forecast"}
+    with caplog.at_level("INFO", logger="gold-news"):
+        assert _run([item], line, s, monkeypatch) == 1
+    assert "not graded (no numeric forecast): USD UoM Sentiment" in caplog.text
+    assert not s.all_rows("calibration_log")
+
+
+def test_failed_push_does_not_log_ungraded(monkeypatch, caplog):
+    line, s = _Line(status=429), _store()
+    ev = SimpleNamespace(dt_utc=T0, country="USD", title="X")
+    item = {"ev": ev, "sent_key": "u", "bubble": {"type": "bubble"}, "alt": "a",
+            "on_delivered": None, "ungraded": "no actual"}
+    with caplog.at_level("INFO", logger="gold-news"):
+        _run([item], line, s, monkeypatch)
+    assert "not graded" not in caplog.text
