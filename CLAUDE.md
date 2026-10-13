@@ -58,6 +58,9 @@ throttle on the T-15 window; cron-job.org now drives `calendar_check` every
 - **Never push to `main` directly** — the harness blocks it. Always: branch →
   commit → `gh pr create` → `gh pr merge --squash --delete-branch` → back to main.
 - **Run `python -m pytest tests/ -q` before every commit.** Keep it green.
+- **One session per checkout.** Parallel Claude sessions must each use their
+  own `git worktree` — a shared tree lets `git add -A` sweep another
+  session's WIP into your commit (happened 2026-10-11). Stage by path.
 - End commit messages with `Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>`.
 - Thai test strings: write test files with the Write tool (UTF-8), NOT bash
   heredocs (Windows cp874 mangles Thai).
@@ -336,9 +339,23 @@ posts without an explicit per-row `yes`. Docs: `docs/SOCIAL-FEED.md`.
 digest drafts were the bulk of the tweet_writer waste. Add `"digest"` back to
 the list to restore the firehose.
 
-## State as of 2026-06-11
+## State as of 2026-10-11
 
-All LIVE: news→LINE, FF-prefetch (302-redirect fixed), group delivery, social
-feed + X autopost (PR #1-8), @tradetongkam tweet voice (PR #9), Apify X
-fast-news (PR #10-11). Next: observe real output 1-2 days + tune handles/voice;
-rotate the LINE token.
+Healthy: ~600 consecutive Actions runs with 0 failures (2026-10-09→11);
+cron-job.org dispatch alive (news-cron */5, calendar-check */10);
+release_pinger fires on release days; weekend skip works.
+
+**Inert until secrets are set** (workflows run green but no-op):
+- `fb_post` / `reel_post` — need `FB_PAGE_ID` + `FB_PAGE_TOKEN`.
+- `video_brief` — dry-run only, needs `JSON2VIDEO_KEY` (+ opt `PEXELS_API_KEY`).
+- Ops Telegram alarm (`ops_alert.py`) — needs `OPS_TG_BOT_TOKEN` +
+  `OPS_TG_CHAT_ID`; without it a LINE outage can still swallow its own alarm.
+
+**Open (2026-10-11):** scorecard honesty PRs #172 (calendar-day rolling
+accuracy + public accuracy gate), #173 (log why a delivered Released card left
+no calibration row), #174 (grade the 🎯 gated call at its own 5m horizon),
+#175 (public accuracy = gated calls only; stacked on #172+#174), #176
+(print → Released-card latency in sent_log/delivery_daily/weekly card).
+Live 7-day accuracy was ~45% on ~11 calls when these were opened.
+
+Still pending: rotate `LINE_CHANNEL_TOKEN` (pasted in chat 2026-06-11).
