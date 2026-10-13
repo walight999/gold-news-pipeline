@@ -19,7 +19,7 @@ def test_model_round_trips_through_cache_json():
 
 def test_claude_path_stamps_model(monkeypatch):
     class _Resp:
-        content = [SimpleNamespace(text='{"action": "keep", "headline_th": "h", "body_th": ["b"], "impact_th": "i"}')]
+        content = [SimpleNamespace(type="text", text='{"action": "keep", "headline_th": "h", "body_th": ["b"], "impact_th": "i"}')]
         usage = SimpleNamespace(input_tokens=1, output_tokens=1)
 
     class _Client:
@@ -37,7 +37,7 @@ def test_claude_path_stamps_model(monkeypatch):
 
 def test_repair_appends_repair_model(monkeypatch):
     class _Resp:
-        content = [SimpleNamespace(text='{"headline_th": "fixed", "body_th": ["b"], "impact_th": "i"}')]
+        content = [SimpleNamespace(type="text", text='{"headline_th": "fixed", "body_th": ["b"], "impact_th": "i"}')]
 
     class _Client:
         messages = SimpleNamespace(create=lambda **kw: _Resp())
