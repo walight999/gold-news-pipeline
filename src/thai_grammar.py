@@ -79,6 +79,14 @@ _STUTTER = re.compile(r"((?!อ)[ก-ฮ])\1\1")
 #    space and never match.
 _LATIN_IN_THAI = re.compile(r"[฀-๿][A-Za-z]{2,}[฀-๿]")
 
+# 5. Foreign-script leak — Arabic, Hebrew, Cyrillic, Greek or an Indic script
+#    inside Thai copy ("ลิختเชนสไตน์", "ดовish", "นেตันยาฮู"). The 2026-10-13
+#    read found 18 sent cards with these; the card copy is Thai + English only,
+#    so any such character is corruption. (CJK has its own reject guard.)
+_FOREIGN_SCRIPT = re.compile(
+    r"[Ͱ-ϿЀ-ӿ֐-׿؀-ۿݐ-ݿ"
+    r"ऀ-ॿঀ-৿਀-෿က-႟]")
+
 
 def grammar_warnings(text: str | None) -> list[str]:
     """Return distinct issue labels for `text`, or [] when it reads clean.
@@ -101,7 +109,14 @@ def grammar_warnings(text: str | None) -> list[str]:
         out.append("stutter")
     if _LATIN_IN_THAI.search(text):
         out.append("latin_in_thai")
+    if _FOREIGN_SCRIPT.search(text):
+        out.append("foreign_script")
     return out
+
+
+def has_foreign_script(text: str | None) -> bool:
+    """True when `text` carries a non-Thai, non-Latin script character."""
+    return bool(text and _FOREIGN_SCRIPT.search(text))
 
 
 def alert_grammar_warnings(headline: str | None, body: list[str] | None,

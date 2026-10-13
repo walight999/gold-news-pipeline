@@ -484,6 +484,7 @@ HARD RULES:
 - Keep already-correct English terms (CPI, Fed, FOMC, USD, DXY, hawkish, dovish, safe-haven, yields).
 - Canonical Thai names/places (ทรัมป์, พาวเวลล์, ลาการ์ด, ยูเครน, ช่องแคบฮอร์มุส).
 - NO Chinese/Japanese/Korean characters. NO em-dash. Gregorian years only (2026), never พ.ศ.
+- Thai + English only: NO Arabic / Hebrew / Cyrillic / Greek / Indic letters. If a word has one (e.g. "ดовish", "นেตันยาฮู"), rewrite that whole word correctly ("dovish", "เนทันยาฮู").
 - Fix ONLY grammar/naturalness. Same meaning, same number of body bullets.
 
 Issues detected: {issues}
@@ -566,17 +567,22 @@ def _apply_grammar_qc(alert: "MarketAlert") -> "MarketAlert":
     _RUN_STATS["grammar_flags"] = _RUN_STATS.get("grammar_flags", 0) + 1
     log.warning("grammar QC: [%s] on '%s'", ", ".join(warnings), (alert.headline_th or "")[:70])
     alert.grammar_flags = warnings
-    if not _grammar_repair_enabled():
-        return alert
-    repaired = _repair_grammar_llm(alert, warnings)
-    if repaired is None:
-        return alert
-    remaining = alert_grammar_warnings(repaired.headline_th, repaired.body_th, repaired.impact_th)
-    if len(remaining) < len(warnings):
-        repaired.grammar_flags = remaining
-        log.info("grammar QC: repaired %d→%d warning(s)", len(warnings), len(remaining))
-        return repaired
-    return alert
+    out = alert
+    if _grammar_repair_enabled():
+        repaired = _repair_grammar_llm(alert, warnings)
+        if repaired is not None:
+            remaining = alert_grammar_warnings(repaired.headline_th, repaired.body_th,
+                                               repaired.impact_th)
+            if len(remaining) < len(warnings):
+                repaired.grammar_flags = remaining
+                log.info("grammar QC: repaired %d→%d warning(s)", len(warnings), len(remaining))
+                out = repaired
+    # Foreign-script corruption the repair could not remove never ships (same
+    # policy as the CJK guard): a card with "ดовish" in it reads as broken.
+    if "foreign_script" in out.grammar_flags:
+        log.warning("foreign script survived repair — rejecting '%s'", (out.headline_th or "")[:70])
+        return MarketAlert(action="reject", reason="foreign-script-in-rewrite")
+    return out
 
 
 def classify_and_rewrite(
