@@ -1089,6 +1089,18 @@ def _alert_from_text(text: str) -> MarketAlert | None:
     return alert
 
 
+def _gemini_error_reason(resp) -> str:
+    """`error.status: error.message` from a Gemini error body (≤200 chars,
+    digit runs ≥6 masked), or the raw text head when it isn't JSON."""
+    import re as _re
+    try:
+        err = (resp.json() or {}).get("error") or {}
+        text = f"{err.get('status', '')}: {err.get('message', '')}".strip(": ")
+    except Exception:  # noqa: BLE001 — diagnostics only
+        text = (getattr(resp, "text", "") or "")
+    return _re.sub(r"\d{6,}", "<n>", text)[:200] or "(empty body)"
+
+
 def _classify_gemini_with_usage(
     title: str, summary: str, source_id: str, age_h: str,
 ) -> tuple["MarketAlert | None", int, int]:
@@ -1132,6 +1144,11 @@ def _classify_gemini_with_usage(
                 )
             if resp.status_code == 429 or resp.status_code >= 500:
                 raise RuntimeError(f"gemini transient {resp.status_code}")
+            if resp.status_code >= 400:
+                # Say WHY (2026-10-13: a bare "402 Payment Required" hid whether
+                # it was billing, quota or the model). Logs of this public repo
+                # are public, so long digit runs (project numbers) are masked.
+                log.warning("gemini %s: %s", resp.status_code, _gemini_error_reason(resp))
             resp.raise_for_status()
             data = resp.json()
             cands = data.get("candidates") or []
