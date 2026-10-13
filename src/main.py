@@ -90,6 +90,12 @@ def _persisted_first_seen(store, ev):
     return best
 
 
+def _card_flags(alert, *parts: str) -> str:
+    """content_log.flags for a card: pipeline markers + which model wrote it."""
+    model = getattr(alert, "model", "") or ""
+    return " ".join(p for p in (*parts, f"model={model}" if model else "") if p)
+
+
 def _push_or_skip(line, target, alt, bubble, sched_cfg, label="", bypass_quiet=False,
                    store=None, priority=0):
     """LINE push wrapped in the quota + quiet-hours gates. Returns the response
@@ -585,7 +591,7 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
                         impact_th=alert_obj.impact_th,
                         en_title=ev.representative_title,
                         source=_source_label(ev.source_list),
-                        flags="fallback" if alert_obj.is_fallback else "",
+                        flags=_card_flags(alert_obj, "fallback" if alert_obj.is_fallback else ""),
                     ))
                 except Exception:
                     log.exception("content_log record (sent) failed event=%s", ev.event_id)
@@ -881,7 +887,7 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
                                 impact_th=a.impact_th,
                                 en_title=str(row.get("title") or ""),
                                 source=_source_label(card["source_list"]),
-                                flags="degraded" if card.get("degraded") else "",
+                                flags=_card_flags(a, "degraded" if card.get("degraded") else ""),
                             ))
                         except Exception:
                             log.exception("content_log record (digest) failed event=%s", row.get("event_id"))

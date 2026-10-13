@@ -64,6 +64,12 @@ class MarketAlert:
     gold_confidence: str = ""    # "high" | "medium" | "low" | ""
     reason: str = ""
     is_fallback: bool = False    # True = permissive Google-translate accept (Claude down)
+    # Which model wrote the Thai (e.g. "claude-haiku-4-5-20251001",
+    # "gemini-2.0-flash", "+repair:claude-sonnet-4-6" appended when the grammar
+    # repair rewrote it). Serialized, so a cache hit keeps its origin. Logged to
+    # content_log.flags — the 2026-10-13 quality read could not tell which
+    # model produced the worst cards.
+    model: str = ""
     # Transient (NOT serialized): grammar-QC issue labels found on this rewrite,
     # for logging + content_log visibility. Empty after a successful repair. The
     # cached copy is the post-repair text, so cache hits need no flags.
@@ -87,6 +93,7 @@ class MarketAlert:
             "gold_bias": self.gold_bias,
             "gold_confidence": self.gold_confidence,
             "reason": self.reason,
+            "model": self.model,
         }, ensure_ascii=False)
 
     @classmethod
@@ -108,6 +115,7 @@ class MarketAlert:
                 gold_bias=_norm_bias(d.get("gold_bias")),
                 gold_confidence=_norm_conf(d.get("gold_confidence")),
                 reason=str(d.get("reason") or ""),
+                model=str(d.get("model") or ""),
             )
         except (json.JSONDecodeError, TypeError, ValueError):
             return None
@@ -552,7 +560,7 @@ def _repair_grammar_llm(alert: "MarketAlert", issues: list[str]) -> "MarketAlert
         tone=alert.tone, category=alert.category,
         headline_th=headline, body_th=body, impact_th=impact,
         gold_bias=alert.gold_bias, gold_confidence=alert.gold_confidence,
-        reason=alert.reason)
+        reason=alert.reason, model=f"{alert.model}+repair:{model}")
 
 
 def _apply_grammar_qc(alert: "MarketAlert") -> "MarketAlert":
@@ -993,6 +1001,7 @@ def _classify_gemini_with_usage(
             alert = _alert_from_text(text)
             if alert is None:
                 raise ValueError(f"unparseable JSON from Gemini: {text[:200]}...")
+            alert.model = model
             usage = data.get("usageMetadata") or {}
             tin = int(usage.get("promptTokenCount", 0) or 0)
             tout = int(usage.get("candidatesTokenCount", 0) or 0)
@@ -1061,6 +1070,7 @@ def _classify_claude_with_usage(
             alert = _alert_from_text(text)
             if alert is None:
                 raise ValueError(f"unparseable JSON from Claude: {text[:200]}...")
+            alert.model = model
             # Token usage — Anthropic SDK exposes it on resp.usage
             usage = getattr(resp, "usage", None)
             tin = int(getattr(usage, "input_tokens", 0) or 0)
@@ -1142,6 +1152,7 @@ def _fallback_alert(title: str, summary: str, store: "Store | None" = None) -> M
         impact_th=None,
         reason="claude-unavailable: literal-translation fallback",
         is_fallback=True,
+        model="google-translate-fallback",
     )
 
 
