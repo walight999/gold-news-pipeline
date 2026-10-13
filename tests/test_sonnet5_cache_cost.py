@@ -28,12 +28,12 @@ def test_cost_math_prices_cache_reads_and_writes():
 
 def test_thinking_kwargs(monkeypatch):
     monkeypatch.delenv("CLAUDE_CLASSIFY_THINKING", raising=False)
-    assert na._claude_thinking_kwargs("claude-sonnet-5") == {"thinking": {"type": "disabled"}}
-    assert na._claude_thinking_kwargs("claude-haiku-4-5") == {}
-    assert na._claude_thinking_kwargs("claude-sonnet-4-6") == {}
-    monkeypatch.setenv("CLAUDE_CLASSIFY_THINKING", "low")
     assert na._claude_thinking_kwargs("claude-sonnet-5") == {
         "thinking": {"type": "adaptive"}, "output_config": {"effort": "low"}}
+    assert na._claude_thinking_kwargs("claude-haiku-4-5") == {}
+    assert na._claude_thinking_kwargs("claude-sonnet-4-6") == {}
+    monkeypatch.setenv("CLAUDE_CLASSIFY_THINKING", "off")
+    assert na._claude_thinking_kwargs("claude-sonnet-5") == {"thinking": {"type": "disabled"}}
 
 
 def test_claude_request_caches_static_rules(monkeypatch):
@@ -54,7 +54,8 @@ def test_claude_request_caches_static_rules(monkeypatch):
     monkeypatch.delenv("CLAUDE_CLASSIFY_THINKING", raising=False)
     alert, tin, tout = na._classify_claude_with_usage("Fed's Waller speaks", "", "src", "1.0")
     assert seen["model"] == "claude-sonnet-5"                      # new default
-    assert seen["thinking"] == {"type": "disabled"}
+    assert seen["thinking"] == {"type": "adaptive"}
+    assert seen["output_config"] == {"effort": "low"} and seen["max_tokens"] == 2000
     sysblock = seen["system"][0]
     assert sysblock["cache_control"] == {"type": "ephemeral"}
     assert "GOLD DIRECTION RULES" in sysblock["text"]

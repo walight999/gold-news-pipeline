@@ -172,8 +172,10 @@ def claude_cost_usd(model: str, usage) -> float:
 
 
 # Models that run adaptive thinking when `thinking` is omitted (Sonnet 5,
-# Opus 5…). The classifier is a short JSON rewrite: CLAUDE_CLASSIFY_THINKING
-# "off" (default) disables it; "low" = adaptive at effort low (more output
+# Opus 5…). CLAUDE_CLASSIFY_THINKING "low" (default) = adaptive at effort low;
+# "off" disables thinking. 60-headline A/B (2026-10-14): low read a hawkish
+# "Fed will act to ensure inflation resumes its slowdown" correctly where off
+# called it gold-positive, and cost LESS ($0.0053 vs $0.0056/item — fewer output
 # tokens). Older models (Haiku 4.5, Sonnet 4.6) don't think by default → no kwargs.
 _THINKS_BY_DEFAULT = ("claude-sonnet-5", "claude-opus-5")
 
@@ -181,9 +183,9 @@ _THINKS_BY_DEFAULT = ("claude-sonnet-5", "claude-opus-5")
 def _claude_thinking_kwargs(model: str) -> dict:
     if not (model or "").startswith(_THINKS_BY_DEFAULT):
         return {}
-    if os.environ.get("CLAUDE_CLASSIFY_THINKING", "off").strip().lower() == "low":
-        return {"thinking": {"type": "adaptive"}, "output_config": {"effort": "low"}}
-    return {"thinking": {"type": "disabled"}}
+    if os.environ.get("CLAUDE_CLASSIFY_THINKING", "low").strip().lower() == "off":
+        return {"thinking": {"type": "disabled"}}
+    return {"thinking": {"type": "adaptive"}, "output_config": {"effort": "low"}}
 
 
 def _response_text(resp) -> str:

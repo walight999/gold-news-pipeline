@@ -295,8 +295,9 @@ not the public subscriber group. Wired into news_cron / event_mode / watchdog.
 
 **Classifier provider chain** (`news_alert.classify_and_rewrite`): Claude
 **Sonnet 5** on BOTH routes since 2026-10-14 (`CLAUDE_CLASSIFY_MODEL` /
-`CLAUDE_BREAKING_MODEL` override; thinking disabled, `CLAUDE_CLASSIFY_THINKING=low`
-for adaptive-low) → **Gemini `GEMINI_DEFAULT_MODEL` = `gemini-3.6-flash`**
+`CLAUDE_BREAKING_MODEL` override; adaptive thinking at effort low — beat
+thinking-off on accuracy AND cost in a 60-headline A/B; `CLAUDE_CLASSIFY_THINKING=off`
+disables it) → **Gemini `GEMINI_DEFAULT_MODEL` = `gemini-3.6-flash`**
 (secondary, `GEMINI_API_KEY`; `gemini-2.0-flash` was shut down 2026-06-01, so the
 tier was dead until this change) → literal Google-Translate fallback
 (`category="Other"`, never cached). The ~5.9K-token static rules block (everything
