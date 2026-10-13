@@ -206,12 +206,40 @@ REWRITE CONSTRAINTS — only when action="keep"
 ============================================================
 - headline_th MUST be ≤ 90 Thai characters. Lead with the entity + the result. A reader sees this FIRST and must grasp the story from it alone. No clickbait, no question marks, no mid-thought cut-offs.
 - body_th: 1-2 COMPLETE, self-contained Thai sentences (each ≤ 150 chars). The reader must FULLY UNDERSTAND the story from headline + body WITHOUT opening the link. Each sentence is a whole thought with its figures and context — NOT chopped keyword fragments, NOT a phrase that ends mid-idea. Include the actual numbers (with units / %) when present.
-- impact_th: ONE clear sentence on the XAU/USD/JPY/yields impact. If genuinely unclear: "ผลกระทบต่อทองคำยังไม่ชัดเจน".
+- impact_th: ONE clear sentence on the XAU/USD/JPY/yields impact. If genuinely unclear: "ผลกระทบต่อทองคำยังไม่ชัดเจน". It MUST follow GOLD DIRECTION RULES below.
 - gold_bias: the net direction this news pushes XAU/USD right now — "bullish", "bearish", or "mixed" when the drivers conflict or the effect is unclear. MUST agree with impact_th.
 - gold_confidence: how clear that transmission is — "high" (direct: Fed/CPI/NFP surprise, major escalation), "medium" (indirect or partly priced in), "low" (speculative, second-order). Use "low" rather than overstating.
 - NO restating the exact headline in the body — the body ADDS detail (the numbers, the why, the next thing to watch).
 - NO "ในซื้อขายวันศุกร์" / "ดึงเอียง" / "ผลกระทบของการเดินทาง" / awkward direct translations. Use natural Thai trading desk language.
 - ใช้ตัวย่อไทยมาตรฐานเพื่อประหยัดพื้นที่การ์ด: ประธานาธิบดี→ปธน., นายกรัฐมนตรี→นายกฯ, รัฐมนตรีว่าการกระทรวง→รมว., รัฐมนตรี→รมต., สหรัฐอเมริกา→สหรัฐฯ. ใช้เฉพาะตัวย่อที่ผู้อ่านไทยเข้าใจทันที.
+
+============================================================
+GOLD DIRECTION RULES — impact_th + gold_bias (non-negotiable)
+============================================================
+Gold is priced in US dollars. Every impact chain must obey these signs:
+- USD weaker → gold UP.  USD stronger → gold DOWN.
+- US yields / real yields UP → gold DOWN.  Down → gold UP.
+- Fed hawkish (more/longer hikes) → USD + yields up → gold DOWN. Fed dovish → gold UP.
+- War / escalation / sanctions → safe-haven buying → gold UP. De-escalation / peace deal → gold DOWN.
+- ANOTHER currency stronger (EUR, JPY, GBP, AUD, CHF, CNY…) = USD WEAKER against it
+  → small support for gold. Another currency weaker = USD stronger → small pressure on gold.
+  NEVER write "JPY แข็ง … กดดันทอง", "EUR แข็ง … หนุน USD", or "หนุน JPY และหนุน USD" —
+  those chains are backwards. A hawkish BoJ/ECB/BoE is NOT negative for gold.
+- Non-US data or a non-Fed central bank (UK/EU/Japan/Korea/Nordic PPI, jobs, CPI; BoE/ECB/BoJ/RBA
+  remarks): history shows gold barely reacts. Say so plainly, e.g. "ผลต่อทองจำกัด เพราะเป็นข่าว
+  [ประเทศ] ไม่ใช่สหรัฐฯ", with gold_bias "mixed" and gold_confidence "low" — do NOT invent a
+  USD or safe-haven chain to reach a call. Exception: a big surprise that clearly moves USD/JPY or
+  EUR/USD — then give the small FX-driven call above.
+- ONE direction per impact_th. Never say gold up and gold down in the same line; if drivers
+  conflict, name the stronger one or write "ผลกระทบต่อทองคำยังไม่ชัดเจน".
+- At most ONE hedge word (อาจ). Skip "ทางอ้อม" chains. A plain claim reads better than a hedged one.
+- Minor geopolitics (local clash, routine statement, talks continuing) is NOT a gold driver —
+  don't paste a generic "หนุน safe-haven" line onto it; say the effect is limited.
+
+DATES & FACTS: TODAY is {today} (ICT). Use only years/months that appear in the source or follow
+from TODAY ("next year" = the year after TODAY's year). NEVER write an older year (e.g. 2024/2025)
+unless the source says it. A scheduled release that has not happened yet is "ตลาดรอ…", never a result.
+Keep the country right: a UK/EU/Japan story stays UK/EU/Japan — never "สหรัฐฯ".
 
 CATEGORY ROUTING — pick the most precise category:
 - Central-bank outlook / analyst forecasts of central-bank action → "Central Bank" (NOT "Inflation", even if the article mentions CPI)
@@ -227,7 +255,9 @@ GOOD →
   body_th:
     - "Core CPI ออกมาที่ 1.4% ต่ำกว่าคาด 1.7% และต่ำกว่าก่อนหน้า 1.8%"
     - "เงินเฟ้อที่อ่อนลงลดแรงกดดันต่อ BoJ ในการเร่งขึ้นดอกเบี้ย"
-  impact_th: "กดดัน JPY และอาจหนุน USD ทางอ้อม ซึ่งเป็นลบต่อทองหาก USD แข็งต่อ"
+  impact_th: "ผลต่อทองจำกัด เพราะเป็นข้อมูลญี่ปุ่น เยนอาจอ่อนเล็กน้อยเทียบดอลลาร์"
+  gold_bias: mixed
+  gold_confidence: low
   category: Inflation
   tone: dovish
 
@@ -237,9 +267,11 @@ GOOD →
   body_th:
     - "Core CPI ญี่ปุ่นชะลอลง แต่ ING ยังมองว่า BoJ มีโอกาสขึ้นดอกเบี้ยใน มิ.ย."
     - "ตลาดจะจับตาสัญญาณจาก BoJ ว่าให้น้ำหนัก inflation หรือ wage growth มากกว่า"
-  impact_th: "หากตลาดเพิ่มคาดการณ์ BoJ hawkish อาจหนุน JPY และกด USD ทางอ้อม"
+  impact_th: "ถ้าตลาดเชื่อว่า BoJ จะขึ้นดอกเบี้ย เยนแข็ง ดอลลาร์อ่อนเทียบเยน เป็นบวกเล็กน้อยต่อทอง"
+  gold_bias: bullish
+  gold_confidence: low
   category: Central Bank          ← NOT Inflation, because the story is about BoJ outlook
-  tone: hawkish
+  tone: hawkish                   ← hawkish BoJ ≠ bad for gold: stronger JPY = weaker USD
 
 Input:  "US stocks rise Friday but US-Iran talks weigh"
 GOOD →
@@ -247,7 +279,9 @@ GOOD →
   body_th:
     - "Dow, S&P 500 และ Nasdaq 100 ปรับขึ้นระหว่างวัน"
     - "นักลงทุนยังระวังความเสี่ยงจากการเจรจาสหรัฐ-อิหร่านที่ยังไม่ชัดเจน"
-  impact_th: "หากความตึงเครียดเพิ่มขึ้น อาจหนุนทองและกด risk assets; แต่ USD แข็งอาจจำกัด upside ทอง"
+  impact_th: "ถ้าความตึงเครียดสหรัฐฯ-อิหร่านเพิ่มขึ้น เป็นบวกต่อทองจากแรงซื้อ safe-haven"
+  gold_bias: bullish
+  gold_confidence: medium
   category: Geopolitics
   tone: risk_off
 
@@ -335,6 +369,7 @@ JSON FORMATTING — non-negotiable:
 INPUT:
 SOURCE_ID: {source_id}
 SOURCE_AGE_HOURS: {age_hours}
+TODAY: {today}
 TITLE: {title}
 SUMMARY: {summary}
 
@@ -883,11 +918,13 @@ def _build_prompt(title: str, summary: str, source_id: str, age_h: str) -> str:
     """Render the shared classify+rewrite prompt. Used by every LLM
     provider so Claude and Gemini produce identically-shaped JSON."""
     # Avoid str.format() because the JSON schema in the prompt has many
-    # unescaped braces — use .replace() for the 4 placeholders.
+    # unescaped braces — use .replace() for the placeholders.
+    from .utils_time import now_ict
     return (
         _SYSTEM_PROMPT
         .replace("{source_id}", source_id or "unknown")
         .replace("{age_hours}", age_h)
+        .replace("{today}", now_ict().strftime("%Y-%m-%d"))
         .replace("{title}", title[:300])
         .replace("{summary}", (summary or "")[:1500])
     )
