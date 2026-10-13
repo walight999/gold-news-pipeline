@@ -12,6 +12,7 @@ history survives the purge. Pure functions; the caller owns store I/O.
 from __future__ import annotations
 
 import json
+import math
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from typing import Any
@@ -50,6 +51,7 @@ def aggregate(rows: list[dict[str, Any]], cutoff: datetime) -> list[dict[str, An
     """
     by_day: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
     totals: dict[str, list[int]] = defaultdict(lambda: [0, 0])  # [sent, failed]
+    latencies: dict[str, list[float]] = defaultdict(list)       # Released cards, seconds
 
     for r in rows:
         # `content:` rows are content-dedup markers (see digest.content_sig), not
@@ -64,6 +66,10 @@ def aggregate(rows: list[dict[str, Any]], cutoff: datetime) -> list[dict[str, An
         status = str(r.get("line_status") or "").strip()
         idx = 0 if status in _DELIVERED_STATUS else 1
         totals[day][idx] += 1
+        if route == "calendar_post" and idx == 0:
+            lat = _latency_s(r)
+            if lat is not None:
+                latencies[day].append(lat)
 
     out: list[dict[str, Any]] = []
     for day in sorted(by_day):
@@ -80,8 +86,51 @@ def aggregate(rows: list[dict[str, Any]], cutoff: datetime) -> list[dict[str, An
             # never needs a schema migration on a tab that already has history.
             "by_route": json.dumps(dict(sorted(by_day[day].items())),
                                    ensure_ascii=False),
+            "release_latency": json.dumps(latency_summary(latencies[day]))
+                               if latencies[day] else "",
         })
     return out
+
+
+def _latency_s(row: dict[str, Any]) -> float | None:
+    """sent_ts − release_ts in seconds for a Released card, None if either is
+    missing (rows written before release_ts existed) or the order is impossible."""
+    sent, rel = parse_iso(row.get("sent_ts")), parse_iso(row.get("release_ts"))
+    if sent is None or rel is None:
+        return None
+    s = (sent - rel).total_seconds()
+    return s if s >= 0 else None
+
+
+def _pct(sorted_vals: list[float], q: float) -> float:
+    # nearest-rank percentile; inputs are small (a few cards/day)
+    k = max(0, min(len(sorted_vals) - 1, math.ceil(q * len(sorted_vals)) - 1))
+    return sorted_vals[k]
+
+
+def latency_summary(secs: list[float]) -> dict[str, int]:
+    """{n, p50_s, p90_s, max_s} for print → Released-card latencies."""
+    v = sorted(secs)
+    return {"n": len(v), "p50_s": int(_pct(v, 0.5)), "p90_s": int(_pct(v, 0.9)),
+            "max_s": int(v[-1])}
+
+
+def release_latency_rows(rows: list[dict[str, Any]], since: datetime) -> dict[str, int] | None:
+    """latency_summary over delivered Released cards sent since `since` — for a
+    live window (weekly report) straight off sent_log. None when there are none."""
+    secs = []
+    for r in rows:
+        if str(r.get("route_type")) != "calendar_post":
+            continue
+        if str(r.get("line_status") or "").strip() not in _DELIVERED_STATUS:
+            continue
+        sent = parse_iso(r.get("sent_ts"))
+        if sent is None or sent < since:
+            continue
+        lat = _latency_s(r)
+        if lat is not None:
+            secs.append(lat)
+    return latency_summary(secs) if secs else None
 
 
 PRIVATE_ROUTES = {"eod_recap", "scorecard", "content_review", "weekly_report", "quota_report", "health"}
