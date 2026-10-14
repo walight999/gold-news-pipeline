@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-10-14T15:51:11Z",
-      "title": "global · Other",
-      "source": "Bbc World",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-14T15:51:11Z",
-      "title": "global · Other",
-      "source": "Bbc World",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-14T15:51:11Z",
-      "title": "global · Other",
-      "source": "Bbc World",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-14T15:51:11Z",
-      "title": "global · Other",
-      "source": "Bbc World",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-14T15:51:11Z",
-      "title": "global · Other",
-      "source": "Bbc World",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-14T15:51:11Z",
-      "title": "global · Other",
-      "source": "Bbc World",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-14T15:51:11Z",
+      "ts": "2026-10-14T19:55:55Z",
       "title": "us · Inflation",
-      "source": "Forexlive",
+      "source": "Investing Cb",
       "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-14T15:51:11Z",
+      "ts": "2026-10-14T19:55:55Z",
       "title": "global · Other",
-      "source": "Bbc World",
+      "source": "Cnbc, Forexlive, Investing Cb",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-14T15:51:11Z",
-      "title": "us · Inflation · hawkish",
+      "ts": "2026-10-14T19:55:55Z",
+      "title": "us · Geopolitics · risk off",
+      "source": "Forexlive",
+      "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-14T19:55:55Z",
+      "title": "mideast · Geopolitics",
+      "source": "Investing Cb",
+      "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-14T19:55:55Z",
+      "title": "global · Other · dovish",
+      "source": "Investing Cb",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-14T19:55:55Z",
+      "title": "fed · Rate Policy",
       "source": "Forexlive",
       "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-14T15:51:11Z",
-      "title": "us · Inflation",
+      "ts": "2026-10-14T19:55:55Z",
+      "title": "global · Other",
       "source": "Forexlive",
-      "score": 0.5,
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-14T19:55:55Z",
+      "title": "us · Usd Yields",
+      "source": "Forexlive",
+      "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-14T19:55:55Z",
+      "title": "global · Other",
+      "source": "Forexlive",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-14T19:55:55Z",
+      "title": "mideast · Geopolitics · risk off",
+      "source": "Cnbc, Forexlive",
+      "score": 0.3,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-10-14T15:54:41.341010Z"
+  "written_at": "2026-10-14T20:00:22.126243Z"
 }
