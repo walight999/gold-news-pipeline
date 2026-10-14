@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-10-14T05:51:35Z",
-      "title": "russia · Geopolitics · risk off",
-      "source": "Bbc World",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-14T05:51:35Z",
-      "title": "russia · Geopolitics",
-      "source": "Bbc World",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-14T05:51:35Z",
+      "ts": "2026-10-14T11:16:02Z",
       "title": "global · Other",
-      "source": "Bbc World",
+      "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-14T05:51:35Z",
-      "title": "global · Other",
-      "source": "Bbc World",
+      "ts": "2026-10-14T11:16:02Z",
+      "title": "us · Inflation",
+      "source": "Cnbc",
+      "score": 0.5,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-14T11:16:02Z",
+      "title": "russia · Geopolitics · risk on",
+      "source": "Cnbc",
+      "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-14T11:16:02Z",
+      "title": "global · Other · risk off",
+      "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-14T05:51:35Z",
+      "ts": "2026-10-14T11:16:02Z",
       "title": "global · Other",
-      "source": "Bbc World",
+      "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-14T05:51:35Z",
-      "title": "mideast · Geopolitics · risk off",
-      "source": "Forexlive",
-      "score": 0.3,
+      "ts": "2026-10-14T11:16:02Z",
+      "title": "fed · Rate Policy · hawkish",
+      "source": "Cnbc",
+      "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-14T05:51:35Z",
-      "title": "us · Usd Yields · hawkish",
-      "source": "Forexlive",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-14T05:51:35Z",
+      "ts": "2026-10-14T11:16:02Z",
       "title": "global · Other",
-      "source": "Bbc World",
+      "source": "Cnbc, Marketwatch",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-14T05:51:35Z",
-      "title": "us · Usd Yields · hawkish",
-      "source": "Forexlive",
-      "score": 0.3,
+      "ts": "2026-10-14T11:16:02Z",
+      "title": "us · Inflation",
+      "source": "Cnbc",
+      "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-14T05:51:35Z",
-      "title": "us · Geopolitics · risk off",
-      "source": "Forexlive",
-      "score": 0.3,
+      "ts": "2026-10-14T11:16:02Z",
+      "title": "global · Other",
+      "source": "Cnbc, Marketwatch",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-14T11:16:02Z",
+      "title": "global · Other",
+      "source": "Cnbc",
+      "score": 0.1,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-10-14T05:52:21.764032Z"
+  "written_at": "2026-10-14T11:19:10.878135Z"
 }
