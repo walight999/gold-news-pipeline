@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-10-15T17:36:12Z",
+      "ts": "2026-10-15T20:56:14Z",
       "title": "global · Other",
-      "source": "Bbc World",
+      "source": "Cnbc, Financialjuice",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-15T17:36:12Z",
-      "title": "global · Other · risk off",
-      "source": "Bbc World",
-      "score": 0.1,
+      "ts": "2026-10-15T20:56:14Z",
+      "title": "us · Usd Yields",
+      "source": "Cnbc, Financialjuice",
+      "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-15T17:36:12Z",
+      "ts": "2026-10-15T20:56:14Z",
+      "title": "fed · Rate Policy",
+      "source": "Financialjuice",
+      "score": 0.5,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-15T20:56:14Z",
+      "title": "mideast · Geopolitics · risk off",
+      "source": "Financialjuice",
+      "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-15T20:56:14Z",
+      "title": "fed · Rate Policy",
+      "source": "Financialjuice",
+      "score": 0.5,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-15T20:56:14Z",
       "title": "global · Other",
-      "source": "Bbc World",
+      "source": "Cnbc, Financialjuice",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-15T17:36:12Z",
-      "title": "global · Other",
-      "source": "Bbc World",
-      "score": 0.1,
+      "ts": "2026-10-15T20:56:14Z",
+      "title": "mideast · Geopolitics",
+      "source": "Financialjuice",
+      "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-15T17:36:12Z",
-      "title": "global · Other",
-      "source": "Bbc World",
-      "score": 0.1,
+      "ts": "2026-10-15T20:56:14Z",
+      "title": "mideast · Geopolitics · risk off",
+      "source": "Financialjuice",
+      "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-15T17:36:12Z",
-      "title": "global · Other",
-      "source": "Bbc World",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-15T17:36:12Z",
-      "title": "global · Other",
-      "source": "Bbc World",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-15T17:36:12Z",
-      "title": "global · Other",
-      "source": "Bbc World",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-15T17:36:12Z",
-      "title": "global · Other",
-      "source": "Bbc World, Cnbc",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-15T17:36:12Z",
+      "ts": "2026-10-15T20:56:14Z",
       "title": "global · Other",
       "source": "Financialjuice",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-15T20:56:14Z",
+      "title": "global · Other",
+      "source": "Cnbc, Financialjuice",
       "score": 0.1,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-10-15T17:37:50.151798Z"
+  "written_at": "2026-10-15T20:59:06.229008Z"
 }
