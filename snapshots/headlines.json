@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-10-15T12:45:57Z",
+      "ts": "2026-10-15T17:36:12Z",
       "title": "global · Other",
-      "source": "Cnbc",
+      "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-15T12:45:57Z",
-      "title": "us · Inflation",
-      "source": "Cnbc",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-15T12:45:57Z",
-      "title": "global · Other",
-      "source": "Cnbc",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-15T12:45:57Z",
+      "ts": "2026-10-15T17:36:12Z",
       "title": "global · Other · risk off",
-      "source": "Cnbc",
+      "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-15T12:45:57Z",
+      "ts": "2026-10-15T17:36:12Z",
       "title": "global · Other",
-      "source": "Cnbc",
+      "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-15T12:45:57Z",
+      "ts": "2026-10-15T17:36:12Z",
       "title": "global · Other",
-      "source": "Cnbc",
+      "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-15T12:45:57Z",
+      "ts": "2026-10-15T17:36:12Z",
       "title": "global · Other",
-      "source": "Cnbc",
+      "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-15T12:45:57Z",
+      "ts": "2026-10-15T17:36:12Z",
       "title": "global · Other",
-      "source": "Marketwatch",
+      "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-15T12:45:57Z",
-      "title": "us · Usd Yields",
-      "source": "Cnbc",
-      "score": 0.3,
+      "ts": "2026-10-15T17:36:12Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-15T12:45:57Z",
+      "ts": "2026-10-15T17:36:12Z",
       "title": "global · Other",
-      "source": "Cnbc",
+      "source": "Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-15T17:36:12Z",
+      "title": "global · Other",
+      "source": "Bbc World, Cnbc",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-15T17:36:12Z",
+      "title": "global · Other",
+      "source": "Financialjuice",
       "score": 0.1,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-10-15T12:46:22.542133Z"
+  "written_at": "2026-10-15T17:37:50.151798Z"
 }
