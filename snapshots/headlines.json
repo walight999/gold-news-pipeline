@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-10-14T23:06:29Z",
+      "ts": "2026-10-15T01:35:45Z",
       "title": "global · Other",
       "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-14T23:06:29Z",
+      "ts": "2026-10-15T01:35:45Z",
       "title": "global · Other",
       "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-14T23:06:29Z",
+      "ts": "2026-10-15T01:35:45Z",
       "title": "global · Other",
       "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-14T23:06:29Z",
+      "ts": "2026-10-15T01:35:45Z",
       "title": "global · Other",
       "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-14T23:06:29Z",
+      "ts": "2026-10-15T01:35:45Z",
       "title": "global · Other",
       "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-14T23:06:29Z",
+      "ts": "2026-10-15T01:35:45Z",
       "title": "russia · Geopolitics · risk off",
       "source": "Bbc World",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-14T23:06:29Z",
+      "ts": "2026-10-15T01:35:45Z",
       "title": "global · Other",
       "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-14T23:06:29Z",
+      "ts": "2026-10-15T01:35:45Z",
       "title": "global · Other",
       "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-14T23:06:29Z",
-      "title": "global · Other",
-      "source": "Bbc World, Cnbc",
-      "score": 0.1,
+      "ts": "2026-10-15T01:35:45Z",
+      "title": "us · Geopolitics",
+      "source": "Investing Cb",
+      "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-14T23:06:29Z",
-      "title": "us · Inflation",
-      "source": "Forexlive",
-      "score": 0.5,
+      "ts": "2026-10-15T01:35:45Z",
+      "title": "global · Other · risk on",
+      "source": "Investing Cb",
+      "score": 0.1,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-10-14T23:08:20.389449Z"
+  "written_at": "2026-10-15T01:40:35.584915Z"
 }
