@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-10-16T16:56:01Z",
-      "title": "global · Other",
-      "source": "Investing Cb",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-16T16:56:01Z",
-      "title": "global · Other",
-      "source": "Investing Cb",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-16T16:56:01Z",
-      "title": "global · Other",
-      "source": "Cnbc, Investing Cb",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-16T16:56:01Z",
-      "title": "global · Other",
-      "source": "Cnbc",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-16T16:56:01Z",
-      "title": "global · Other",
-      "source": "Investing Cb",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-16T16:56:01Z",
-      "title": "global · Other",
-      "source": "Cnbc, Investing Cb",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-16T16:56:01Z",
-      "title": "global · Other",
+      "ts": "2026-10-18T18:46:02Z",
+      "title": "mideast · Geopolitics",
       "source": "Financialjuice",
-      "score": 0.1,
+      "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-16T16:56:01Z",
-      "title": "boj · Rate Policy",
+      "ts": "2026-10-18T18:46:02Z",
+      "title": "fed · Rate Policy",
       "source": "Financialjuice",
       "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-16T16:56:01Z",
-      "title": "boe · Rate Policy",
+      "ts": "2026-10-18T18:46:02Z",
+      "title": "us · Inflation",
       "source": "Financialjuice",
       "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-16T16:56:01Z",
+      "ts": "2026-10-18T18:46:02Z",
+      "title": "us · Inflation",
+      "source": "Financialjuice",
+      "score": 0.5,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-18T18:46:02Z",
+      "title": "russia · Geopolitics · risk off",
+      "source": "Bbc World",
+      "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-18T18:46:02Z",
+      "title": "israel · Geopolitics · risk off",
+      "source": "Bbc World",
+      "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-18T18:46:02Z",
+      "title": "us · Geopolitics · risk off",
+      "source": "Bbc World",
+      "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-18T18:46:02Z",
+      "title": "mideast · Geopolitics",
+      "source": "Bbc World",
+      "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-18T18:46:02Z",
       "title": "russia · Geopolitics",
-      "source": "Cnbc",
+      "source": "Financialjuice",
+      "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-18T18:46:02Z",
+      "title": "us · Geopolitics · risk off",
+      "source": "Financialjuice",
       "score": 0.3,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-10-18T16:22:13.334211Z"
+  "written_at": "2026-10-18T18:47:25.057731Z"
 }
