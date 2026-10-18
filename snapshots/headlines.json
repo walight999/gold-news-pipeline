@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-10-18T21:15:57Z",
+      "ts": "2026-10-18T23:25:51Z",
       "title": "mideast · Geopolitics",
       "source": "Financialjuice",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-18T21:15:57Z",
-      "title": "israel · Geopolitics",
-      "source": "Aljazeera",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-18T21:15:57Z",
+      "ts": "2026-10-18T23:25:51Z",
       "title": "fed · Rate Policy",
       "source": "Financialjuice",
       "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-18T21:15:57Z",
-      "title": "us · Inflation",
+      "ts": "2026-10-18T23:25:51Z",
+      "title": "russia · Geopolitics",
       "source": "Financialjuice",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-18T21:15:57Z",
-      "title": "us · Inflation",
-      "source": "Financialjuice",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-18T21:15:57Z",
-      "title": "mideast · Geopolitics · risk off",
-      "source": "Aljazeera",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-18T21:15:57Z",
-      "title": "israel · Geopolitics · risk off",
-      "source": "Aljazeera",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-18T21:15:57Z",
-      "title": "russia · Geopolitics · risk off",
-      "source": "Bbc World",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-18T21:15:57Z",
-      "title": "israel · Geopolitics · risk off",
-      "source": "Bbc World",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-18T21:15:57Z",
+      "ts": "2026-10-18T23:25:51Z",
       "title": "us · Geopolitics · risk off",
-      "source": "Bbc World",
+      "source": "Financialjuice",
+      "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-18T23:25:51Z",
+      "title": "us · Geopolitics",
+      "source": "Financialjuice",
+      "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-18T23:25:51Z",
+      "title": "israel · Geopolitics",
+      "source": "Financialjuice",
+      "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-18T23:25:51Z",
+      "title": "russia · Geopolitics",
+      "source": "Financialjuice",
+      "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-18T23:25:51Z",
+      "title": "mideast · Geopolitics",
+      "source": "Financialjuice",
+      "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-18T23:25:51Z",
+      "title": "russia · Geopolitics · risk off",
+      "source": "Financialjuice",
+      "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-18T23:25:51Z",
+      "title": "israel · Geopolitics",
+      "source": "Financialjuice",
       "score": 0.3,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-10-18T21:17:21.692063Z"
+  "written_at": "2026-10-18T23:30:32.382006Z"
 }
