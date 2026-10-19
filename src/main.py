@@ -311,6 +311,7 @@ def _collect_apify_entries(store, src_cfg, mode: str,
                 body_field=rc.get("body_field") or None,
                 payload_extra=rc.get("payload_extra") or None)
             n = 0
+            body = apify_source.unwrap_xml_viewer(body)
             if body:
                 recovered = parse_feed(body, {
                     "id": feed.get("id", "apify_recover"),
@@ -319,9 +320,14 @@ def _collect_apify_entries(store, src_cfg, mode: str,
                     "source_class": feed.get("source_class", "wire"),
                     "organization": feed.get("organization") or feed.get("id")})
                 out.extend(recovered)
-                n = len(recovered)
+                # Count only USABLE entries: normalize() drops items without a
+                # URL, and counting the raw 30 hid that every one was unusable.
+                n = sum(1 for e in recovered if e.get("url"))
+                if recovered and not n:
+                    log.warning("apify recover %s: %d entries but none has a URL — "
+                                "body format changed?", feed.get("id"), len(recovered))
             _mark_apify(store, key, n)
-            log.info("apify recover %s: +%d entries", feed.get("id"), n)
+            log.info("apify recover %s: +%d usable entries", feed.get("id"), n)
 
     return out
 

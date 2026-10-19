@@ -391,3 +391,44 @@ def fetch_url_via_proxy(token: str, actor_id: str, url: str,
                     actor_id, url, list(raw[0].keys())[:12])
         return None
     return body.encode("utf-8") if isinstance(body, str) else bytes(body)
+
+
+# --- Chrome XML-viewer unwrapping (2026-10-19) ---
+#
+# scrapeunblocker renders the URL in a real browser, so an RSS feed comes back
+# as Chrome's "pretty-print" XML viewer: every tag is escaped text split across
+# <span>s. feedparser still finds titles and dates in that soup, but <link> is
+# an HTML void element, so every item's URL is lost — and normalize() drops
+# items without a URL. That is why the first live FXStreet recovery (+30
+# entries) produced 0 events. This rebuilds the original XML from the viewer.
+_VIEWER_MARK = 'class="pretty-print"'
+_TAG_RE = re.compile(r"<[^>]+>")
+_BARE_AMP = re.compile(r"&(?!(?:[A-Za-z]+|#\d+|#x[0-9A-Fa-f]+);)")
+
+
+def unwrap_xml_viewer(body: "bytes | str | None") -> "bytes | str | None":
+    """Return the raw RSS/Atom XML when `body` is a browser XML-viewer page,
+    else `body` unchanged (plain XML passes through untouched)."""
+    if not body:
+        return body
+    text = body.decode("utf-8", "replace") if isinstance(body, (bytes, bytearray)) else body
+    i = text.find(_VIEWER_MARK)
+    if i < 0 or "&lt;" not in text:
+        return body
+    import html as _html
+    seg = _html.unescape(_TAG_RE.sub("", text[i:]))         # viewer spans → escaped XML → XML
+    seg = re.sub(r"\s+", " ", seg)                           # the viewer splits tokens over lines
+    seg = re.sub(r"<\s+", "<", seg)
+    seg = re.sub(r"\s+(/?>)", r"\1", seg)
+    seg = re.sub(r'\s*=\s*"\s*([^"]*?)\s*"', r'="\1"', seg)
+    seg = re.sub(r">\s+", ">", seg)
+    seg = re.sub(r"\s+<", "<", seg)
+    start = min((p for p in (seg.find("<rss"), seg.find("<feed")) if p >= 0), default=-1)
+    if start < 0:
+        return body
+    end_tag = "</rss>" if seg.startswith("<rss", start) else "</feed>"
+    end = seg.rfind(end_tag)
+    if end < 0:
+        return body
+    xml = _BARE_AMP.sub("&amp;", seg[start:end + len(end_tag)])   # "Forex & Commodities"
+    return xml.encode("utf-8")

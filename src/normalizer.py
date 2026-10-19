@@ -47,8 +47,10 @@ def normalize(entries: list[dict[str, Any]], stale_drop_hours: int = STALE_DROP_
     anchor = now_utc()
     cutoff = anchor - timedelta(hours=stale_drop_hours)
     dropped_stale = 0
+    dropped_no_url = 0
     for e in entries:
         if not e.get("url"):
+            dropped_no_url += 1      # counted + logged: this drop hid FXStreet 2026-10-19
             continue
         pub = e.get("published_ts")
         if pub is not None and pub < cutoff:
@@ -69,4 +71,6 @@ def normalize(entries: list[dict[str, Any]], stale_drop_hours: int = STALE_DROP_
     if dropped_stale:
         log.info("normalize: dropped %d stale items (>%dh old)",
                  dropped_stale, stale_drop_hours)
+    if dropped_no_url:
+        log.info("normalize: dropped %d items without a URL", dropped_no_url)
     return items
