@@ -171,6 +171,10 @@ def source_snapshot(source_rows: list[dict[str, Any]], now_utc: datetime,
         sid = str(r.get("source_id") or "")
         if sid.startswith("_apify"):
             apify[sid] = int(_f(r.get("items_last_hour")) or 0)
+            # A recovered feed (apify_recover) returns the whole RSS every call
+            # (~30 items), so 0 on its last run means the proxy path failed.
+            if sid.startswith("_apify_recover:") and apify[sid] == 0:
+                dead.append({"id": sid.split(":", 1)[1], "days": None, "why": "proxy 0 entries"})
             continue
         if sid.startswith("_"):
             continue  # other synthetic rows (_classifier_health, _ff_scraper, etc.)

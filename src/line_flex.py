@@ -43,6 +43,7 @@ SOURCE_NAMES: dict[str, str] = {
     "marketwatch":          "MarketWatch",
     "forexlive":            "ForexLive",
     "fxstreet":             "FXStreet",
+    "fxstreet_apify":       "FXStreet",      # same feed via apify_recover (2026-10-19)
     "kitco":                "Kitco",
     "investing_cb":         "Investing CB",
     "investing_commodities":"Investing Commodities",
@@ -792,6 +793,7 @@ def weekly_report_bubble(rep: dict[str, Any], week_label: str) -> dict[str, Any]
     dead = (rep.get("sources") or {}).get("dead_sources") or []
     if dead:
         names = " · ".join(f"{d['id']} ({d['days']:.0f} วัน)" if d.get("days") is not None
+                           else f"{d['id']} ({d['why']})" if d.get("why")
                            else f"{d['id']} (ไม่เคยดึงได้)" for d in dead[:5])
         rows.append({"type": "text", "size": "xs", "color": "#DC2626", "margin": "sm", "wrap": True,
                      "weight": "bold", "text": f"⚠️ แหล่งข่าวเงียบเกิน 48 ชม.: {names}"})

@@ -26,10 +26,18 @@ def _store():
     return s
 
 
-def test_config_fxstreet_browser_ua_and_yahoo_disabled():
-    src = {x["id"]: x for x in yaml.safe_load(open("config/sources.yaml", encoding="utf-8"))["sources"]}
-    assert src["fxstreet"]["enabled"] and src["fxstreet"]["user_agent"].startswith("Mozilla/5.0")
+def test_config_fxstreet_via_apify_and_yahoo_disabled():
+    cfg = yaml.safe_load(open("config/sources.yaml", encoding="utf-8"))
+    src = {x["id"]: x for x in cfg["sources"]}
+    # direct fetch is 403 from Actions even with a browser UA → off; recovered instead
+    assert src["fxstreet"]["enabled"] is False
+    rc = cfg["apify_recover"]
+    assert rc["enabled"] is True
+    assert [f["id"] for f in rc["feeds"]] == ["fxstreet_apify"]
+    assert rc["feeds"][0]["organization"] == "fxstreet"        # same org for confirmation logic
     assert src["yahoo_finance"]["enabled"] is False
+    from src.line_flex import SOURCE_NAMES
+    assert SOURCE_NAMES["fxstreet_apify"] == "FXStreet"
 
 
 def test_dead_sources_listed_for_enabled_only():
@@ -77,3 +85,13 @@ def test_cron_recovery_loop_skips_verify_warnings():
     assert 'startswith("verify_")' in src
     vsrc = inspect.getsource(m.run_verify_sources)
     assert 's.get("user_agent")' in vsrc and "resolve_warning" in vsrc
+
+
+def test_recovered_feed_with_zero_entries_is_dead():
+    rows = [{"source_id": "_apify_recover:fxstreet_apify", "items_last_hour": "0"},
+            {"source_id": "_apify_recover:other_apify", "items_last_hour": "30"},
+            {"source_id": "_apify", "items_last_hour": "0"}]          # X scrape row: not a feed
+    snap = weekly_report.source_snapshot(rows, NOW, enabled_ids=set())
+    assert snap["dead_sources"] == [{"id": "fxstreet_apify", "days": None, "why": "proxy 0 entries"}]
+    rep = {"delivery": {}, "scorecard": {}, "tuning_candidates": [], "sources": snap}
+    assert "fxstreet_apify (proxy 0 entries)" in json.dumps(weekly_report_bubble(rep, "W"), ensure_ascii=False)
