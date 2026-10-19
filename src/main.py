@@ -123,6 +123,16 @@ def run_llm_probe() -> int:
     return 1 if failed else 0
 
 
+def _enabled_source_ids(src_cfg: dict) -> set[str]:
+    """Ids of everything the cron actually fetches: enabled RSS sources plus the
+    apify_recover feeds when recovery is on (weekly dead-source check)."""
+    ids = {str(x["id"]) for x in src_cfg.get("sources", []) if x.get("enabled")}
+    rc = src_cfg.get("apify_recover") or {}
+    if rc.get("enabled"):
+        ids |= {str(f["id"]) for f in rc.get("feeds") or [] if f.get("id")}
+    return ids
+
+
 def _card_flags(alert, *parts: str) -> str:
     """content_log.flags for a card: pipeline markers + which model wrote it."""
     model = getattr(alert, "model", "") or ""
@@ -3521,8 +3531,7 @@ async def run_weekly_report() -> int:
         classifier_health_row=store.get("source_state", ("_classifier_health",)),
         flat_pct=flat_pct,
         sent_rows=store.all_rows("sent_log"),
-        enabled_source_ids={str(x["id"]) for x in _load_configs()[0].get("sources", [])
-                            if x.get("enabled")},
+        enabled_source_ids=_enabled_source_ids(_load_configs()[0]),
     )
 
     # Detailed breakdown to the run log (readable via `gh run view --log`).
