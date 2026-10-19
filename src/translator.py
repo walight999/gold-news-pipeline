@@ -25,6 +25,7 @@ import hashlib
 import logging
 import os
 import re
+import string
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -287,7 +288,7 @@ def _patch_places(text: str) -> str:
         text = pat.sub(repl, text)
     for pat, repl in _THAI_TERM_PATCH:
         text = pat.sub(repl, text)
-    return text
+    return _FED_TH.sub(_fed_latin, text)
 
 
 # Real Thai words the models keep choosing for the WRONG concept (2026-10-13
@@ -301,6 +302,21 @@ _THAI_TERM_PATCH = [
     (re.compile(r"(?<!รัฐ)ภูมิศาสตร์|ธรณีศาสตร์"), "ภูมิรัฐศาสตร์"),
     (re.compile(r"(?:เอกสาร)?นาที(?:การ)?ประชุม"), "รายงานการประชุม"),
 ]
+
+# Term policy (2026-10-19): Fed is always "Fed". Sonnet 5 sometimes writes the
+# transliteration เฟด, so the same card set mixed both. Swap it, adding a space
+# only where the neighbour is a Thai character (a Latin word glued to Thai on
+# both sides trips thai_grammar's latin_in_thai check). FedEx (เฟดเอ็กซ์) stays.
+_FED_TH = re.compile(r"เฟด(?!เอ็กซ์)")
+_NO_SPACE_BEFORE = set(string.whitespace) | set("(“'") | {'"'}
+_NO_SPACE_AFTER = set(string.whitespace) | set(").,:;!?”'") | {'"'}
+
+
+def _fed_latin(m: "re.Match[str]") -> str:
+    s, i, j = m.string, m.start(), m.end()
+    pre = "" if i == 0 or s[i - 1] in _NO_SPACE_BEFORE else " "
+    post = "" if j == len(s) or s[j] in _NO_SPACE_AFTER else " "
+    return f"{pre}Fed{post}"
 
 
 # Em-dash (U+2014) and horizontal bar (U+2015) are the single top AI-slop tell

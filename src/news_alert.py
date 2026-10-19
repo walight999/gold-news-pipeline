@@ -359,9 +359,26 @@ GLOSSARY — PRESERVE these terms EXACTLY in English
 Data: CPI, Core CPI, PCE, Core PCE, PPI, NFP, GDP, PMI, ISM, FOMC
 Banks: Fed, FOMC, ECB, BoJ, BoE, PBOC, SNB, BoC, RBA, RBNZ, IMF, OPEC
 Currencies: USD, EUR, JPY, GBP, CNY, AUD, CAD, CHF, NZD
-Markets: DXY, RSI, MACD, S&P 500, Nasdaq, Dow
-Sentiment: hawkish, dovish, risk-on, risk-off, yield, yields, soft landing, hard landing, safe-haven, dot plot, forward guidance
+Markets: RSI, MACD, S&P 500, Nasdaq, Dow, XAU/USD, EUR/USD, USD/JPY, y/y, m/m
+Sentiment: hawkish, dovish, safe-haven
   ⚠ hawkish / dovish: keep the ENGLISH word (or, if Thai, ONLY "สายเหยี่ยว" / "สายพิราบ"). NEVER a literal or invented Thai noun — e.g. rendering hawkish as "เงาะ" (rambutan) is WRONG.
+  ⚠ Fed is ALWAYS "Fed" — never "เฟด".
+
+TERM POLICY (2026-10-19, owner-approved; measured on 1,499 sent cards — the
+terms below confused readers far more often than average when left in English):
+- First mention in a card gets a short Thai gloss, later mentions the short form:
+    yields → "ยีลด์ (ผลตอบแทนพันธบัตร)", then "ยีลด์"
+    DXY → "ดัชนีดอลลาร์ (DXY)"
+    risk-off → "risk-off (ตลาดหนีความเสี่ยง)"
+- Write these in THAI, never the English word:
+    inflation → เงินเฟ้อ            rate / rates → ดอกเบี้ย
+    upside / downside → say the move ("ทองขึ้นต่อได้จำกัด", "มีแรงลง")
+    risk-on → ตลาดกล้าเสี่ยง         risk assets → สินทรัพย์เสี่ยง
+    sentiment → บรรยากาศตลาด         demand / bid → แรงซื้อ
+    real yields → ผลตอบแทนที่แท้จริง   forward guidance → แนวทางนโยบายล่วงหน้า
+    priced in → ตลาดรับรู้ไปแล้ว       data-dependent → ขึ้นกับข้อมูล
+    dot plot → ประมาณการดอกเบี้ยของกรรมการ Fed
+- Basis points → percent: "25 bps" → "0.25%", "+3 bps" → "+0.03%".
 
 INSTITUTION SHORT FORMS — never expand to long Thai names ANYWHERE
 (headline_th, every body_th bullet, and impact_th):
@@ -590,7 +607,7 @@ _GRAMMAR_REPAIR_PROMPT = """You are a senior Thai financial-news copy editor. Th
 
 HARD RULES:
 - Preserve EVERY fact, number, %, date, ticker, and entity exactly. Add nothing, drop nothing.
-- Keep already-correct English terms (CPI, Fed, FOMC, USD, DXY, hawkish, dovish, safe-haven, yields).
+- Keep these English terms as written: CPI, PCE, NFP, FOMC, Fed (never "เฟด"), ECB, BoJ, BoE, USD, EUR, JPY, GBP, XAU/USD, hawkish, dovish, safe-haven, y/y, m/m. Use Thai for inflation (เงินเฟ้อ), rate (ดอกเบี้ย), sentiment (บรรยากาศตลาด), demand/bid (แรงซื้อ), risk-on (ตลาดกล้าเสี่ยง), upside/downside (describe the move), bps (convert to %).
 - Canonical Thai names/places (ทรัมป์, พาวเวลล์, ลาการ์ด, ยูเครน, ช่องแคบฮอร์มุส).
 - NO Chinese/Japanese/Korean characters. NO em-dash. Gregorian years only (2026), never พ.ศ.
 - Thai + English only: NO Arabic / Hebrew / Cyrillic / Greek / Indic letters. If a word has one (e.g. "ดовish", "นেตันยาฮู"), rewrite that whole word correctly ("dovish", "เนทันยาฮู").
