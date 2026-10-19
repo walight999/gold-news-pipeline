@@ -406,15 +406,36 @@ _TAG_RE = re.compile(r"<[^>]+>")
 _BARE_AMP = re.compile(r"&(?!(?:[A-Za-z]+|#\d+|#x[0-9A-Fa-f]+);)")
 
 
+# Second shape seen from the same actor (2026-10-19 13:15 run): the feed
+# re-serialized by an HTML parser — `<link/>` closed as a void element with the
+# URL left as the next text node, and camelCase tags lowercased (pubdate).
+_VOID_LINK = re.compile(r"<link\s*/>\s*([^\s<]+)")
+_LOWERED_TAGS = (("<pubdate>", "<pubDate>"), ("</pubdate>", "</pubDate>"),
+                 ("<lastbuilddate>", "<lastBuildDate>"), ("</lastbuilddate>", "</lastBuildDate>"))
+
+
+def _repair_void_links(text: str) -> "bytes | None":
+    if "<link/>" not in text and "<link />" not in text:
+        return None
+    if "<rss" not in text and "<feed" not in text:
+        return None
+    out = _VOID_LINK.sub(lambda m: "<link>" + m.group(1) + "</link>", text)
+    for a, b in _LOWERED_TAGS:
+        out = out.replace(a, b)
+    return out.encode("utf-8")
+
+
 def unwrap_xml_viewer(body: "bytes | str | None") -> "bytes | str | None":
-    """Return the raw RSS/Atom XML when `body` is a browser XML-viewer page,
+    """Return the raw RSS/Atom XML when `body` came back browser-mangled —
+    Chrome's XML-viewer page, or an HTML re-serialization with void <link/> —
     else `body` unchanged (plain XML passes through untouched)."""
     if not body:
         return body
     text = body.decode("utf-8", "replace") if isinstance(body, (bytes, bytearray)) else body
     i = text.find(_VIEWER_MARK)
     if i < 0 or "&lt;" not in text:
-        return body
+        repaired = _repair_void_links(text)
+        return repaired if repaired is not None else body
     import html as _html
     seg = _html.unescape(_TAG_RE.sub("", text[i:]))         # viewer spans → escaped XML → XML
     seg = re.sub(r"\s+", " ", seg)                           # the viewer splits tokens over lines

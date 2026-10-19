@@ -91,7 +91,17 @@ def test_recovered_feed_with_zero_entries_is_dead():
     rows = [{"source_id": "_apify_recover:fxstreet_apify", "items_last_hour": "0"},
             {"source_id": "_apify_recover:other_apify", "items_last_hour": "30"},
             {"source_id": "_apify", "items_last_hour": "0"}]          # X scrape row: not a feed
-    snap = weekly_report.source_snapshot(rows, NOW, enabled_ids=set())
+    rows.append({"source_id": "_apify_recover:benzinga_apify", "items_last_hour": "0"})  # removed feed
+    snap = weekly_report.source_snapshot(rows, NOW, enabled_ids={"fxstreet_apify", "other_apify"})
     assert snap["dead_sources"] == [{"id": "fxstreet_apify", "days": None, "why": "proxy 0 entries"}]
     rep = {"delivery": {}, "scorecard": {}, "tuning_candidates": [], "sources": snap}
     assert "fxstreet_apify (proxy 0 entries)" in json.dumps(weekly_report_bubble(rep, "W"), ensure_ascii=False)
+
+
+def test_enabled_ids_include_recover_feeds_only_when_on():
+    from src import main as m
+    cfg = {"sources": [{"id": "cnbc", "enabled": True}, {"id": "fxstreet", "enabled": False}],
+           "apify_recover": {"enabled": True, "feeds": [{"id": "fxstreet_apify"}]}}
+    assert m._enabled_source_ids(cfg) == {"cnbc", "fxstreet_apify"}
+    cfg["apify_recover"]["enabled"] = False
+    assert m._enabled_source_ids(cfg) == {"cnbc"}

@@ -173,7 +173,10 @@ def source_snapshot(source_rows: list[dict[str, Any]], now_utc: datetime,
             apify[sid] = int(_f(r.get("items_last_hour")) or 0)
             # A recovered feed (apify_recover) returns the whole RSS every call
             # (~30 items), so 0 on its last run means the proxy path failed.
-            if sid.startswith("_apify_recover:") and apify[sid] == 0:
+            # Only feeds still configured (enabled_ids carries their ids): a
+            # removed feed's last row (benzinga_apify, 0 in 2026-09) isn't news.
+            if (sid.startswith("_apify_recover:") and apify[sid] == 0
+                    and enabled_ids is not None and sid.split(":", 1)[1] in enabled_ids):
                 dead.append({"id": sid.split(":", 1)[1], "days": None, "why": "proxy 0 entries"})
             continue
         if sid.startswith("_"):
