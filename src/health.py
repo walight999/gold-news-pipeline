@@ -184,6 +184,25 @@ def resolve_warning(store: Store, source_id: str, warning_type: str) -> int:
     return n
 
 
+def resolve_disabled_source_warnings(store: Store, disabled_ids: set[str]) -> int:
+    """Close open warnings for sources that are now DISABLED in sources.yaml.
+
+    The cron recovery loop only revisits sources it polled, so a source switched
+    off (Benzinga 2026-08, Yahoo 2026-10) kept its warnings open forever — 110
+    open rows by 2026-10-19, which buried the one that mattered (FXStreet 403).
+    Only explicitly-disabled configured ids are touched; synthetic / verify-only
+    ids (forexfactory_json, _watchdog…) are left alone."""
+    ts = iso_utc(now_utc())
+    n = 0
+    for row in store.all_rows("health_log"):
+        if row.get("source_id") in disabled_ids and not row.get("resolved_ts"):
+            row = dict(row)          # all_rows hands out live refs (store no-op guard)
+            row["resolved_ts"] = ts
+            store.upsert("health_log", row)
+            n += 1
+    return n
+
+
 def resolve_and_should_announce(store: Store, source_id: str, warning_type: str,
                                 min_open_min: float) -> bool:
     """Resolve an open (source, type) warning and return True IFF its recovery
