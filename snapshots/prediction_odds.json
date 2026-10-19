@@ -1,11 +1,11 @@
 {
-  "ts": "2026-10-18T22:17:54.389912+00:00",
+  "ts": "2026-10-19T23:27:42.059943+00:00",
   "odds": {
-    "fed_decision": 0.865,
-    "fed_cuts_2026": 0.9685,
-    "fed_hike_2026": 0.785,
-    "emergency_cut": 0.0365,
+    "fed_decision": 0.845,
+    "fed_cuts_2026": 0.971,
+    "fed_hike_2026": 0.805,
+    "emergency_cut": 0.0325,
     "recession": 0.065,
-    "gold_target": 0.8765
+    "gold_target": 0.84
   }
 }
