@@ -181,7 +181,8 @@ def test_alert_from_text_strips_em_dash_from_every_field():
     assert alert is not None and alert.action == "keep"
     for field_text in (alert.headline_th, alert.impact_th, *alert.body_th):
         assert "—" not in field_text and "―" not in field_text
-    assert "เฟดคงดอกเบี้ย - ตลาดผิดหวัง" == alert.headline_th
+    # (เฟด → "Fed" is the 2026-10-19 term policy, applied by the same net)
+    assert "Fed คงดอกเบี้ย - ตลาดผิดหวัง" == alert.headline_th
     assert "ดอลลาร์แข็ง - กดดันทอง" == alert.impact_th
     assert " - " in alert.body_th[0]
 
