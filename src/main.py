@@ -694,6 +694,8 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
             continue
         if (sid, wtype) in current_set:
             continue
+        if str(wtype or "").startswith("verify_"):
+            continue    # raised + cleared only by the weekly verify_sources probe
         if health.resolve_and_should_announce(store, sid, wtype, MIN_OPEN_MIN_FOR_RECOVERY_PUSH):
             recovered.append((sid, wtype))
 
@@ -1086,8 +1088,11 @@ async def run_verify_sources() -> int:
         if not url:
             return s["id"], "no_url"
         try:
+            # Same UA the cron fetcher uses for this source — probing with a
+            # different one could pass/fail for reasons the live fetch never sees.
+            ua = s.get("user_agent") or "gold-news-pipeline/verify"
             async with httpx.AsyncClient(timeout=15, follow_redirects=True,
-                                          headers={"User-Agent": "gold-news-pipeline/verify"}) as c:
+                                          headers={"User-Agent": ua}) as c:
                 r = await c.get(url)
             if r.status_code >= 400:
                 return s["id"], f"http_{r.status_code}"
@@ -1099,6 +1104,14 @@ async def run_verify_sources() -> int:
     for sid, status in results:
         if status != "ok":
             failures.append((sid, f"verify_{status}"))
+        else:
+            # verify_* warnings are owned by THIS weekly probe: only a passing
+            # probe clears them (the cron recovery loop skips them — it used to
+            # "resolve" FXStreet's 403 one cron after verify raised it).
+            for row in store.all_rows("health_log"):
+                wt = str(row.get("warning_type") or "")
+                if row.get("source_id") == sid and wt.startswith("verify_") and not row.get("resolved_ts"):
+                    health.resolve_warning(store, sid, wt)
 
     # FF JSON
     try:
@@ -1908,6 +1921,12 @@ async def run_maintain() -> int:
     # just matured (35min-5day old). Reuses the already-loaded store; the
     # flush below writes the backfilled rows along with the purges.
     bf_attempted, bf_filled = _backfill_xau_on_store(store, now_utc())
+
+    src_cfg, _, _ = _load_configs()
+    disabled = {str(x["id"]) for x in src_cfg.get("sources", []) if not x.get("enabled")}
+    n_stale_warn = health.resolve_disabled_source_warnings(store, disabled)
+    if n_stale_warn:
+        log.info("maintain: closed %d open warning(s) on disabled sources", n_stale_warn)
 
     store.flush()
 
@@ -3496,6 +3515,8 @@ async def run_weekly_report() -> int:
         classifier_health_row=store.get("source_state", ("_classifier_health",)),
         flat_pct=flat_pct,
         sent_rows=store.all_rows("sent_log"),
+        enabled_source_ids={str(x["id"]) for x in _load_configs()[0].get("sources", [])
+                            if x.get("enabled")},
     )
 
     # Detailed breakdown to the run log (readable via `gh run view --log`).

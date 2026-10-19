@@ -315,7 +315,11 @@ sources:
   # confirming outlet. Items arrive as "FinancialJuice: <headline>". Needs a full
   # browser User-Agent (the pipeline's default UA gets HTTP 429).
   - {id: financialjuice, tier: 2, source_class: wire, organization: x_financialjuice, role: trader_macro, url: "https://www.financialjuice.com/feed.ashx?xy=rss", poll_min: 5, enabled: true, title_prefix: "FinancialJuice: ", user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36"}
-  - {id: fxstreet,    tier: 2, source_class: wire,       organization: fxstreet,     role: gold_bias,    url: "https://www.fxstreet.com/rss",                       poll_min: 5,  enabled: true}
+  # 2026-10-19: 403 from GitHub Actions since 10-14 09:46 UTC (39 straight errors;
+  # verify_sources 10-18 saw http_403) while a home IP gets 200 with ANY UA, so it
+  # is an IP/bot-score block. Browser UA first (cheapest); if verify still shows
+  # 403, route via apify_recover. FXStreet was 27% of sent cards, best Thai (4.08/5).
+  - {id: fxstreet,    tier: 2, source_class: wire,       organization: fxstreet,     role: gold_bias,    url: "https://www.fxstreet.com/rss",                       poll_min: 5,  enabled: true, user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36"}
   - {id: kitco,       tier: 3, source_class: gold_blog,  organization: kitco,        role: gold_context, url: "https://www.kitco.com/rss/",                         poll_min: 60, enabled: false, note: "feed 404"}
   # Investing.com runs without Cloudflare — plain httpx returns 200.
   # All 3 endpoints under ONE organization=investing so they don't fake
@@ -324,7 +328,7 @@ sources:
   - {id: investing_commodities, tier: 1, source_class: aggregator, organization: investing,     role: gold_context, url: "https://www.investing.com/rss/news_11.rss",  poll_min: 10, enabled: true}
   - {id: investing_general,     tier: 1, source_class: aggregator, organization: investing,     role: macro,        url: "https://www.investing.com/rss/news.rss",     poll_min: 10, enabled: true}
   - {id: benzinga,              tier: 2, source_class: wire,       organization: benzinga,      role: trader_macro, url: "https://www.benzinga.com/markets/feed",      poll_min: 5,  enabled: false, note: "DISABLED 2026-08-13 — Cloudflare 403 on every endpoint (/markets/feed, /feed, feeds.benzinga.com) since 2026-06-19; 1149 consecutive errors, last item 06-19. Re-probed 08-13, still 403 with a browser UA. Flip enabled:true if Benzinga reopens the feed."}
-  - {id: yahoo_finance,         tier: 1, source_class: aggregator, organization: yahoo,         role: macro,        url: "https://finance.yahoo.com/news/rssindex",    poll_min: 10, enabled: true,  note: "Reuters/AP syndication"}
+  - {id: yahoo_finance,         tier: 1, source_class: aggregator, organization: yahoo,         role: macro,        url: "https://finance.yahoo.com/news/rssindex",    poll_min: 10, enabled: false, note: "DISABLED 2026-10-19 — feed returns 404 (verify 10-11 + 10-18; home IP also 404); last item 2026-09-23, 59 consecutive errors. Was Reuters/AP syndication."}
   # Reuters has no free public RSS (killed years ago) — pull its gold-macro coverage
   # via Google News RSS, filtered to reuters.com + macro keywords. feedparser/httpx
   # verified 2026-06-23: 100 entries, real gold/Fed/ECB headlines. Caveat: item links

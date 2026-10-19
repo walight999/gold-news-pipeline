@@ -788,6 +788,13 @@ def weekly_report_bubble(rep: dict[str, Any], week_label: str) -> dict[str, Any]
         rows.append({"type": "text", "size": "xs", "color": "#6B7280", "margin": "xs", "wrap": True,
                      "text": f"⏱ การ์ด Released ถึงหลังตัวเลขออก: กลาง {_fmt_secs(lat['p50_s'])} · "
                              f"p90 {_fmt_secs(lat['p90_s'])} (n={lat['n']})"})
+    # Enabled sources with no successful fetch for 48h+ (weekly_report.source_snapshot).
+    dead = (rep.get("sources") or {}).get("dead_sources") or []
+    if dead:
+        names = " · ".join(f"{d['id']} ({d['days']:.0f} วัน)" if d.get("days") is not None
+                           else f"{d['id']} (ไม่เคยดึงได้)" for d in dead[:5])
+        rows.append({"type": "text", "size": "xs", "color": "#DC2626", "margin": "sm", "wrap": True,
+                     "weight": "bold", "text": f"⚠️ แหล่งข่าวเงียบเกิน 48 ชม.: {names}"})
 
     rows.append({"type": "separator", "margin": "lg"})
     if cands:

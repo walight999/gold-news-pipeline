@@ -152,11 +152,21 @@ def classifier_cost(classifier_health_row: dict[str, Any] | None) -> dict[str, A
     }
 
 
-def source_snapshot(source_rows: list[dict[str, Any]], now_utc: datetime) -> dict[str, Any]:
+DEAD_SOURCE_HOURS = 48
+
+
+def source_snapshot(source_rows: list[dict[str, Any]], now_utc: datetime,
+                    enabled_ids: "set[str] | None" = None) -> dict[str, Any]:
     """Apify entry counts (last run) + count of RSS sources currently stale
-    (>6h since last success) or erroring, as a point-in-time health snapshot."""
+    (>6h since last success) or erroring, as a point-in-time health snapshot.
+
+    `dead_sources`: ENABLED sources with no successful fetch for
+    DEAD_SOURCE_HOURS — [{"id", "days"}], worst first. FXStreet sat dead
+    2026-10-14→19 (27% of sent cards) with its warning auto-closed and nobody
+    told; this lands it on the weekly 1:1 card."""
     apify: dict[str, int] = {}
     stale = 0
+    dead: list[dict[str, Any]] = []
     for r in source_rows:
         sid = str(r.get("source_id") or "")
         if sid.startswith("_apify"):
@@ -167,7 +177,12 @@ def source_snapshot(source_rows: list[dict[str, Any]], now_utc: datetime) -> dic
         last_ok = _parse(r.get("last_success_ts"))
         if last_ok is None or (now_utc - last_ok) > timedelta(hours=6):
             stale += 1
-    return {"apify_entries_last_run": apify, "stale_rss_sources": stale}
+        if enabled_ids is not None and sid in enabled_ids and (
+                last_ok is None or (now_utc - last_ok) > timedelta(hours=DEAD_SOURCE_HOURS)):
+            age = (now_utc - last_ok).total_seconds() / 86400 if last_ok else None
+            dead.append({"id": sid, "days": round(age, 1) if age is not None else None})
+    dead.sort(key=lambda d: -(d["days"] if d["days"] is not None else 1e9))
+    return {"apify_entries_last_run": apify, "stale_rss_sources": stale, "dead_sources": dead}
 
 
 # --------------------------------------------------------------- tuning candidates
@@ -214,7 +229,8 @@ def build_weekly_report(now_utc: datetime, *, delivery_rows: list[dict[str, Any]
                         scorecard_rows: list[dict[str, Any]], calibration_rows: list[dict[str, Any]],
                         source_rows: list[dict[str, Any]], classifier_health_row: dict[str, Any] | None,
                         days: int = 7, flat_pct: float = 0.10,
-                        sent_rows: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+                        sent_rows: list[dict[str, Any]] | None = None,
+                        enabled_source_ids: "set[str] | None" = None) -> dict[str, Any]:
     """Assemble the full weekly report dict. `days` = look-back window."""
     cutoff_utc = now_utc - timedelta(days=days)
     since_date_ict = (now_utc - timedelta(days=days)).strftime("%Y-%m-%d")
@@ -228,7 +244,7 @@ def build_weekly_report(now_utc: datetime, *, delivery_rows: list[dict[str, Any]
         "scorecard": scard,
         "gradeability": grade,
         "classifier_cost": classifier_cost(classifier_health_row),
-        "sources": source_snapshot(source_rows, now_utc),
+        "sources": source_snapshot(source_rows, now_utc, enabled_source_ids),
         "tuning_candidates": tuning_candidates(routing, scard, grade),
         # print → Released card latency over the window (live sent_log rows)
         "release_latency": (delivery_stats.release_latency_rows(sent_rows, cutoff_utc)
