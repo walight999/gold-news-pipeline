@@ -32,6 +32,9 @@ def parse_feed(body: bytes, source: dict[str, Any]) -> list[dict[str, Any]]:
             "summary": _strip_html(e.get("summary") or e.get("description") or ""),
             "url": e.get("link") or "",
             "published_ts": published,  # datetime or None
+            # minutes of poll latency to forgive when scoring freshness
+            # (slow-polled feeds, e.g. apify_recover — see scorer.score_event)
+            "freshness_grace_min": int(source.get("freshness_grace_min") or 0),
         })
     if feed.bozo:
         log.warning("feedparser bozo source=%s reason=%s", source["id"], feed.bozo_exception)

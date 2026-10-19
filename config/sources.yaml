@@ -287,7 +287,11 @@ apify_recover:
   feeds:
     # benzinga_apify removed 2026-10-19: parsed 0 entries in the 09-10 probe and
     # X wires relay Benzinga faster. Re-add + re-probe if that changes.
-    - {id: fxstreet_apify, url: "https://www.fxstreet.com/rss", tier: 2, source_class: wire, organization: fxstreet, role: gold_bias}
+    # freshness_grace_min = the poll latency (15 min base) forgiven when scoring
+    # freshness, so a recovered item isn't scored as 10-30 min stale just
+    # because we could only look every 15-22 min (2026-10-19: all 15 first
+    # FXStreet events scored 0.5 vs 0.9-3.0 in the direct-fetch era).
+    - {id: fxstreet_apify, url: "https://www.fxstreet.com/rss", tier: 2, source_class: wire, organization: fxstreet, role: gold_bias, freshness_grace_min: 15}
 
 sources:
   # source_class + organization: both used by independent_source_count.

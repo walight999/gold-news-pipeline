@@ -31,6 +31,7 @@ class Item:
     first_seen_ts: datetime  # set on first encounter; anchor for freshness
     source_class: str = "aggregator"   # legacy field — kept for backward compat
     organization: str = ""             # 2.3+: unique-org diversity for confirmation
+    freshness_grace_min: int = 0       # poll-latency forgiveness for scoring (slow feeds)
 
     @property
     def url_hash(self) -> str:
@@ -67,6 +68,7 @@ def normalize(entries: list[dict[str, Any]], stale_drop_hours: int = STALE_DROP_
             first_seen_ts=anchor,
             source_class=e.get("source_class", "aggregator"),
             organization=e.get("organization") or e["source_id"],
+            freshness_grace_min=int(e.get("freshness_grace_min") or 0),
         ))
     if dropped_stale:
         log.info("normalize: dropped %d stale items (>%dh old)",

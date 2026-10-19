@@ -65,6 +65,7 @@ from .utils_time import (
     iso_utc,
     now_ict,
     now_utc,
+    parse_iso,
     to_ict,
     within_digest_slot,
 )
@@ -216,10 +217,13 @@ def _apify_due(store, key: str, interval_min: int) -> bool:
     return (last_ts is None) or (now_utc() - last_ts).total_seconds() >= interval_min * 60
 
 
-def _mark_apify(store, key: str, n: int) -> None:
+def _mark_apify(store, key: str, n: int, last_item_ts=None) -> None:
     ts = iso_utc(now_utc())
-    store.upsert("source_state", {"source_id": key, "last_attempt_ts": ts,
-                                  "last_success_ts": ts, "items_last_hour": n})
+    row = {"source_id": key, "last_attempt_ts": ts,
+           "last_success_ts": ts, "items_last_hour": n}
+    if last_item_ts is not None:          # apify_recover's newest-item cursor
+        row["last_item_ts"] = iso_utc(last_item_ts)
+    store.upsert("source_state", row)
 
 
 def _collect_apify_entries(store, src_cfg, mode: str,
@@ -321,6 +325,10 @@ def _collect_apify_entries(store, src_cfg, mode: str,
                 body_field=rc.get("body_field") or None,
                 payload_extra=rc.get("payload_extra") or None)
             n = 0
+            fresh = 0
+            prev = store.get("source_state", (key,)) or {}
+            cursor = parse_iso(prev.get("last_item_ts"))
+            newest = cursor
             body = apify_source.unwrap_xml_viewer(body)
             if body:
                 recovered = parse_feed(body, {
@@ -328,16 +336,29 @@ def _collect_apify_entries(store, src_cfg, mode: str,
                     "tier": int(feed.get("tier", 2)),
                     "role": feed.get("role", "trader_macro"),
                     "source_class": feed.get("source_class", "wire"),
-                    "organization": feed.get("organization") or feed.get("id")})
-                out.extend(recovered)
+                    "organization": feed.get("organization") or feed.get("id"),
+                    "freshness_grace_min": int(feed.get("freshness_grace_min") or 0)})
                 # Count only USABLE entries: normalize() drops items without a
                 # URL, and counting the raw 30 hid that every one was unusable.
-                n = sum(1 for e in recovered if e.get("url"))
+                usable = [e for e in recovered if e.get("url")]
+                n = len(usable)
                 if recovered and not n:
                     log.warning("apify recover %s: %d entries but none has a URL — "
                                 "body format changed?", feed.get("id"), len(recovered))
-            _mark_apify(store, key, n)
-            log.info("apify recover %s: +%d usable entries", feed.get("id"), n)
+                # Pass on only items NEWER than last poll's newest. The proxy
+                # returns the whole feed every call (no conditional GET), and
+                # re-feeding old items re-scores their events at a decayed
+                # freshness, overwriting the first-sighting score in event_state.
+                for e in usable:
+                    pub = e.get("published_ts")
+                    if cursor is None or pub is None or pub > cursor:
+                        out.append(e)
+                        fresh += 1
+                    if pub is not None and (newest is None or pub > newest):
+                        newest = pub
+            _mark_apify(store, key, n, last_item_ts=newest)
+            log.info("apify recover %s: +%d usable entries (%d new since last poll)",
+                     feed.get("id"), n, fresh)
 
     return out
 
