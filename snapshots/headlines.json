@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-10-20T19:46:00Z",
+      "ts": "2026-10-20T22:55:51Z",
       "title": "global · Other",
       "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-20T19:46:00Z",
+      "ts": "2026-10-20T22:55:51Z",
       "title": "israel · Geopolitics",
       "source": "Cnbc",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-20T19:46:00Z",
-      "title": "mideast · Geopolitics",
-      "source": "Cnbc",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-20T19:46:00Z",
+      "ts": "2026-10-20T22:55:51Z",
       "title": "global · Other",
       "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-20T19:46:00Z",
-      "title": "global · Other",
-      "source": "Investing Cb",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-20T19:46:00Z",
-      "title": "us · Inflation",
-      "source": "Investing Cb",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-20T19:46:00Z",
-      "title": "global · Other",
-      "source": "Investing Cb",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-20T19:46:00Z",
+      "ts": "2026-10-20T22:55:51Z",
       "title": "global · Other",
       "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-20T19:46:00Z",
+      "ts": "2026-10-20T22:55:51Z",
       "title": "ukraine · Geopolitics",
       "source": "Cnbc",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-20T19:46:00Z",
+      "ts": "2026-10-20T22:55:51Z",
       "title": "global · Other",
-      "source": "Cnbc, Investing Cb",
+      "source": "Cnbc",
       "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-20T22:55:51Z",
+      "title": "mideast · Geopolitics · risk off",
+      "source": "Cnbc",
+      "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-20T22:55:51Z",
+      "title": "global · Other",
+      "source": "Cnbc",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-20T22:55:51Z",
+      "title": "global · Other",
+      "source": "Cnbc",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-20T22:55:51Z",
+      "title": "us · Usd Yields · risk on",
+      "source": "Cnbc",
+      "score": 0.3,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-10-20T19:50:46.786667Z"
+  "written_at": "2026-10-20T22:56:42.107498Z"
 }
