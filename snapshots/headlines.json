@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-10-21T12:06:07Z",
-      "title": "china · Geopolitics",
-      "source": "Cnbc",
+      "ts": "2026-10-21T17:31:12Z",
+      "title": "global · Other",
+      "source": "Financialjuice",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-21T17:31:12Z",
+      "title": "ukraine · Geopolitics",
+      "source": "Financialjuice",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-21T12:06:07Z",
-      "title": "global · Other",
-      "source": "Cnbc",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-21T12:06:07Z",
-      "title": "global · Other",
-      "source": "Cnbc",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-21T12:06:07Z",
+      "ts": "2026-10-21T17:31:12Z",
       "title": "mideast · Geopolitics",
-      "source": "Cnbc",
+      "source": "Financialjuice",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-21T12:06:07Z",
+      "ts": "2026-10-21T17:31:12Z",
+      "title": "ukraine · Geopolitics · risk on",
+      "source": "Financialjuice",
+      "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-21T17:31:12Z",
       "title": "global · Other",
-      "source": "Cnbc",
+      "source": "Financialjuice",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-21T12:06:07Z",
-      "title": "global · Other",
-      "source": "Cnbc",
+      "ts": "2026-10-21T17:31:12Z",
+      "title": "russia · Geopolitics",
+      "source": "Financialjuice",
+      "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-21T17:31:12Z",
+      "title": "global · Other · risk off",
+      "source": "Financialjuice",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-21T12:06:07Z",
+      "ts": "2026-10-21T17:31:12Z",
       "title": "global · Other",
-      "source": "Cnbc",
+      "source": "Financialjuice",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-21T12:06:07Z",
-      "title": "global · Other",
-      "source": "Cnbc",
-      "score": 0.1,
+      "ts": "2026-10-21T17:31:12Z",
+      "title": "mideast · Geopolitics",
+      "source": "Financialjuice",
+      "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-21T12:06:07Z",
-      "title": "global · Other",
-      "source": "Cnbc",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-21T12:06:07Z",
-      "title": "global · Other",
-      "source": "Cnbc",
-      "score": 0.1,
+      "ts": "2026-10-21T17:31:12Z",
+      "title": "china · Geopolitics",
+      "source": "Financialjuice",
+      "score": 0.3,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-10-21T12:10:54.142104Z"
+  "written_at": "2026-10-21T17:31:57.145155Z"
 }
