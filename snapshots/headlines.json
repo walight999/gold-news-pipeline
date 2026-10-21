@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-10-21T06:15:54Z",
-      "title": "global · Other",
-      "source": "Cnbc",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-21T06:15:54Z",
+      "ts": "2026-10-21T12:06:07Z",
       "title": "china · Geopolitics",
       "source": "Cnbc",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-21T06:15:54Z",
+      "ts": "2026-10-21T12:06:07Z",
       "title": "global · Other",
       "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-21T06:15:54Z",
-      "title": "global · Other",
-      "source": "Investing Cb",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-21T06:15:54Z",
-      "title": "global · Other",
-      "source": "Investing Cb",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-21T06:15:54Z",
+      "ts": "2026-10-21T12:06:07Z",
       "title": "global · Other",
       "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-21T06:15:54Z",
-      "title": "global · Other",
-      "source": "Cnbc, Investing Cb",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-21T06:15:54Z",
-      "title": "global · Other",
-      "source": "Cnbc, Investing Cb",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-21T06:15:54Z",
-      "title": "global · Other",
-      "source": "Cnbc, Investing Cb",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-21T06:15:54Z",
-      "title": "us · Usd Yields · risk on",
+      "ts": "2026-10-21T12:06:07Z",
+      "title": "mideast · Geopolitics",
       "source": "Cnbc",
       "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-21T12:06:07Z",
+      "title": "global · Other",
+      "source": "Cnbc",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-21T12:06:07Z",
+      "title": "global · Other",
+      "source": "Cnbc",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-21T12:06:07Z",
+      "title": "global · Other",
+      "source": "Cnbc",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-21T12:06:07Z",
+      "title": "global · Other",
+      "source": "Cnbc",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-21T12:06:07Z",
+      "title": "global · Other",
+      "source": "Cnbc",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-21T12:06:07Z",
+      "title": "global · Other",
+      "source": "Cnbc",
+      "score": 0.1,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-10-21T06:21:02.633055Z"
+  "written_at": "2026-10-21T12:10:54.142104Z"
 }
