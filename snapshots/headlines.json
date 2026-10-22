@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-10-22T05:10:58Z",
-      "title": "mideast · Geopolitics",
-      "source": "Bbc World",
+      "ts": "2026-10-22T10:20:59Z",
+      "title": "global · Other",
+      "source": "Cnbc",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-22T10:20:59Z",
+      "title": "global · Other",
+      "source": "Cnbc",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-22T10:20:59Z",
+      "title": "global · Other",
+      "source": "Cnbc",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-22T10:20:59Z",
+      "title": "global · Other",
+      "source": "Cnbc",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-22T10:20:59Z",
+      "title": "russia · Geopolitics · risk off",
+      "source": "Cnbc",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-22T05:10:58Z",
-      "title": "global · Other · risk off",
-      "source": "Bbc World",
+      "ts": "2026-10-22T10:20:59Z",
+      "title": "global · Other",
+      "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-22T05:10:58Z",
-      "title": "mideast · Geopolitics · risk off",
-      "source": "Bbc World",
+      "ts": "2026-10-22T10:20:59Z",
+      "title": "global · Other",
+      "source": "Cnbc",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-22T10:20:59Z",
+      "title": "global · Other",
+      "source": "Cnbc",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-22T10:20:59Z",
+      "title": "global · Other",
+      "source": "Cnbc, Marketwatch",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-22T10:20:59Z",
+      "title": "ukraine · Geopolitics · dovish",
+      "source": "Cnbc",
       "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-22T05:10:58Z",
-      "title": "mideast · Geopolitics",
-      "source": "Bbc World",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-22T05:10:58Z",
-      "title": "global · Other",
-      "source": "Bbc World",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-22T05:10:58Z",
-      "title": "global · Other",
-      "source": "Bbc World",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-22T05:10:58Z",
-      "title": "global · Other",
-      "source": "Bbc World",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-22T05:10:58Z",
-      "title": "global · Other",
-      "source": "Bbc World",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-22T05:10:58Z",
-      "title": "global · Other · risk off",
-      "source": "Bbc World",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-22T05:10:58Z",
-      "title": "global · Other",
-      "source": "Bbc World",
-      "score": 0.1,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-10-22T05:11:41.921526Z"
+  "written_at": "2026-10-22T10:26:14.771318Z"
 }
