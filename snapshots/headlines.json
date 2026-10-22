@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-10-22T15:26:09Z",
+      "ts": "2026-10-22T19:21:01Z",
       "title": "global · Other",
-      "source": "Bbc World",
+      "source": "Investing Cb",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-22T15:26:09Z",
-      "title": "global · Other · risk off",
-      "source": "Bbc World",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-22T15:26:09Z",
+      "ts": "2026-10-22T19:21:01Z",
       "title": "global · Other",
-      "source": "Bbc World",
+      "source": "Investing Cb",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-22T15:26:09Z",
-      "title": "global · Other",
-      "source": "Bbc World",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-22T15:26:09Z",
-      "title": "global · Other · risk off",
-      "source": "Bbc World",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-22T15:26:09Z",
-      "title": "russia · Geopolitics · risk off",
-      "source": "Bbc World",
+      "ts": "2026-10-22T19:21:01Z",
+      "title": "russia · Geopolitics · risk on",
+      "source": "Investing Cb",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-22T15:26:09Z",
+      "ts": "2026-10-22T19:21:01Z",
+      "title": "us · Inflation",
+      "source": "Investing Cb",
+      "score": 0.5,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-22T19:21:01Z",
       "title": "global · Other",
-      "source": "Bbc World",
+      "source": "Financialjuice, Investing Cb",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-22T15:26:09Z",
-      "title": "global · Other · risk on",
-      "source": "Bbc World",
+      "ts": "2026-10-22T19:21:01Z",
+      "title": "global · Other",
+      "source": "Cnbc, Financialjuice, Investing Cb",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-22T15:26:09Z",
-      "title": "us · Geopolitics · risk off",
-      "source": "Bbc World",
+      "ts": "2026-10-22T19:21:01Z",
+      "title": "mideast · Geopolitics",
+      "source": "Financialjuice",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-22T15:26:09Z",
+      "ts": "2026-10-22T19:21:01Z",
+      "title": "boe · Rate Policy",
+      "source": "Financialjuice",
+      "score": 0.5,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-22T19:21:01Z",
       "title": "global · Other",
-      "source": "Bbc World",
+      "source": "Financialjuice",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-22T19:21:01Z",
+      "title": "global · Other",
+      "source": "Financialjuice, Investing Commodities",
       "score": 0.1,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-10-22T15:29:27.956848Z"
+  "written_at": "2026-10-22T19:23:46.129447Z"
 }
