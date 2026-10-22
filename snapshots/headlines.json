@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-10-21T21:15:58Z",
+      "ts": "2026-10-22T00:06:06Z",
+      "title": "us · Usd Yields",
+      "source": "Investing Cb",
+      "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-22T00:06:06Z",
+      "title": "global · Other",
+      "source": "Investing Cb",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-22T00:06:06Z",
+      "title": "global · Other",
+      "source": "Investing Cb",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-22T00:06:06Z",
+      "title": "uk · Inflation",
+      "source": "Investing Cb",
+      "score": 0.5,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-22T00:06:06Z",
       "title": "global · Other · dovish",
       "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-21T21:15:58Z",
+      "ts": "2026-10-22T00:06:06Z",
+      "title": "global · Other",
+      "source": "Investing Cb",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-22T00:06:06Z",
       "title": "us · Usd Yields",
       "source": "Cnbc",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-21T21:15:58Z",
+      "ts": "2026-10-22T00:06:06Z",
       "title": "global · Other",
-      "source": "Cnbc",
+      "source": "Investing Cb",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-21T21:15:58Z",
-      "title": "fed · Rate Policy · hawkish",
-      "source": "Cnbc",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-21T21:15:58Z",
-      "title": "global · Other",
-      "source": "Cnbc",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-21T21:15:58Z",
-      "title": "global · Other",
-      "source": "Cnbc",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-21T21:15:58Z",
-      "title": "global · Other",
-      "source": "Cnbc",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-21T21:15:58Z",
-      "title": "global · Other",
-      "source": "Cnbc",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-21T21:15:58Z",
-      "title": "mideast · Geopolitics",
-      "source": "Financialjuice",
+      "ts": "2026-10-22T00:06:06Z",
+      "title": "russia · Geopolitics · risk on",
+      "source": "Investing Cb",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-21T21:15:58Z",
-      "title": "china · Geopolitics",
-      "source": "Financialjuice",
-      "score": 0.3,
+      "ts": "2026-10-22T00:06:06Z",
+      "title": "global · Other",
+      "source": "Cnbc, Investing Cb",
+      "score": 0.1,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-10-21T21:18:14.897894Z"
+  "written_at": "2026-10-22T00:06:25.704376Z"
 }
