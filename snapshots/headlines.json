@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-10-26T05:46:04Z",
-      "title": "mideast · Geopolitics · risk off",
-      "source": "Financialjuice",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-26T05:46:04Z",
-      "title": "ecb · Rate Policy",
-      "source": "Financialjuice",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-26T05:46:04Z",
-      "title": "mideast · Geopolitics · risk off",
-      "source": "Financialjuice",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-26T05:46:04Z",
-      "title": "mideast · Geopolitics · risk off",
-      "source": "Financialjuice",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-26T05:46:04Z",
-      "title": "mideast · Geopolitics · risk off",
-      "source": "Financialjuice",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-26T05:46:04Z",
-      "title": "russia · Geopolitics · risk off",
-      "source": "Financialjuice",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-26T05:46:04Z",
+      "ts": "2026-10-26T12:16:04Z",
       "title": "israel · Geopolitics",
       "source": "Bbc World",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-26T05:46:04Z",
+      "ts": "2026-10-26T12:16:04Z",
       "title": "ukraine · Geopolitics",
       "source": "Bbc World",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-26T05:46:04Z",
-      "title": "russia · Geopolitics",
+      "ts": "2026-10-26T12:16:04Z",
+      "title": "global · Other",
       "source": "Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-26T12:16:04Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-26T12:16:04Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-26T12:16:04Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-26T12:16:04Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-26T12:16:04Z",
+      "title": "global · Other",
+      "source": "Financialjuice",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-26T12:16:04Z",
+      "title": "us · Geopolitics · risk off",
+      "source": "Financialjuice",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-26T05:46:04Z",
-      "title": "israel · Geopolitics",
-      "source": "Bbc World",
+      "ts": "2026-10-26T12:16:04Z",
+      "title": "us · Geopolitics",
+      "source": "Financialjuice",
       "score": 0.3,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-10-26T05:47:53.176986Z"
+  "written_at": "2026-10-26T12:21:10.055976Z"
 }
