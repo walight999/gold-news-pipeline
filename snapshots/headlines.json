@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-10-26T12:16:04Z",
-      "title": "israel · Geopolitics",
-      "source": "Bbc World",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-26T12:16:04Z",
-      "title": "ukraine · Geopolitics",
-      "source": "Bbc World",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-26T12:16:04Z",
+      "ts": "2026-10-26T18:46:13Z",
       "title": "global · Other",
       "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-26T12:16:04Z",
+      "ts": "2026-10-26T18:46:13Z",
+      "title": "fed · Rate Policy",
+      "source": "Bbc World",
+      "score": 0.5,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-26T18:46:13Z",
       "title": "global · Other",
       "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-26T12:16:04Z",
+      "ts": "2026-10-26T18:46:13Z",
       "title": "global · Other",
       "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-26T12:16:04Z",
+      "ts": "2026-10-26T18:46:13Z",
       "title": "global · Other",
       "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-26T12:16:04Z",
+      "ts": "2026-10-26T18:46:13Z",
       "title": "global · Other",
       "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-26T12:16:04Z",
+      "ts": "2026-10-26T18:46:13Z",
       "title": "global · Other",
-      "source": "Financialjuice",
+      "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-26T12:16:04Z",
-      "title": "us · Geopolitics · risk off",
-      "source": "Financialjuice",
-      "score": 0.3,
+      "ts": "2026-10-26T18:46:13Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-26T12:16:04Z",
-      "title": "us · Geopolitics",
+      "ts": "2026-10-26T18:46:13Z",
+      "title": "us · Usd Yields",
       "source": "Financialjuice",
       "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-26T18:46:13Z",
+      "title": "global · Other · risk off",
+      "source": "Financialjuice",
+      "score": 0.1,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-10-26T12:21:10.055976Z"
+  "written_at": "2026-10-26T18:48:09.338666Z"
 }
