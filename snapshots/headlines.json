@@ -2,70 +2,70 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-10-27T19:46:33Z",
+      "ts": "2026-10-27T23:31:22Z",
       "title": "global · Other",
-      "source": "Cnbc",
+      "source": "Financialjuice",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-27T19:46:33Z",
-      "title": "global · Other",
-      "source": "Cnbc",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-27T19:46:33Z",
-      "title": "russia · Geopolitics · risk off",
-      "source": "Cnbc",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-27T19:46:33Z",
-      "title": "global · Other",
-      "source": "Cnbc, Financialjuice, Investing Cb",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-27T19:46:33Z",
+      "ts": "2026-10-27T23:31:22Z",
       "title": "mideast · Geopolitics · risk off",
       "source": "Financialjuice",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-27T19:46:33Z",
+      "ts": "2026-10-27T23:31:22Z",
+      "title": "russia · Geopolitics",
+      "source": "Financialjuice",
+      "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-27T23:31:22Z",
+      "title": "us · Geopolitics",
+      "source": "Financialjuice",
+      "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-27T23:31:22Z",
+      "title": "global · Other",
+      "source": "Financialjuice",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-27T23:31:22Z",
+      "title": "russia · Geopolitics",
+      "source": "Financialjuice",
+      "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-27T23:31:22Z",
       "title": "fed · Rate Policy",
       "source": "Financialjuice",
       "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-27T19:46:33Z",
-      "title": "us · Growth",
-      "source": "Investing Cb",
-      "score": 0.2,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-27T19:46:33Z",
-      "title": "global · Other",
-      "source": "Financialjuice, Investing Cb",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-27T19:46:33Z",
-      "title": "us · Geopolitics · risk off",
+      "ts": "2026-10-27T23:31:22Z",
+      "title": "israel · Geopolitics",
       "source": "Financialjuice",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-27T19:46:33Z",
+      "ts": "2026-10-27T23:31:22Z",
+      "title": "russia · Geopolitics · risk on",
+      "source": "Financialjuice",
+      "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-27T23:31:22Z",
       "title": "mideast · Geopolitics",
       "source": "Financialjuice",
       "score": 0.3,
@@ -73,5 +73,5 @@
     }
   ],
   "count": 10,
-  "written_at": "2026-10-27T19:50:20.122555Z"
+  "written_at": "2026-10-27T23:31:30.009405Z"
 }
