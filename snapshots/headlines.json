@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-10-26T22:56:05Z",
+      "ts": "2026-10-27T02:16:08Z",
       "title": "fed · Rate Policy",
-      "source": "Financialjuice",
+      "source": "Bbc World",
       "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-26T22:56:05Z",
+      "ts": "2026-10-27T02:16:08Z",
       "title": "global · Other",
-      "source": "Financialjuice",
+      "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-26T22:56:05Z",
-      "title": "russia · Geopolitics",
-      "source": "Financialjuice",
-      "score": 0.3,
+      "ts": "2026-10-27T02:16:08Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-26T22:56:05Z",
+      "ts": "2026-10-27T02:16:08Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-27T02:16:08Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-27T02:16:08Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-27T02:16:08Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-27T02:16:08Z",
       "title": "mideast · Geopolitics",
       "source": "Financialjuice",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-26T22:56:05Z",
-      "title": "mideast · Geopolitics",
-      "source": "Financialjuice",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-26T22:56:05Z",
+      "ts": "2026-10-27T02:16:08Z",
       "title": "global · Other",
-      "source": "Financialjuice",
+      "source": "Bbc World, Financialjuice",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-26T22:56:05Z",
-      "title": "mideast · Geopolitics",
-      "source": "Financialjuice",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-26T22:56:05Z",
+      "ts": "2026-10-27T02:16:08Z",
       "title": "global · Other",
       "source": "Financialjuice",
       "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-26T22:56:05Z",
-      "title": "us · Usd Yields",
-      "source": "Financialjuice",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-26T22:56:05Z",
-      "title": "fed · Rate Policy",
-      "source": "Financialjuice",
-      "score": 0.5,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-10-26T23:01:54.601290Z"
+  "written_at": "2026-10-27T02:18:21.518367Z"
 }
