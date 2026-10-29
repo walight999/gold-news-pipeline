@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-10-29T01:31:26Z",
+      "ts": "2026-10-29T08:01:32Z",
       "title": "global · Other",
       "source": "Financialjuice",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-29T01:31:26Z",
-      "title": "boe · Rate Policy",
-      "source": "Financialjuice",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-29T01:31:26Z",
-      "title": "global · Other · hawkish",
-      "source": "Financialjuice",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-29T01:31:26Z",
-      "title": "us · Geopolitics",
-      "source": "Financialjuice",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-29T01:31:26Z",
-      "title": "us · Geopolitics",
-      "source": "Financialjuice",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-29T01:31:26Z",
+      "ts": "2026-10-29T08:01:32Z",
       "title": "global · Other",
       "source": "Financialjuice",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-29T01:31:26Z",
+      "ts": "2026-10-29T08:01:32Z",
+      "title": "global · Other",
+      "source": "Financialjuice",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-29T08:01:32Z",
+      "title": "global · Other",
+      "source": "Financialjuice",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-29T08:01:32Z",
+      "title": "russia · Geopolitics · risk off",
+      "source": "Financialjuice",
+      "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-29T08:01:32Z",
       "title": "us · Usd Yields",
       "source": "Financialjuice",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-29T01:31:26Z",
-      "title": "us · Usd Yields · hawkish",
+      "ts": "2026-10-29T08:01:32Z",
+      "title": "mideast · Geopolitics · risk off",
       "source": "Financialjuice",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-29T01:31:26Z",
-      "title": "fed · Rate Policy",
+      "ts": "2026-10-29T08:01:32Z",
+      "title": "mideast · Geopolitics",
       "source": "Financialjuice",
-      "score": 0.5,
+      "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-29T01:31:26Z",
+      "ts": "2026-10-29T08:01:32Z",
       "title": "global · Other",
       "source": "Financialjuice",
       "score": 0.1,
       "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-29T08:01:32Z",
+      "title": "us · Usd Yields",
+      "source": "Financialjuice",
+      "score": 0.3,
+      "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-10-29T01:35:05.396795Z"
+  "written_at": "2026-10-29T08:05:29.655530Z"
 }
