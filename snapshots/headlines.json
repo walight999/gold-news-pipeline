@@ -2,70 +2,70 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-10-29T08:01:32Z",
+      "ts": "2026-10-29T15:21:04Z",
       "title": "global · Other",
       "source": "Financialjuice",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-29T08:01:32Z",
-      "title": "global · Other",
+      "ts": "2026-10-29T15:21:04Z",
+      "title": "fed · Rate Policy",
       "source": "Financialjuice",
-      "score": 0.1,
+      "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-29T08:01:32Z",
-      "title": "global · Other",
-      "source": "Financialjuice",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-29T08:01:32Z",
-      "title": "global · Other",
-      "source": "Financialjuice",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-29T08:01:32Z",
+      "ts": "2026-10-29T15:21:04Z",
       "title": "russia · Geopolitics · risk off",
       "source": "Financialjuice",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-29T08:01:32Z",
-      "title": "us · Usd Yields",
+      "ts": "2026-10-29T15:21:04Z",
+      "title": "ukraine · Geopolitics",
       "source": "Financialjuice",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-29T08:01:32Z",
-      "title": "mideast · Geopolitics · risk off",
+      "ts": "2026-10-29T15:21:04Z",
+      "title": "us · Inflation",
       "source": "Financialjuice",
-      "score": 0.3,
+      "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-29T08:01:32Z",
-      "title": "mideast · Geopolitics",
-      "source": "Financialjuice",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-29T08:01:32Z",
+      "ts": "2026-10-29T15:21:04Z",
       "title": "global · Other",
       "source": "Financialjuice",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-29T08:01:32Z",
+      "ts": "2026-10-29T15:21:04Z",
+      "title": "ecb · Rate Policy",
+      "source": "Financialjuice",
+      "score": 0.5,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-29T15:21:04Z",
+      "title": "us · Inflation · hawkish",
+      "source": "Financialjuice",
+      "score": 0.5,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-29T15:21:04Z",
+      "title": "ecb · Rate Policy · hawkish",
+      "source": "Financialjuice",
+      "score": 0.5,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-29T15:21:04Z",
       "title": "us · Usd Yields",
       "source": "Financialjuice",
       "score": 0.3,
@@ -73,5 +73,5 @@
     }
   ],
   "count": 10,
-  "written_at": "2026-10-29T08:05:29.655530Z"
+  "written_at": "2026-10-29T15:24:53.742525Z"
 }
