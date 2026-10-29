@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-10-29T15:21:04Z",
+      "ts": "2026-10-29T20:26:15Z",
       "title": "global · Other",
-      "source": "Financialjuice",
+      "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-29T15:21:04Z",
-      "title": "fed · Rate Policy",
-      "source": "Financialjuice",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-29T15:21:04Z",
-      "title": "russia · Geopolitics · risk off",
-      "source": "Financialjuice",
+      "ts": "2026-10-29T20:26:15Z",
+      "title": "russia · Geopolitics",
+      "source": "Bbc World",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-29T15:21:04Z",
-      "title": "ukraine · Geopolitics",
-      "source": "Financialjuice",
+      "ts": "2026-10-29T20:26:15Z",
+      "title": "mideast · Geopolitics",
+      "source": "Bbc World",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-29T15:21:04Z",
-      "title": "us · Inflation",
-      "source": "Financialjuice",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-29T15:21:04Z",
+      "ts": "2026-10-29T20:26:15Z",
       "title": "global · Other",
-      "source": "Financialjuice",
+      "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-29T15:21:04Z",
-      "title": "ecb · Rate Policy",
-      "source": "Financialjuice",
-      "score": 0.5,
+      "ts": "2026-10-29T20:26:15Z",
+      "title": "global · Other · risk off",
+      "source": "Bbc World",
+      "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-29T15:21:04Z",
-      "title": "us · Inflation · hawkish",
-      "source": "Financialjuice",
-      "score": 0.5,
+      "ts": "2026-10-29T20:26:15Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-29T15:21:04Z",
-      "title": "ecb · Rate Policy · hawkish",
-      "source": "Financialjuice",
-      "score": 0.5,
+      "ts": "2026-10-29T20:26:15Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-29T15:21:04Z",
-      "title": "us · Usd Yields",
-      "source": "Financialjuice",
-      "score": 0.3,
+      "ts": "2026-10-29T20:26:15Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-29T20:26:15Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-29T20:26:15Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-10-29T15:24:53.742525Z"
+  "written_at": "2026-10-29T20:26:59.310974Z"
 }
