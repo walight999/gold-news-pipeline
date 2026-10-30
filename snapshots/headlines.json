@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-10-30T06:11:09Z",
+      "ts": "2026-10-30T13:16:09Z",
       "title": "global · Other",
       "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-30T06:11:09Z",
-      "title": "us · Jobs",
-      "source": "Investing Cb",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-30T06:11:09Z",
-      "title": "us · Inflation",
-      "source": "Investing Cb",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-30T06:11:09Z",
-      "title": "global · Other",
-      "source": "Cnbc, Investing Cb",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-30T06:11:09Z",
+      "ts": "2026-10-30T13:16:09Z",
       "title": "global · Other",
       "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-30T06:11:09Z",
-      "title": "us · Geopolitics · risk on",
-      "source": "Investing Cb",
+      "ts": "2026-10-30T13:16:09Z",
+      "title": "global · Other",
+      "source": "Cnbc",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-30T13:16:09Z",
+      "title": "global · Other",
+      "source": "Cnbc",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-30T13:16:09Z",
+      "title": "israel · Geopolitics",
+      "source": "Cnbc",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-30T06:11:09Z",
+      "ts": "2026-10-30T13:16:09Z",
       "title": "global · Other",
       "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-30T06:11:09Z",
-      "title": "global · Other",
-      "source": "Cnbc, Investing Cb",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-10-30T06:11:09Z",
+      "ts": "2026-10-30T13:16:09Z",
       "title": "us · Inflation",
       "source": "Cnbc",
       "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-10-30T06:11:09Z",
+      "ts": "2026-10-30T13:16:09Z",
       "title": "global · Other",
-      "source": "Cnbc, Investing Commodities",
+      "source": "Cnbc",
       "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-30T13:16:09Z",
+      "title": "global · Other",
+      "source": "Cnbc",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-10-30T13:16:09Z",
+      "title": "mideast · Geopolitics · risk off",
+      "source": "Cnbc",
+      "score": 0.3,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-10-30T06:13:27.025497Z"
+  "written_at": "2026-10-30T13:19:53.789427Z"
 }
