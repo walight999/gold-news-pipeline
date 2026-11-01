@@ -2,70 +2,70 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-11-01T20:11:02Z",
-      "title": "us · Inflation",
-      "source": "Cnbc",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-11-01T20:11:02Z",
-      "title": "fed · Rate Policy · hawkish",
-      "source": "Forexlive",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-11-01T20:11:02Z",
+      "ts": "2026-11-01T23:45:55Z",
       "title": "mideast · Geopolitics",
-      "source": "Financialjuice",
+      "source": "Bbc World, Financialjuice",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-11-01T20:11:02Z",
+      "ts": "2026-11-01T23:45:55Z",
       "title": "us · Geopolitics · risk off",
       "source": "Financialjuice",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-11-01T20:11:02Z",
-      "title": "us · Usd Yields",
-      "source": "Cnbc",
+      "ts": "2026-11-01T23:45:55Z",
+      "title": "russia · Geopolitics",
+      "source": "Bbc World",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-11-01T20:11:02Z",
+      "ts": "2026-11-01T23:45:55Z",
+      "title": "russia · Geopolitics",
+      "source": "Bbc World",
+      "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-11-01T23:45:55Z",
+      "title": "mideast · Geopolitics · risk off",
+      "source": "Bbc World",
+      "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-11-01T23:45:55Z",
+      "title": "mideast · Geopolitics · risk on",
+      "source": "Bbc World",
+      "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-11-01T23:45:55Z",
+      "title": "us · Geopolitics",
+      "source": "Bbc World",
+      "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-11-01T23:45:55Z",
       "title": "mideast · Geopolitics · risk off",
       "source": "Financialjuice",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-11-01T20:11:02Z",
+      "ts": "2026-11-01T23:45:55Z",
       "title": "russia · Geopolitics · risk off",
       "source": "Financialjuice",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-11-01T20:11:02Z",
-      "title": "russia · Geopolitics",
-      "source": "Financialjuice",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-11-01T20:11:02Z",
-      "title": "russia · Geopolitics · risk off",
-      "source": "Financialjuice",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-11-01T20:11:02Z",
+      "ts": "2026-11-01T23:45:55Z",
       "title": "russia · Geopolitics",
       "source": "Financialjuice",
       "score": 0.3,
@@ -73,5 +73,5 @@
     }
   ],
   "count": 10,
-  "written_at": "2026-11-01T20:14:35.737326Z"
+  "written_at": "2026-11-01T23:46:18.827493Z"
 }
