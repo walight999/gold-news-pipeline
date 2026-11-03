@@ -60,7 +60,8 @@ def _already_individually_sent(store: Store, event_id: str) -> bool:
     """True if this event_id already went out as breaking / alert / a prior
     digest round. Stops the same story repeating across the 6 daily windows
     and stops a breaking item being echoed in the next digest."""
-    for route in ("breaking", "alert", "digest"):
+    # "merged" = bundled into another breaking card (src/speaker_burst.py).
+    for route in ("breaking", "alert", "digest", "merged"):
         if store.get("sent_log", (event_id, route)) is not None:
             return True
     return False
@@ -184,7 +185,7 @@ def recent_sent_titles(store: Store, now: "datetime", hours: float) -> list[str]
     cutoff = now - timedelta(hours=hours)
     ids = set()
     for r in store.all_rows("sent_log"):
-        if str(r.get("route_type")) not in ("breaking", "alert", "digest"):
+        if str(r.get("route_type")) not in ("breaking", "alert", "digest", "merged"):
             continue
         ts = parse_iso(r.get("sent_ts"))
         if ts is not None and ts >= cutoff:

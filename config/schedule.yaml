@@ -104,6 +104,9 @@ session:
 rate_limit:
   breaking_alert_window_minutes: 15
   breaking_alert_max: 5
+  # One breaking card per central-bank speaker ("Fed's Musalem: …") per N
+  # minutes; same-run remarks are bundled into that card (src/speaker_burst.py).
+  speaker_burst_cooldown_minutes: 15
 
 quiet_hours:
   # Forex/gold market closes around 04:00 ICT (NY close) and reopens with

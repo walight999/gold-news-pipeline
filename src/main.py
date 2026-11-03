@@ -23,7 +23,7 @@ from typing import Any
 import yaml
 
 from . import calendar as cal
-from . import content_log, daily_brief, speech_watch, dedup, delivery_stats, digest, drive_upload, fb_publish, fred, health, image_gen, macro_push, news_alert, ops_alert, price_feed, scorecard, scorer, social_feed, telegram_news, translator, video_brief, weekly_report
+from . import content_log, daily_brief, speaker_burst, speech_watch, dedup, delivery_stats, digest, drive_upload, fb_publish, fred, health, image_gen, macro_push, news_alert, ops_alert, price_feed, scorecard, scorer, social_feed, telegram_news, translator, video_brief, weekly_report
 from .fetcher import fetch_all, plan_fetch
 from .line_client import (
     PRIORITY_BRIEFING,
@@ -527,6 +527,28 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
 
     xau_now: Any = _UNSET
     breaking_story_seen: list[str] | None = None   # lazy: titles sent recently
+    # Central-bank speaker bursts → one card per speaker (src/speaker_burst.py).
+    burst_extras: dict[str, list[str]] = {}
+    burst_absorbed: dict[str, str] = {}
+    burst_deferred: set[str] = set()
+    ev_by_id = {d.event.event_id: d.event for d in decisions}
+    if line and news_target:
+        story_hours = float(sched_cfg["digest"].get("story_window_hours", 6))
+        burst_cands = []
+        for d in breaking_alert_decisions:
+            ev = d.event
+            if (store.get("sent_log", (ev.event_id, d.route.value))
+                    or store.get("sent_log", (ev.event_id, speaker_burst.MERGED_ROUTE))):
+                continue
+            if breaking_story_seen is None:
+                breaking_story_seen = digest.recent_sent_titles(store, now_utc(), story_hours)
+            if digest.same_story(ev.representative_title, breaking_story_seen, near_only=True):
+                continue
+            burst_cands.append((ev.event_id, ev.representative_title))
+        if burst_cands:
+            cooldown = speaker_burst.recent_speaker_keys(
+                store, now_utc(), float(rl.get("speaker_burst_cooldown_minutes", 15)))
+            burst_extras, burst_absorbed, burst_deferred = speaker_burst.plan(burst_cands, cooldown)
     for d in decisions:
         ev = d.event
         # first_seen must survive across runs. normalize() stamps every item
@@ -564,7 +586,7 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
         if d.route in (Route.BREAKING, Route.ALERT) and line and news_target:
             # idempotency
             existing = store.get("sent_log", (ev.event_id, d.route.value))
-            if existing:
+            if existing or store.get("sent_log", (ev.event_id, speaker_burst.MERGED_ROUTE)):
                 continue
             # Near-identical headline already in the group within the story
             # window → don't push it again (near-dup only: a NEW remark from
@@ -578,6 +600,15 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
                 log.info("%s: same story already sent (%s) skipped event_id=%s: %s",
                          d.route.value, why, ev.event_id, ev.representative_title[:80])
                 continue
+            if ev.event_id in burst_deferred:
+                log.info("%s: speaker already had a card in the cooldown — left for the digest event_id=%s: %s",
+                         d.route.value, ev.event_id, ev.representative_title[:80])
+                continue
+            if ev.event_id in burst_absorbed:
+                log.info("%s: bundled into speaker card %s event_id=%s: %s", d.route.value,
+                         burst_absorbed[ev.event_id], ev.event_id, ev.representative_title[:80])
+                continue
+            burst_events = [ev_by_id[e] for e in burst_extras.get(ev.event_id, [])]
             # Classify + rewrite into a structured Thai market alert. Skips
             # the push entirely when the classifier rejects the item
             # (personal finance / evergreen / opinion / stale).
@@ -588,7 +619,8 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
                 age_hours = (now_utc() - earliest).total_seconds() / 3600.0
             alert_obj = news_alert.classify_and_rewrite(
                 ev.representative_title,
-                ev.classify_summary,
+                speaker_burst.merged_summary(
+                    ev.classify_summary, [b.representative_title for b in burst_events]),
                 source_id=",".join(ev.source_list[:2]),
                 age_hours=age_hours,
                 store=store,
@@ -645,6 +677,13 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
                     "line_status": resp["status"],
                 })
                 breaking_story_seen.append(ev.representative_title)
+                for b in burst_events:
+                    store.upsert("sent_log", speaker_burst.merged_row(
+                        b.event_id, ev.event_id, iso_utc(now_utc())))
+                    breaking_story_seen.append(b.representative_title)
+                if burst_events:
+                    log.info("%s: one card for %d remarks from the same speaker event_id=%s",
+                             d.route.value, 1 + len(burst_events), ev.event_id)
                 try:
                     if d.route.value in draft_routes:
                         social_records.append(social_feed.record_news_event(
@@ -684,23 +723,25 @@ async def run_once(mode: str, tier_filter: set[int] | None = None) -> int:
             # CHUM News Bot (Telegram) is an INDEPENDENT channel — push regardless of
             # the LINE result (LINE quiet-hours / outage must not silence the global
             # bot). Worker dedups on (event_id, route) so re-runs never double-send.
-            if tg_news:
+            # Bundled remarks still go to Telegram one by one (English
+            # headline product), carrying the primary's category / tone.
+            for tev in ([ev] + burst_events) if tg_news else []:
                 try:
                     tg_news.post(telegram_news.build_payload(
-                        event_id=ev.event_id,
+                        event_id=tev.event_id,
                         route=d.route.value,
                         category=alert_obj.category,
                         tone=alert_obj.tone,
                         impact_level=score_to_impact(d.score)[0],
                         # ENGLISH/global product — send the English original, not the Thai rewrite.
-                        headline_th=ev.representative_title,
+                        headline_th=tev.representative_title,
                         body_th=[],
                         impact_th=None,
-                        source=_source_label(ev.source_list),
-                        url=_pick_article_url(ev.items),
+                        source=_source_label(tev.source_list),
+                        url=_pick_article_url(tev.items),
                     ))
                 except Exception:
-                    log.exception("telegram news push (breaking/alert) failed event=%s", ev.event_id)
+                    log.exception("telegram news push (breaking/alert) failed event=%s", tev.event_id)
 
     # 6. Health pass — first detect current warnings, then resolve any
     # open warnings whose triggering condition is no longer true, then push.
