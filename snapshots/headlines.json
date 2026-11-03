@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-11-03T11:36:03Z",
+      "ts": "2026-11-03T19:06:06Z",
       "title": "global · Other",
-      "source": "Cnbc",
+      "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-11-03T11:36:03Z",
+      "ts": "2026-11-03T19:06:06Z",
       "title": "global · Other",
-      "source": "Cnbc",
+      "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-11-03T11:36:03Z",
-      "title": "global · Other",
-      "source": "Cnbc",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-11-03T11:36:03Z",
-      "title": "us · Usd Yields",
-      "source": "Cnbc",
+      "ts": "2026-11-03T19:06:06Z",
+      "title": "russia · Geopolitics · risk off",
+      "source": "Bbc World",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-11-03T11:36:03Z",
-      "title": "fed · Rate Policy",
-      "source": "Cnbc",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-11-03T11:36:03Z",
-      "title": "global · Other",
-      "source": "Cnbc",
+      "ts": "2026-11-03T19:06:06Z",
+      "title": "global · Other · risk off",
+      "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-11-03T11:36:03Z",
-      "title": "global · Other",
-      "source": "Cnbc",
+      "ts": "2026-11-03T19:06:06Z",
+      "title": "ukraine · Geopolitics · risk on",
+      "source": "Bbc World",
+      "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-11-03T19:06:06Z",
+      "title": "global · Other · risk off",
+      "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-11-03T11:36:03Z",
+      "ts": "2026-11-03T19:06:06Z",
       "title": "global · Other",
-      "source": "Cnbc",
+      "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-11-03T11:36:03Z",
-      "title": "global · Other · risk on",
-      "source": "Cnbc",
+      "ts": "2026-11-03T19:06:06Z",
+      "title": "global · Other",
+      "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-11-03T11:36:03Z",
+      "ts": "2026-11-03T19:06:06Z",
       "title": "global · Other",
-      "source": "Marketwatch",
+      "source": "Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-11-03T19:06:06Z",
+      "title": "global · Other",
+      "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-11-03T11:39:19.679728Z"
+  "written_at": "2026-11-03T19:08:15.747927Z"
 }
