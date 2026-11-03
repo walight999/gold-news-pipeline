@@ -2790,6 +2790,18 @@ def _carousel_chunks(items: list[dict[str, Any]]) -> list[list[dict[str, Any]]]:
     return chunks
 
 
+# Released-card dedup by NAME, not just event_id (2026-11-03). event_id hashes
+# the release time, and FF re-times some decisions after the fact: BOJ Policy
+# Rate / Outlook Report were listed at 02:30 UTC on 2026-10-30, carded at
+# 02:32 + 02:43, then moved to 03:02 — a new event_id — and carded AGAIN at
+# 03:52. One marker row per (currency, title, ICT date) stops the second card.
+POST_NAME_ROUTE = "calendar_post_name"
+
+
+def _post_name_key(ev) -> str:
+    return f"postname:{ev.country}|{ev.title}|{ev.dt_ict.date().isoformat()}"
+
+
 def _push_calendar_groups(line, target, pending, sched_cfg, store, *,
                           route_type: str, priority: int) -> int:
     """Push collected calendar cards grouped by release time — one bubble when
@@ -2836,6 +2848,11 @@ def _push_calendar_groups(line, target, pending, sched_cfg, store, *,
                     log.info("calendar_post latency %ds: %s", int((sent_at - c["ev"].dt_utc).total_seconds()),
                              getattr(c["ev"], "title", c["sent_key"]))
                 store.upsert("sent_log", row)
+                if c.get("name_key"):
+                    store.upsert("sent_log", {
+                        "event_id": c["name_key"], "route_type": POST_NAME_ROUTE,
+                        "sent_ts": iso_utc(sent_at), "line_status": "marker",
+                    })
                 if c["on_delivered"]:
                     store.upsert("calibration_log", c["on_delivered"])
                 elif c.get("ungraded"):
@@ -2848,23 +2865,6 @@ def _push_calendar_groups(line, target, pending, sched_cfg, store, *,
 from datetime import timedelta as _timedelta   # noqa: E402
 
 _ACTUAL_WAIT = _timedelta(minutes=8)
-
-
-def _time_filled_after_print(store, ev, now, *, pre_enabled: bool, late_cap_min: int) -> bool:
-    """True when a Released card would only announce a print the group heard
-    about long ago. FF lists some decisions as "Tentative" (BoJ, often RBA/PBoC)
-    and fills the real time in after the announcement, which also changes
-    event_id (it hashes the time). Such an event never got a T-15 card and
-    first shows up already late: BOJ Policy Rate on 2026-10-30 went out
-    51 min after the decision with no actual, while the breaking route had the
-    story at +4 min. Over 59 Released cards those were the only two without a
-    T-15 card. An event that had its T-15 card is never held back, however
-    late the post run is."""
-    if not pre_enabled or late_cap_min <= 0:
-        return False
-    if store.get("sent_log", (f"precal:{ev.event_id}", "calendar_pre")):
-        return False
-    return (now - ev.dt_utc) > _timedelta(minutes=late_cap_min)
 _PING_AHEAD = _timedelta(minutes=30)
 
 
@@ -3044,8 +3044,7 @@ async def run_calendar_check() -> int:
     # (precise T-15 one-shot triggers). When disabled here, this mode sends
     # POST-release (Released News) only — re-enabling pre here would double
     # up with the GAS cards.
-    upcoming_enabled = cal_cfg.get("pre_release_enabled", True)
-    if not upcoming_enabled:
+    if not cal_cfg.get("pre_release_enabled", True):
         if upcoming:
             log.info("calendar_check: pre-release disabled (GAS owns it) — skipping %d event(s)", len(upcoming))
         upcoming = []
@@ -3101,16 +3100,13 @@ async def run_calendar_check() -> int:
         #   3. Directional-only when both fail.
         fred_key = fred.fred_api_key()
         ff_actuals_cache: dict[str, str] | None = None   # lazy, once per run
-        late_cap = int(cal_cfg.get("post_without_pre_max_late_min", 15))
         for ev in just_released:
             sent_key = f"postcal:{ev.event_id}"
             if store.get("sent_log", (sent_key, "calendar_post")):
                 continue
-            if _time_filled_after_print(store, ev, now_utc(), pre_enabled=bool(upcoming_enabled),
-                                        late_cap_min=late_cap):
-                log.info("calendar_check: %s %s got its time only after the print (no T-15 card, "
-                         "%d min late) — no Released card; the news route covers it",
-                         ev.country, ev.title, int((now_utc() - ev.dt_utc).total_seconds() // 60))
+            if store.get("sent_log", (_post_name_key(ev), POST_NAME_ROUTE)):
+                log.info("calendar_check: %s %s already has a Released card today under an "
+                         "earlier time (FF re-timed it) — skipping", ev.country, ev.title)
                 continue
             impact_info = cal.gold_impact_directional(ev)
             actual_text = surprise = verdict = None
@@ -3225,7 +3221,8 @@ async def run_calendar_check() -> int:
                     ungraded = "no numeric forecast"
                 else:
                     ungraded = f"verdict has no gold direction ({(verdict or '')[:40]!r})"
-            pending_post.append({"ev": ev, "sent_key": sent_key, "bubble": bubble,
+            pending_post.append({"ev": ev, "sent_key": sent_key, "name_key": _post_name_key(ev),
+                                 "bubble": bubble,
                                  "alt": alt, "on_delivered": cal_row,
                                  "ungraded": ungraded,
                                  "print": (ev.country, ev.title, actual_text or "",
