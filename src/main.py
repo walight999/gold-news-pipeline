@@ -2848,6 +2848,23 @@ def _push_calendar_groups(line, target, pending, sched_cfg, store, *,
 from datetime import timedelta as _timedelta   # noqa: E402
 
 _ACTUAL_WAIT = _timedelta(minutes=8)
+
+
+def _time_filled_after_print(store, ev, now, *, pre_enabled: bool, late_cap_min: int) -> bool:
+    """True when a Released card would only announce a print the group heard
+    about long ago. FF lists some decisions as "Tentative" (BoJ, often RBA/PBoC)
+    and fills the real time in after the announcement, which also changes
+    event_id (it hashes the time). Such an event never got a T-15 card and
+    first shows up already late: BOJ Policy Rate on 2026-10-30 went out
+    51 min after the decision with no actual, while the breaking route had the
+    story at +4 min. Over 59 Released cards those were the only two without a
+    T-15 card. An event that had its T-15 card is never held back, however
+    late the post run is."""
+    if not pre_enabled or late_cap_min <= 0:
+        return False
+    if store.get("sent_log", (f"precal:{ev.event_id}", "calendar_pre")):
+        return False
+    return (now - ev.dt_utc) > _timedelta(minutes=late_cap_min)
 _PING_AHEAD = _timedelta(minutes=30)
 
 
@@ -3027,7 +3044,8 @@ async def run_calendar_check() -> int:
     # (precise T-15 one-shot triggers). When disabled here, this mode sends
     # POST-release (Released News) only — re-enabling pre here would double
     # up with the GAS cards.
-    if not cal_cfg.get("pre_release_enabled", True):
+    upcoming_enabled = cal_cfg.get("pre_release_enabled", True)
+    if not upcoming_enabled:
         if upcoming:
             log.info("calendar_check: pre-release disabled (GAS owns it) — skipping %d event(s)", len(upcoming))
         upcoming = []
@@ -3083,9 +3101,16 @@ async def run_calendar_check() -> int:
         #   3. Directional-only when both fail.
         fred_key = fred.fred_api_key()
         ff_actuals_cache: dict[str, str] | None = None   # lazy, once per run
+        late_cap = int(cal_cfg.get("post_without_pre_max_late_min", 15))
         for ev in just_released:
             sent_key = f"postcal:{ev.event_id}"
             if store.get("sent_log", (sent_key, "calendar_post")):
+                continue
+            if _time_filled_after_print(store, ev, now_utc(), pre_enabled=bool(upcoming_enabled),
+                                        late_cap_min=late_cap):
+                log.info("calendar_check: %s %s got its time only after the print (no T-15 card, "
+                         "%d min late) — no Released card; the news route covers it",
+                         ev.country, ev.title, int((now_utc() - ev.dt_utc).total_seconds() // 60))
                 continue
             impact_info = cal.gold_impact_directional(ev)
             actual_text = surprise = verdict = None

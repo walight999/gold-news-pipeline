@@ -183,6 +183,11 @@ calendar:
   # historical price, so a late-delivered card is still accurate.
   post_release_window_low_min:  -180
   post_release_window_high_min:    0
+  # An event with no T-15 card that's already this many minutes past its time
+  # got that time filled in after the print ("Tentative" on FF — BoJ, RBA…):
+  # skip its Released card, the breaking route already carried the story.
+  # 0 = always send. main._time_filled_after_print.
+  post_without_pre_max_late_min: 15
 
 speech:
   # Speech / statement watcher (src/speech_watch.py): FOMC statement + press
