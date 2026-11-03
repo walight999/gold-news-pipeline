@@ -10,6 +10,11 @@ from src.apify_source import unwrap_xml_viewer
 from src.normalizer import normalize
 from src.parser import parse_feed
 
+# Fixtures carry their live 2026-10-19 pubDates; turn the 48h stale drop off
+# so these tests keep checking URL repair instead of failing (or, for the
+# "drops all" case, passing for the wrong reason) as the dates age.
+NO_STALE = 10**6
+
 SRC = {"id": "fxstreet_apify", "tier": 2, "role": "gold_bias",
        "source_class": "wire", "organization": "fxstreet"}
 
@@ -58,7 +63,7 @@ def test_viewer_page_loses_urls_without_unwrap():
     viewer = _as_chrome_viewer(RSS)
     raw = parse_feed(viewer.encode(), SRC)
     assert not any(e.get("url") for e in raw)
-    assert normalize(raw) == []
+    assert normalize(raw, stale_drop_hours=NO_STALE) == []
 
 
 def test_unwrap_restores_links_and_text():
@@ -70,7 +75,7 @@ def test_unwrap_restores_links_and_text():
     assert es[0]["title"] == "Gold climbs as US yields slip"
     assert "&" in es[0]["summary"] and "$4,150" in es[0]["summary"]
     assert es[1]["title"] == "Fed's Waller speaks"
-    assert len(normalize(es)) == 2
+    assert len(normalize(es, stale_drop_hours=NO_STALE)) == 2
 
 
 def test_unwrap_accepts_str_and_passes_plain_xml_through():
