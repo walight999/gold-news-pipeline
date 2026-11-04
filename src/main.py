@@ -2795,7 +2795,9 @@ def _carousel_chunks(items: list[dict[str, Any]]) -> list[list[dict[str, Any]]]:
 # Rate / Outlook Report were listed at 02:30 UTC on 2026-10-30, carded at
 # 02:32 + 02:43, then moved to 03:02 — a new event_id — and carded AGAIN at
 # 03:52. One marker row per (currency, title, ICT date) stops the second card.
-POST_NAME_ROUTE = "calendar_post_name"
+# Filed under route "content" — the existing dedup-marker route, already left
+# out of delivery_daily and the monthly push count.
+POST_NAME_ROUTE = "content"
 
 
 def _post_name_key(ev) -> str:
