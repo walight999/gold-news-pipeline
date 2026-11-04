@@ -2831,6 +2831,20 @@ def _carousel_chunks(items: list[dict[str, Any]]) -> list[list[dict[str, Any]]]:
     return chunks
 
 
+# Released-card dedup by NAME, not just event_id (2026-11-03). event_id hashes
+# the release time, and FF re-times some decisions after the fact: BOJ Policy
+# Rate / Outlook Report were listed at 02:30 UTC on 2026-10-30, carded at
+# 02:32 + 02:43, then moved to 03:02 — a new event_id — and carded AGAIN at
+# 03:52. One marker row per (currency, title, ICT date) stops the second card.
+# Filed under route "content" — the existing dedup-marker route, already left
+# out of delivery_daily and the monthly push count.
+POST_NAME_ROUTE = "content"
+
+
+def _post_name_key(ev) -> str:
+    return f"postname:{ev.country}|{ev.title}|{ev.dt_ict.date().isoformat()}"
+
+
 def _push_calendar_groups(line, target, pending, sched_cfg, store, *,
                           route_type: str, priority: int) -> int:
     """Push collected calendar cards grouped by release time — one bubble when
@@ -2877,6 +2891,11 @@ def _push_calendar_groups(line, target, pending, sched_cfg, store, *,
                     log.info("calendar_post latency %ds: %s", int((sent_at - c["ev"].dt_utc).total_seconds()),
                              getattr(c["ev"], "title", c["sent_key"]))
                 store.upsert("sent_log", row)
+                if c.get("name_key"):
+                    store.upsert("sent_log", {
+                        "event_id": c["name_key"], "route_type": POST_NAME_ROUTE,
+                        "sent_ts": iso_utc(sent_at), "line_status": "marker",
+                    })
                 if c["on_delivered"]:
                     store.upsert("calibration_log", c["on_delivered"])
                 elif c.get("ungraded"):
@@ -3128,6 +3147,10 @@ async def run_calendar_check() -> int:
             sent_key = f"postcal:{ev.event_id}"
             if store.get("sent_log", (sent_key, "calendar_post")):
                 continue
+            if store.get("sent_log", (_post_name_key(ev), POST_NAME_ROUTE)):
+                log.info("calendar_check: %s %s already has a Released card today under an "
+                         "earlier time (FF re-timed it) — skipping", ev.country, ev.title)
+                continue
             impact_info = cal.gold_impact_directional(ev)
             actual_text = surprise = verdict = None
             actual_value: float | None = None
@@ -3241,7 +3264,8 @@ async def run_calendar_check() -> int:
                     ungraded = "no numeric forecast"
                 else:
                     ungraded = f"verdict has no gold direction ({(verdict or '')[:40]!r})"
-            pending_post.append({"ev": ev, "sent_key": sent_key, "bubble": bubble,
+            pending_post.append({"ev": ev, "sent_key": sent_key, "name_key": _post_name_key(ev),
+                                 "bubble": bubble,
                                  "alt": alt, "on_delivered": cal_row,
                                  "ungraded": ungraded,
                                  "print": (ev.country, ev.title, actual_text or "",
