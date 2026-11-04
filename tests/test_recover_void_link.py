@@ -9,6 +9,11 @@ from src.apify_source import unwrap_xml_viewer
 from src.normalizer import normalize
 from src.parser import parse_feed
 
+# Fixtures carry their live 2026-10-19 pubDates; turn the 48h stale drop off
+# so these tests keep checking URL repair instead of failing (or, for the
+# "drops all" case, passing for the wrong reason) as the dates age.
+NO_STALE = 10**6
+
 SRC = {"id": "fxstreet_apify", "tier": 2, "role": "gold_bias",
        "source_class": "wire", "organization": "fxstreet"}
 
@@ -63,7 +68,7 @@ def test_void_link_repair_restores_urls_and_dates():
         "https://www.fxstreet.com/news/british-pound-boe-tightening-202610191230"]
     assert all(e.get("published_ts") is not None for e in es)      # pubdate → pubDate
     assert es[0]["title"].startswith("We are all watching bond yields")
-    assert len(normalize(es)) == 2
+    assert len(normalize(es, stale_drop_hours=NO_STALE)) == 2
 
 
 def test_proper_xml_with_link_elements_untouched():
