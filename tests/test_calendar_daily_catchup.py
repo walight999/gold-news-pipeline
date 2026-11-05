@@ -43,8 +43,11 @@ def test_no_catchup_outside_window():
     assert not _calendar_daily_needs_catchup(_store(), NOW.replace(hour=11, minute=0), EVENTS, {})
 
 
-def test_no_catchup_on_empty_day():
+def test_catchup_on_empty_day_too():
+    # 2026-11-04: a day with no High/Medium release still gets its
+    # quiet-day card, so a missed one is caught up like any other.
     tomorrow = [_ev(NOW + timedelta(days=1))]
     low_only = [_ev(NOW.replace(hour=20), impact="Low")]
-    assert not _calendar_daily_needs_catchup(_store(), NOW, tomorrow, {})
-    assert not _calendar_daily_needs_catchup(_store(), NOW, low_only, {})
+    assert _calendar_daily_needs_catchup(_store(), NOW, tomorrow, {})
+    assert _calendar_daily_needs_catchup(_store(), NOW, low_only, {})
+    assert _calendar_daily_needs_catchup(_store(), NOW, [], {})
