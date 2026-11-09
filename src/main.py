@@ -43,6 +43,7 @@ from .line_flex import (
     alt_text_for_release,
     breaking_bubble,
     calendar_day_bubble,
+    calendar_quiet_day_bubble,
     eod_recap_bubble,
     health_bubble,
     health_recovered_bubble,
@@ -2749,10 +2750,6 @@ async def run_calendar_daily() -> int:
     filtered = cal.filter_by_impact(cal.filter_by_country(today, countries), impacts)
     log.info("calendar_daily: %d total, %d today, %d after filter", len(events), len(today), len(filtered))
 
-    if not filtered:
-        store.flush()
-        return 0
-
     target = _group_targets()
     if not target:
         log.warning("LINE_NEWS_TARGET not set — skipping push")
@@ -2769,19 +2766,22 @@ async def run_calendar_daily() -> int:
     hui_tuple = _to_tuple(price_feed.get_hui_snapshot())
     gld_tuple = _to_tuple(price_feed.get_gld_snapshot())
     thb_tuple = _to_tuple(price_feed.get_thb_snapshot())
-    bubble = calendar_day_bubble(
-        filtered, date_label,
-        xau_snapshot=xau_tuple, dxy_snapshot=dxy_tuple,
-        hui_snapshot=hui_tuple, gld_snapshot=gld_tuple,
-        thb_snapshot=thb_tuple,
-    )
-    if bubble is None:
-        store.flush()
-        return 0
+    snaps = dict(xau_snapshot=xau_tuple, dxy_snapshot=dxy_tuple, hui_snapshot=hui_tuple,
+                 gld_snapshot=gld_tuple, thb_snapshot=thb_tuple)
+    if filtered:
+        bubble = calendar_day_bubble(filtered, date_label, **snaps)
+        alt = f"📅 Calendar — {len(filtered)} events today"
+    else:
+        # No High/Medium release today: still send the morning card (prices +
+        # "nothing scheduled" + bank holidays) so the group sees it every
+        # weekday (2026-11-04, White's call).
+        holidays = [e for e in cal.filter_by_country(today, countries) if e.impact == "Holiday"]
+        bubble = calendar_quiet_day_bubble(date_label, holidays, **snaps)
+        alt = "📅 Calendar — วันนี้ไม่มีตัวเลขสำคัญ"
     line = LineClient.from_env()
     # Daily briefing is the ONE push that's allowed through the
     # 04:00-05:00 ICT quiet window (it's the wake-up email of the day).
-    resp = _push_or_skip(line, target, f"📅 Calendar — {len(filtered)} events today",
+    resp = _push_or_skip(line, target, alt,
                           bubble, sched_cfg, label="calendar_daily",
                           bypass_quiet=True, store=store, priority=PRIORITY_BRIEFING)
     if _delivered(resp):
@@ -2799,7 +2799,7 @@ async def run_calendar_daily() -> int:
     # Off-GAS CHUM News Bot (Telegram) — the daily brief is the bot's backbone.
     # Env-gated + best-effort; worker dedups on event_id=sent_key. Never blocks LINE.
     tg_news = telegram_news.TelegramNewsClient.from_env(store=store)
-    if tg_news:
+    if tg_news and filtered:   # the worker's calendar card expects events
         try:
             tg_news.post_calendar(telegram_news.build_calendar_payload(sent_key, date_label, filtered))
         except Exception:
@@ -3333,20 +3333,15 @@ _CAL_DAILY_CATCHUP_END = (11, 0)
 
 def _calendar_daily_needs_catchup(store, ict_now, events, cal_cfg) -> bool:
     """True when today's main daily card should have gone out but hasn't.
-    Mirrors the daily run's own skip conditions (no qualifying events today,
-    quota gate shedding briefings) so a legitimately-skipped day doesn't make
-    every calendar_check re-run the whole daily job until 11:00."""
+    Mirrors the daily run's own skip condition (quota gate shedding
+    briefings) so a legitimately-skipped day doesn't make every
+    calendar_check re-run the whole daily job until 11:00. A day with no
+    qualifying events still gets its (quiet-day) card since 2026-11-04."""
     hm = (ict_now.hour, ict_now.minute)
     if not (_CAL_DAILY_CATCHUP_START <= hm < _CAL_DAILY_CATCHUP_END):
         return False
     sent_key = f"cal_daily:{ict_now.strftime('%Y-%m-%d')}:main"
     if store.get("sent_log", (sent_key, "calendar_daily")):
-        return False
-    countries = tuple(cal_cfg.get("daily_currencies", cal.DEFAULT_DAILY_COUNTRIES))
-    impacts = tuple(cal_cfg.get("daily_impacts", cal.DEFAULT_DAILY_IMPACTS))
-    todays = cal.filter_by_impact(
-        cal.filter_by_country(cal.filter_today_ict(events, ict_now), countries), impacts)
-    if not todays:
         return False
     ok, _ = quota_allows(store, PRIORITY_BRIEFING)
     return ok

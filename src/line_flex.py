@@ -1177,6 +1177,40 @@ def _forecast_previous_inline(forecast: str, previous: str) -> dict[str, Any] | 
     }
 
 
+def _price_strip(xau_snapshot, dxy_snapshot, hui_snapshot, gld_snapshot,
+                 thb_snapshot) -> list[dict[str, Any]]:
+    """Price strip + separator for the daily calendar cards, or [] when no
+    quote came back."""
+    # Price snapshot strip (XAU spot, DXY index, HUI gold-miners,
+    # GLD SPDR ETF price, USD/THB). Currency prefixes ($ / ฿) dropped
+    # per user feedback 2026-05-28 — ticker label above already names
+    # the asset, so the prefix was redundant and added visual noise.
+    # "SPDR" instead of the ticker "GLD" because the SPDR Gold Trust
+    # name reads more clearly to most traders than the raw symbol.
+    price_specs = (
+        ("XAU", xau_snapshot, lambda v: _fmt_value(v, "")),
+        ("DXY", dxy_snapshot, lambda v: _fmt_value(v, "")),
+        ("HUI", hui_snapshot, lambda v: _fmt_value(v, "")),
+        ("SPDR", gld_snapshot, lambda v: _fmt_value(v, "")),
+        ("USDTHB", thb_snapshot, lambda v: _fmt_value(v, "")),
+    )
+    # Render only cells that have data — user prefers consistent
+    # all-real-data formatting over fixed-width with placeholders.
+    cells = [
+        c for c in (_price_cell(lbl, snap, fmt, change_usd=(lbl == "XAU"))
+                    for lbl, snap, fmt in price_specs)
+        if c is not None
+    ]
+    out: list[dict[str, Any]] = []
+    if cells:
+        out.append({
+            "type": "box", "layout": "horizontal", "spacing": "md",
+            "contents": cells,
+        })
+        out.append({"type": "separator", "margin": "md"})
+    return out
+
+
 def calendar_day_bubble(
     events: list[CalEvent],
     date_label: str,
@@ -1202,33 +1236,8 @@ def calendar_day_bubble(
         return None
     body_contents: list[dict[str, Any]] = []
 
-    # Price snapshot strip (XAU spot, DXY index, HUI gold-miners,
-    # GLD SPDR ETF price, USD/THB). Currency prefixes ($ / ฿) dropped
-    # per user feedback 2026-05-28 — ticker label above already names
-    # the asset, so the prefix was redundant and added visual noise.
-    # "SPDR" instead of the ticker "GLD" because the SPDR Gold Trust
-    # name reads more clearly to most traders than the raw symbol.
-    price_specs = (
-        ("XAU", xau_snapshot, lambda v: _fmt_value(v, "")),
-        ("DXY", dxy_snapshot, lambda v: _fmt_value(v, "")),
-        ("HUI", hui_snapshot, lambda v: _fmt_value(v, "")),
-        ("SPDR", gld_snapshot, lambda v: _fmt_value(v, "")),
-        ("USDTHB", thb_snapshot, lambda v: _fmt_value(v, "")),
-    )
-    # Render only cells that have data — user prefers consistent
-    # all-real-data formatting over fixed-width with placeholders.
-    cells = [
-        c for c in (_price_cell(lbl, snap, fmt, change_usd=(lbl == "XAU"))
-                    for lbl, snap, fmt in price_specs)
-        if c is not None
-    ]
-    if cells:
-        body_contents.append({
-            "type": "box", "layout": "horizontal", "spacing": "md",
-            "contents": cells,
-        })
-    if cells:
-        body_contents.append({"type": "separator", "margin": "md"})
+    body_contents.extend(_price_strip(xau_snapshot, dxy_snapshot, hui_snapshot,
+                                      gld_snapshot, thb_snapshot))
 
     from .calendar import forecast_vs_previous_effect
     for ev in events:
@@ -1269,6 +1278,37 @@ def calendar_day_bubble(
         "header": _header("📅 Economic Calendar", date_label, COLOR["digest"]),
         "body": {"type": "box", "layout": "vertical", "spacing": "sm",
                  "contents": body_contents, "paddingAll": "16px"},
+    }
+
+
+def calendar_quiet_day_bubble(
+    date_label: str,
+    holidays: list[CalEvent] | None = None,
+    xau_snapshot: tuple[float, float] | None = None,
+    dxy_snapshot: tuple[float, float] | None = None,
+    hui_snapshot: tuple[float, float] | None = None,
+    gld_snapshot: tuple[float, float] | None = None,
+    thb_snapshot: tuple[float, float] | None = None,
+) -> dict[str, Any]:
+    """Morning card for a weekday with no High/Medium release (2026-11-04):
+    same header + price strip as calendar_day_bubble, a one-line "nothing
+    scheduled" note, and any bank holidays. Before this the group got no
+    morning card at all on those days (e.g. Mon 2026-10-26)."""
+    body: list[dict[str, Any]] = _price_strip(xau_snapshot, dxy_snapshot, hui_snapshot,
+                                              gld_snapshot, thb_snapshot)
+    body.append({"type": "text", "text": "วันนี้ไม่มีตัวเลขเศรษฐกิจระดับ High / Medium",
+                 "size": "sm", "weight": "bold", "wrap": True, "color": "#111827",
+                 "margin": "md"})
+    for h in holidays or []:
+        body.append({"type": "text", "text": f"🏦 {h.country} {h.title}", "size": "xs",
+                     "wrap": True, "color": "#374151", "margin": "sm"})
+    body.append({"type": "text", "text": "ข่าวด่วนระหว่างวันยังแจ้งตามปกติ",
+                 "size": "xs", "wrap": True, "color": "#6B7280", "margin": "md"})
+    return {
+        "type": "bubble", "size": "giga",
+        "header": _header("📅 Economic Calendar", date_label, COLOR["digest"]),
+        "body": {"type": "box", "layout": "vertical", "spacing": "sm",
+                 "contents": body, "paddingAll": "16px"},
     }
 
 
