@@ -317,3 +317,60 @@ def test_enabled_recover_feeds_pool_via_parse_feed(monkeypatch):
     out = main._collect_apify_entries(_FakeStore(), cfg, "cron")
     assert any(e["organization"] == "benzinga" and "Gold rips" in e["title"]
                for e in out)
+
+
+# ---------------- hot-window burst inside news-cron (2026-11-09) ----------------
+
+def _hot_cfg():
+    cfg = _x_cfg()
+    cfg["x_accounts"].update({"hot_min_interval_min": 4, "hot_extra_handles": True})
+    return cfg
+
+
+def _seen_scrape(store, minutes_ago):
+    from src.utils_time import iso_utc, now_utc
+    from datetime import timedelta
+    store.upsert("source_state", {"source_id": "_apify",
+                                  "last_attempt_ts": iso_utc(now_utc() - timedelta(minutes=minutes_ago))})
+
+
+def test_hot_window_bursts_with_extra_handles(monkeypatch):
+    from src import apify_budget
+    monkeypatch.setenv("APIFY_TOKEN", "tok")
+    monkeypatch.setattr(apify_budget, "in_hot_window", lambda store, now=None: True)
+    sink = {}
+    _stub_fetch_tweets(monkeypatch, sink)
+    st = _FakeStore()
+    _seen_scrape(st, 4.5)                     # one 5-min dispatcher tick ago
+    meta = {}
+    main._collect_apify_entries(st, _hot_cfg(), "cron", meta)
+    assert meta["apify_hot"] is True
+    assert sink["handles"] == ["DeItaone", "LiveSquawk"]
+    assert sink["since"] == 14                # base lookback still covers the gap
+
+
+def test_outside_hot_window_keeps_base_cadence(monkeypatch):
+    from src import apify_budget
+    monkeypatch.setenv("APIFY_TOKEN", "tok")
+    monkeypatch.setattr(apify_budget, "in_hot_window", lambda store, now=None: False)
+    sink = {}
+    _stub_fetch_tweets(monkeypatch, sink)
+    st = _FakeStore()
+    _seen_scrape(st, 4.5)
+    main._collect_apify_entries(st, _hot_cfg(), "cron")
+    assert sink == {}                          # 12-min (×quiet multiplier) guard not due
+    _seen_scrape(st, 40)
+    main._collect_apify_entries(st, _hot_cfg(), "cron")
+    assert sink["handles"] == ["DeItaone"]     # no extra handles outside hot windows
+
+
+def test_hot_extra_handles_can_be_turned_off(monkeypatch):
+    from src import apify_budget
+    monkeypatch.setenv("APIFY_TOKEN", "tok")
+    monkeypatch.setattr(apify_budget, "in_hot_window", lambda store, now=None: True)
+    sink = {}
+    _stub_fetch_tweets(monkeypatch, sink)
+    cfg = _hot_cfg()
+    cfg["x_accounts"]["hot_extra_handles"] = False
+    main._collect_apify_entries(_FakeStore(), cfg, "cron")
+    assert sink["handles"] == ["DeItaone"]
