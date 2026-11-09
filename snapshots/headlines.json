@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-11-08T22:41:18Z",
+      "ts": "2026-11-09T02:21:21Z",
       "title": "mideast · Geopolitics · risk off",
       "source": "Financialjuice",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-11-08T22:41:18Z",
-      "title": "ecb · Rate Policy",
-      "source": "Financialjuice",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-11-08T22:41:18Z",
+      "ts": "2026-11-09T02:21:21Z",
       "title": "mideast · Geopolitics · risk off",
       "source": "Financialjuice",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-11-08T22:41:18Z",
+      "ts": "2026-11-09T02:21:21Z",
       "title": "us · Geopolitics",
       "source": "Financialjuice",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-11-08T22:41:18Z",
+      "ts": "2026-11-09T02:21:21Z",
       "title": "mideast · Geopolitics",
       "source": "Cnbc",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-11-08T22:41:18Z",
+      "ts": "2026-11-09T02:21:21Z",
       "title": "mideast · Geopolitics · risk off",
       "source": "Cnbc",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-11-08T22:41:18Z",
+      "ts": "2026-11-09T02:21:21Z",
       "title": "mideast · Geopolitics · risk off",
       "source": "Cnbc",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-11-08T22:41:18Z",
+      "ts": "2026-11-09T02:21:21Z",
       "title": "mideast · Geopolitics · risk off",
       "source": "Cnbc",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-11-08T22:41:18Z",
+      "ts": "2026-11-09T02:21:21Z",
       "title": "mideast · Geopolitics",
       "source": "Financialjuice",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-11-08T22:41:18Z",
+      "ts": "2026-11-09T02:21:21Z",
       "title": "ukraine · Geopolitics",
+      "source": "Financialjuice",
+      "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-11-09T02:21:21Z",
+      "title": "mideast · Geopolitics · risk off",
       "source": "Financialjuice",
       "score": 0.3,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-11-08T22:43:36.558589Z"
+  "written_at": "2026-11-09T02:23:53.764675Z"
 }
