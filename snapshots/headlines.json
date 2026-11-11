@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-11-11T00:06:03Z",
-      "title": "global · Other",
-      "source": "Cnbc",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-11-11T00:06:03Z",
+      "ts": "2026-11-11T06:55:55Z",
       "title": "us · Inflation",
       "source": "Investing Cb",
       "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-11-11T00:06:03Z",
-      "title": "us · Inflation",
-      "source": "Investing Cb",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-11-11T00:06:03Z",
-      "title": "global · Other",
-      "source": "Cnbc",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-11-11T00:06:03Z",
-      "title": "us · Inflation",
-      "source": "Investing Cb",
-      "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-11-11T00:06:03Z",
+      "ts": "2026-11-11T06:55:55Z",
       "title": "global · Other",
       "source": "Investing Cb",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-11-11T00:06:03Z",
+      "ts": "2026-11-11T06:55:55Z",
       "title": "us · Inflation",
       "source": "Investing Cb",
       "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-11-11T00:06:03Z",
-      "title": "global · Other · risk on",
-      "source": "Cnbc",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-11-11T00:06:03Z",
+      "ts": "2026-11-11T06:55:55Z",
       "title": "global · Other",
       "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-11-11T00:06:03Z",
+      "ts": "2026-11-11T06:55:55Z",
       "title": "us · Inflation",
       "source": "Investing Cb",
+      "score": 0.5,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-11-11T06:55:55Z",
+      "title": "global · Other",
+      "source": "Cnbc",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-11-11T06:55:55Z",
+      "title": "global · Other",
+      "source": "Cnbc",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-11-11T06:55:55Z",
+      "title": "us · Inflation",
+      "source": "Cnbc",
+      "score": 0.5,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-11-11T06:55:55Z",
+      "title": "global · Other",
+      "source": "Cnbc",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-11-11T06:55:55Z",
+      "title": "fed · Rate Policy",
+      "source": "Cnbc",
       "score": 0.5,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-11-11T00:10:53.872554Z"
+  "written_at": "2026-11-11T06:56:25.939244Z"
 }
