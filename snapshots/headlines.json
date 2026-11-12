@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-11-12T02:41:33Z",
-      "title": "mideast · Geopolitics",
-      "source": "Financialjuice",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-11-12T02:41:33Z",
-      "title": "fed · Rate Policy",
+      "ts": "2026-11-12T10:41:08Z",
+      "title": "us · Inflation",
       "source": "Financialjuice",
       "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-11-12T02:41:33Z",
+      "ts": "2026-11-12T10:41:08Z",
+      "title": "boj · Rate Policy · dovish",
+      "source": "Financialjuice",
+      "score": 0.5,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-11-12T10:41:08Z",
+      "title": "boj · Rate Policy",
+      "source": "Financialjuice",
+      "score": 0.5,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-11-12T10:41:08Z",
+      "title": "us · Inflation · hawkish",
+      "source": "Financialjuice",
+      "score": 0.5,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-11-12T10:41:08Z",
+      "title": "boj · Rate Policy · hawkish",
+      "source": "Financialjuice",
+      "score": 0.5,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-11-12T10:41:08Z",
       "title": "global · Other",
       "source": "Financialjuice",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-11-12T02:41:33Z",
+      "ts": "2026-11-12T10:41:08Z",
+      "title": "global · Other",
+      "source": "Financialjuice",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-11-12T10:41:08Z",
       "title": "us · Geopolitics",
       "source": "Financialjuice",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-11-12T02:41:33Z",
+      "ts": "2026-11-12T10:41:08Z",
       "title": "mideast · Geopolitics",
       "source": "Financialjuice",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-11-12T02:41:33Z",
-      "title": "us · Geopolitics · risk off",
-      "source": "Financialjuice",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-11-12T02:41:33Z",
-      "title": "mideast · Geopolitics · risk off",
-      "source": "Financialjuice",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-11-12T02:41:33Z",
-      "title": "global · Other",
-      "source": "Financialjuice",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-11-12T02:41:33Z",
-      "title": "us · Geopolitics",
-      "source": "Financialjuice",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-11-12T02:41:33Z",
-      "title": "us · Geopolitics · risk off",
+      "ts": "2026-11-12T10:41:08Z",
+      "title": "russia · Geopolitics · risk off",
       "source": "Financialjuice",
       "score": 0.3,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-11-12T02:42:57.577675Z"
+  "written_at": "2026-11-12T10:41:35.040085Z"
 }
