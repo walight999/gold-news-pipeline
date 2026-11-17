@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-11-16T17:16:07Z",
+      "ts": "2026-11-17T00:55:59Z",
       "title": "global · Other",
       "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-11-16T17:16:07Z",
+      "ts": "2026-11-17T00:55:59Z",
       "title": "global · Other",
-      "source": "Cnbc",
+      "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-11-16T17:16:07Z",
+      "ts": "2026-11-17T00:55:59Z",
       "title": "global · Other",
-      "source": "Cnbc",
+      "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-11-16T17:16:07Z",
+      "ts": "2026-11-17T00:55:59Z",
+      "title": "russia · Geopolitics",
+      "source": "Bbc World",
+      "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-11-17T00:55:59Z",
       "title": "global · Other",
-      "source": "Cnbc",
+      "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-11-16T17:16:07Z",
-      "title": "global · Other",
-      "source": "Cnbc",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-11-16T17:16:07Z",
+      "ts": "2026-11-17T00:55:59Z",
       "title": "china · Geopolitics · risk off",
       "source": "Cnbc",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-11-16T17:16:07Z",
+      "ts": "2026-11-17T00:55:59Z",
       "title": "global · Other",
-      "source": "Cnbc, Investing Cb",
+      "source": "Investing Cb",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-11-16T17:16:07Z",
-      "title": "fed · Rate Policy",
+      "ts": "2026-11-17T00:55:59Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-11-17T00:55:59Z",
+      "title": "us · Jobs",
       "source": "Investing Cb",
       "score": 0.5,
       "xau_relevant": false
     },
     {
-      "ts": "2026-11-16T17:16:07Z",
-      "title": "russia · Geopolitics · risk off",
-      "source": "Cnbc",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-11-16T17:16:07Z",
-      "title": "us · Jobs",
+      "ts": "2026-11-17T00:55:59Z",
+      "title": "us · Inflation",
       "source": "Investing Cb",
       "score": 0.5,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-11-16T17:17:41.763297Z"
+  "written_at": "2026-11-17T00:57:24.871560Z"
 }
