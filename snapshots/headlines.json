@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-11-20T12:31:31Z",
+      "ts": "2026-11-20T16:55:54Z",
+      "title": "global · Other",
+      "source": "Cnbc",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-11-20T16:55:54Z",
+      "title": "global · Other",
+      "source": "Cnbc",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-11-20T16:55:54Z",
+      "title": "global · Other",
+      "source": "Cnbc",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-11-20T16:55:54Z",
+      "title": "global · Other",
+      "source": "Cnbc",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-11-20T16:55:54Z",
+      "title": "global · Other",
+      "source": "Cnbc",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-11-20T16:55:54Z",
+      "title": "global · Other · risk on",
+      "source": "Cnbc",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-11-20T16:55:54Z",
+      "title": "global · Other",
+      "source": "Cnbc",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-11-20T16:55:54Z",
+      "title": "global · Other",
+      "source": "Cnbc, Financialjuice",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-11-20T16:55:54Z",
       "title": "global · Other",
       "source": "Financialjuice",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-11-20T12:31:31Z",
-      "title": "fed · Inflation",
+      "ts": "2026-11-20T16:55:54Z",
+      "title": "ecb · Rate Policy",
       "source": "Financialjuice",
       "score": 0.5,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-11-20T12:31:31Z",
-      "title": "us · Usd Yields",
-      "source": "Financialjuice",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-11-20T12:31:31Z",
-      "title": "mideast · Geopolitics",
-      "source": "Financialjuice",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-11-20T12:31:31Z",
-      "title": "global · Other",
-      "source": "Financialjuice",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-11-20T12:31:31Z",
-      "title": "global · Other",
-      "source": "Financialjuice",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-11-20T12:31:31Z",
-      "title": "mideast · Geopolitics · risk off",
-      "source": "Financialjuice",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-11-20T12:31:31Z",
-      "title": "global · Other",
-      "source": "Financialjuice",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-11-20T12:31:31Z",
-      "title": "us · Usd Yields",
-      "source": "Financialjuice",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-11-20T12:31:31Z",
-      "title": "global · Other",
-      "source": "Financialjuice",
-      "score": 0.1,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-11-20T12:35:01.449921Z"
+  "written_at": "2026-11-20T20:56:15.856849Z"
 }
