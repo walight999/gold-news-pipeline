@@ -3,7 +3,7 @@
 Every weekly_preview run also sends next week's USD releases as a Resend
 broadcast to the signup segment: day, ICT time, forecast vs previous and the
 learned typical 15-min gold $ range per release. Facts only, no direction call
-(same rule as x_release). Readers sign up on the finisit.app page, which adds
+(same rule as x_release). Readers sign up on justchum.com/gold (moved off finisit.app 2026-11-23), which adds
 them to the Resend segment; Resend handles the unsubscribe link.
 
 Env-gated: RESEND_API_KEY + RESEND_SEGMENT_ID + NEWSLETTER_FROM. Idempotent
@@ -84,7 +84,7 @@ def build(events: list, week_label: str, telegram_url: str = TELEGRAM_URL) -> di
         "ไม่ใช่การคาดการณ์ทิศทาง</p>"
         f'<p>อยากได้ตัวเลขจริงทันทีที่ออก ติดตามผ่าน Telegram ได้ฟรี: <a href="{tg}">{tg}</a></p>'
         '<p style="color:#6B7280;font-size:12px">ข้อมูลเพื่อการศึกษา ไม่ใช่คำแนะนำการลงทุน · '
-        "Tradetongkam by Finisit · "
+        "Tradetongkam · justchum.com · "
         '<a href="{{{RESEND_UNSUBSCRIBE_URL}}}">ยกเลิกการรับอีเมล</a></p></div>')
     text = (f"ตัวเลขเศรษฐกิจสหรัฐฯ สัปดาห์หน้า ({week_label}) เวลาไทย" + "\n".join(lines)
             + f"\n\nTelegram: {telegram_url}\nข้อมูลเพื่อการศึกษา ไม่ใช่คำแนะนำการลงทุน"
