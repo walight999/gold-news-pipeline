@@ -590,3 +590,55 @@ def check_apify_budget(store: Store) -> list[tuple[str, str]]:
         return [("apify_budget_high",
                  f"Apify spend ahead of pace ({spend}) — scrape intervals stretched")]
     return []
+
+
+# --- X autopost (2026-11-23) -------------------------------------------------
+# @tradetongkam went dark 2026-10-31 → 11-23 behind green workflows (X credits
+# at -$0.05). Two independent tripwires so neither failure mode is silent again:
+#   x_post_blocked — squawk_mirror's breaker is open (credits / auth rejection).
+#   x_post_stale   — no successful post for X_STALE_MARKET_HOURS of open market,
+#                    whatever the cause (dispatcher, classifier, caps, code).
+# Both are ROUTINE (no LINE flex — LINE is the company channel) and always
+# mirrored to the operator's private Telegram (ops_alert._ALWAYS_MIRROR).
+X_STALE_MARKET_HOURS = 24
+
+
+def _market_hours_between(start: datetime, end: datetime) -> float:
+    """Hours in [start, end) that are NOT ICT Sat/Sun (same weekend rule the
+    rest of the pipeline uses), at 15-minute resolution."""
+    if end <= start:
+        return 0.0
+    step = timedelta(minutes=15)
+    t, n = start, 0
+    while t < end:
+        if not is_weekend_ict(t):
+            n += 1
+        t += step
+    return n * 0.25
+
+
+def check_x_autopost(store: Store, now: datetime | None = None) -> list[tuple[str, str]]:
+    from . import squawk_mirror as sq
+    now = now or now_utc()
+    st = sq.x_state(store)
+    if st.get("status") == sq.X_BLOCKED:
+        return [("x_post_blocked",
+                 f"X rejects @tradetongkam posts ({st.get('reason') or '?'}) since "
+                 f"{str(st.get('since') or '?')[:16]} — top up X API credits / re-auth; "
+                 f"auto-probe every {int(sq.X_BLOCK_RETRY.total_seconds() // 3600)}h")]
+    try:
+        _, rows = store.read_feed(sq.MIRROR_TAB)
+    except Exception:  # noqa: BLE001 — a sheet hiccup must not crash the watchdog
+        return []
+    posted = [parse_iso(str(r.get("ts_utc") or "")) for r in rows
+              if str(r.get("posted") or "").strip()]
+    posted = [p for p in posted if p is not None]
+    if not posted:
+        return []
+    last = max(posted)
+    open_h = _market_hours_between(last, now)
+    if open_h >= X_STALE_MARKET_HOURS:
+        return [("x_post_stale",
+                 f"No @tradetongkam post for {open_h:.0f} market hours "
+                 f"(last {iso_utc(last)[:16]}Z) — check X credits, news-cron, squawk caps")]
+    return []

@@ -76,6 +76,8 @@ WARNING_MESSAGES: dict[str, str] = {
     "workflow_disabled":           "A critical workflow is disabled_manually — re-enable with `gh workflow enable`",
     "apify_budget_exhausted":      "Apify monthly limit reached — X scrape + @tradetongkam squawk tweets paused until reset",
     "apify_budget_high":           "Apify spend ahead of monthly pace — scrape intervals stretched",
+    "x_post_blocked":              "X autopost blocked (credits/auth) — composing paused, auto-probe every 6h",
+    "x_post_stale":                "No X autopost for 24 market hours",
     # source_noisy:<source_id> is dynamic — handled by _format_warning.
 }
 

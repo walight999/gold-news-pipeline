@@ -3366,6 +3366,8 @@ def _watchdog_source_id(warning_type: str) -> str:
         return "_telegram_health"
     if warning_type in ("apify_budget_exhausted", "apify_budget_high"):
         return "_apify_budget"
+    if warning_type in ("x_post_blocked", "x_post_stale"):
+        return "_x_autopost"
     if warning_type.startswith("source_noisy:"):
         return f"_class:{warning_type.split(':', 1)[1][:30]}"
     return health.HEARTBEAT_SOURCE_ID
@@ -3437,6 +3439,9 @@ async def run_watchdog() -> int:
     # silenced the squawk mirror for days behind green workflows.
     warnings.extend(health.check_apify_budget(store))
 
+    # X autopost breaker / staleness — the 2026-10-31 → 11-23 silent outage.
+    warnings.extend(health.check_x_autopost(store))
+
     warning_types = {wt for wt, _ in warnings}
 
     line = None
@@ -3451,7 +3456,7 @@ async def run_watchdog() -> int:
                     "classifier_degraded", "workflow_failure", "workflow_disabled",
                     "macro_push_dead", "line_push_failing", "line_quota_high",
                     "telegram_push_failing", "apify_budget_exhausted",
-                    "apify_budget_high")
+                    "apify_budget_high", "x_post_blocked", "x_post_stale")
     for warning_type in static_types:
         if warning_type in warning_types:
             continue

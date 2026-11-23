@@ -44,6 +44,91 @@ log = logging.getLogger("squawk_mirror")
 MIRROR_TAB = "squawk_log"
 MIRROR_HEADERS = ["ts_utc", "ts_ict", "fs_id", "fs_text", "tweet_text", "posted"]
 
+# --- X circuit breaker (2026-11-23) ---------------------------------------
+# 2026-10-31 → 11-23: the X API credit balance hit -$0.05 and every post was
+# rejected. mirror_events logged the exception and moved on, so @tradetongkam
+# went dark for 3 weeks with green workflows — and every 5-min run still paid
+# Sonnet to compose tweets that could never post. Now a rejection that won't
+# clear on its own (credits / auth) opens a breaker in source_state: composing
+# stops, the watchdog raises `x_post_blocked`, and one probe runs every
+# X_BLOCK_RETRY to detect the top-up without an operator step.
+X_STATE_KEY = "_x_autopost"
+X_BLOCK_RETRY = timedelta(hours=6)
+X_OK = "ok"
+X_BLOCKED = "blocked"
+
+_CREDIT_MARKERS = ("creditsdepleted", "credits depleted", "payment required",
+                   "usagecapexceeded", "usage cap", "insufficient credit",
+                   "client-not-enrolled")
+_AUTH_MARKERS = ("unauthorized", "invalid or expired token", "could not authenticate",
+                 "suspended")
+
+
+def classify_post_error(exc: BaseException) -> str | None:
+    """'credits' | 'auth' for a rejection that will repeat on every retry until
+    the operator acts; None for anything transient (5xx, 429, a bad tweet)."""
+    resp = getattr(exc, "response", None)
+    status = getattr(resp, "status_code", None)
+    text = f"{type(exc).__name__} {exc}".lower()
+    if status == 402 or any(m in text for m in _CREDIT_MARKERS):
+        return "credits"
+    if status == 401 or any(m in text for m in _AUTH_MARKERS):
+        return "auth"
+    return None
+
+
+def x_state(store) -> dict[str, Any]:
+    """The breaker row as a dict: status, reason, since, retry_after, error.
+    Empty dict when the store can't hold state (tests) or nothing recorded."""
+    try:
+        row = store.get("source_state", (X_STATE_KEY,)) or {}
+    except Exception:  # noqa: BLE001 — feed-only stores have no source_state
+        return {}
+    import json
+    try:
+        blob = json.loads(row.get("items_last_hour") or "{}")
+    except (TypeError, ValueError):
+        blob = {}
+    blob["status"] = row.get("last_status") or ""
+    blob["last_success_ts"] = row.get("last_success_ts") or ""
+    return blob
+
+
+def _write_x_state(store, now, status: str, *, reason: str = "", error: str = "",
+                   since: str = "", success: bool = False) -> None:
+    import json
+    prev = x_state(store)
+    row = {
+        "source_id": X_STATE_KEY,
+        "last_attempt_ts": iso_utc(now),
+        "last_status": status,
+        "last_success_ts": iso_utc(now) if success else prev.get("last_success_ts", ""),
+        "items_last_hour": json.dumps({
+            "reason": reason,
+            "since": since,
+            "retry_after": iso_utc(now + X_BLOCK_RETRY) if status == X_BLOCKED else "",
+            "error": error[:200],
+        }, ensure_ascii=False),
+    }
+    if not hasattr(store, "upsert"):
+        return
+    try:
+        store.upsert("source_state", row)
+    except Exception:  # noqa: BLE001 — breaker is best-effort, never crash the run
+        log.exception("x_autopost: could not persist breaker state")
+
+
+def x_blocked(store, now) -> dict[str, Any] | None:
+    """The open breaker (reason, since, retry_after) while it should still hold
+    back composing, else None. Past retry_after → None, so ONE probe runs."""
+    st = x_state(store)
+    if st.get("status") != X_BLOCKED:
+        return None
+    until = parse_iso(str(st.get("retry_after") or ""))
+    if until is not None and now >= until:
+        return None
+    return st
+
 DEFAULT_HANDLE = "FirstSquawk"
 
 # Gold-mover relevance filter (White: ทอง/USD/Fed/yields). A First Squawk
@@ -477,6 +562,14 @@ def mirror_events(store, candidates: list[dict[str, Any]],
     cap_per_day, cap_per_hour, max_items per run. Never raises."""
     if not candidates:
         return 0
+    now = now or now_utc()
+    blocked = x_blocked(store, now)
+    if blocked:
+        # Don't pay Sonnet for tweets X will reject. The watchdog carries the alarm.
+        log.info("x_autopost: X blocked (%s) since %s — skipping %d candidates until %s",
+                 blocked.get("reason"), blocked.get("since"), len(candidates),
+                 blocked.get("retry_after"))
+        return 0
     cfg = cfg or {}
     cap_day = int(cfg.get("cap_per_day", 20))
     cap_hour = int(cfg.get("cap_per_hour", 4))
@@ -487,7 +580,6 @@ def mirror_events(store, candidates: list[dict[str, Any]],
     topic_window = timedelta(hours=float(cfg.get("topic_window_hours", 48)))
     gold_tail_max = float(cfg.get("gold_tail_max_ratio", 0.5))
 
-    now = now or now_utc()
     sessions = cfg.get("sessions") or DEFAULT_SESSIONS
     sess, sess_start, day_start = current_session(now, sessions)
     cap_sess = int(sess.get("cap", cap_day))
@@ -584,10 +676,23 @@ def mirror_events(store, candidates: list[dict[str, Any]],
             continue
         try:
             url = poster(tweet)
-        except Exception:  # noqa: BLE001 — one bad post must not stop the rest
-            log.exception("x_autopost: X post failed event=%s", c.get("event_id"))
+        except Exception as exc:  # noqa: BLE001 — one bad post must not stop the rest
             n_fail += 1
+            reason = classify_post_error(exc)
+            if reason:
+                prev = x_state(store)
+                since = (prev.get("since") if prev.get("status") == X_BLOCKED
+                         and prev.get("since") else iso_utc(now))
+                _write_x_state(store, now, X_BLOCKED, reason=reason,
+                               error=f"{type(exc).__name__}: {exc}", since=since)
+                log.error("x_autopost: X rejected the post (%s) — breaker open, "
+                          "next probe in %s: %s", reason, X_BLOCK_RETRY, exc)
+                break   # every remaining candidate would fail the same way
+            log.exception("x_autopost: X post failed event=%s", c.get("event_id"))
             continue
+        if x_state(store).get("status") != X_OK:
+            _write_x_state(store, now, X_OK, success=True)
+            log.info("x_autopost: X posting healthy — breaker closed")
         seen.add(fid)
         recent_texts.append(text)
         recent_keys |= keys
