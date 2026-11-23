@@ -14,6 +14,11 @@ x_accounts:
   # minutes gold actually moves. A 30-min window at 3-min cadence ≈ 10 scrapes;
   # at ~$0.18/1k tweets and a handful of hits each, that's a few cents/event.
   event_min_interval_min: 3
+  # Hot windows (apify_budget: High USD release T-10→T+45 + speech windows),
+  # inside the normal news-cron: scrape every run and add event_extra_handles.
+  # 4 < the 5-min dispatcher cadence so jitter can't skip a run. 2026-11-09.
+  hot_min_interval_min: 4
+  hot_extra_handles: true
   event_since_minutes: 5
   max_per_handle: 8
   handles:

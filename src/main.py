@@ -266,11 +266,24 @@ def _collect_apify_entries(store, src_cfg, mode: str,
     # --- X / Twitter (the original source; kaitoeasyapi) ---
     xc = src_cfg.get("x_accounts") or {}
     if xc.get("enabled") and xc.get("handles"):
-        interval = int(round(int(xc.get("event_min_interval_min", 3) if event
-                                 else xc.get("min_interval_min", 12)) * mult))
+        # Hot windows (High USD release T-10→T+45, speech windows) get the
+        # burst cadence + extra handles inside the normal news-cron
+        # (2026-11-09). The separate event-mode workflow has had no trigger
+        # since the GAS calendar bot was retired (last run 2026-06-22), and as
+        # designed it fetched tier-0 RSS only while holding the gold-news lock
+        # for 30 min — blocking calendar_check's Released card for that very
+        # release. `hot_min_interval_min` sits just under the 5-min dispatcher
+        # cadence so run-to-run jitter can't skip a scrape.
+        if event:
+            base_iv = xc.get("event_min_interval_min", 3)
+        elif hot:
+            base_iv = xc.get("hot_min_interval_min", xc.get("min_interval_min", 12))
+        else:
+            base_iv = xc.get("min_interval_min", 12)
+        interval = int(round(int(base_iv) * mult))
         if _apify_due(store, "_apify", interval):
             handles = list(xc.get("handles") or [])
-            if event:
+            if event or (hot and xc.get("hot_extra_handles", False)):
                 handles += [h for h in (xc.get("event_extra_handles") or [])
                             if h not in handles]
             since = int(xc.get("event_since_minutes", interval + 2) if event
