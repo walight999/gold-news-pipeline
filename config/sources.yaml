@@ -218,7 +218,7 @@ growth:
     hour_ict: 9
     until_hour_ict: 21
     telegram_url: "https://t.me/FinisitNews_bot?start=x"
-    signup_url: ""              # Gold Week Ahead signup page; set once it's live
+    signup_url: ""              # set to https://justchum.com/gold once that page takes signups
 truth_social:
   enabled: false  # 2026-09-27 OFF (Apify budget): parsebird bills $0.017 PER CALL
                   # even when empty, 1 call/handle → 1,499 calls = $24.16 = 83% of the
