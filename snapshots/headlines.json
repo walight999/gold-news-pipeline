@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-11-25T07:11:07Z",
+      "ts": "2026-11-25T18:05:58Z",
       "title": "global · Other",
-      "source": "Financialjuice",
+      "source": "Ecb",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-11-25T07:11:07Z",
-      "title": "us · Inflation",
-      "source": "Financialjuice",
-      "score": 0.5,
+      "ts": "2026-11-25T18:05:58Z",
+      "title": "global · Other",
+      "source": "Cnbc",
+      "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-11-25T07:11:07Z",
-      "title": "fed · Rate Policy · hawkish",
-      "source": "Financialjuice",
-      "score": 0.5,
+      "ts": "2026-11-25T18:05:58Z",
+      "title": "global · Other",
+      "source": "Cnbc",
+      "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-11-25T07:11:07Z",
-      "title": "fed · Rate Policy",
-      "source": "Financialjuice",
-      "score": 0.5,
+      "ts": "2026-11-25T18:05:58Z",
+      "title": "global · Other",
+      "source": "Cnbc",
+      "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-11-25T07:11:07Z",
-      "title": "mideast · Geopolitics",
-      "source": "Financialjuice",
-      "score": 0.3,
+      "ts": "2026-11-25T18:05:58Z",
+      "title": "global · Other",
+      "source": "Cnbc",
+      "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-11-25T07:11:07Z",
+      "ts": "2026-11-25T18:05:58Z",
       "title": "us · Usd Yields",
-      "source": "Financialjuice",
+      "source": "Cnbc",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-11-25T07:11:07Z",
-      "title": "israel · Geopolitics",
-      "source": "Financialjuice",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-11-25T07:11:07Z",
+      "ts": "2026-11-25T18:05:58Z",
       "title": "global · Other",
-      "source": "Financialjuice",
+      "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-11-25T07:11:07Z",
-      "title": "global · Other · hawkish",
-      "source": "Financialjuice",
+      "ts": "2026-11-25T18:05:58Z",
+      "title": "mideast · Geopolitics · risk off",
+      "source": "Cnbc",
+      "score": 0.3,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-11-25T18:05:58Z",
+      "title": "global · Other · risk on",
+      "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-11-25T07:11:07Z",
-      "title": "fed · Rate Policy · hawkish",
-      "source": "Financialjuice",
-      "score": 0.5,
+      "ts": "2026-11-25T18:05:58Z",
+      "title": "global · Other",
+      "source": "Cnbc",
+      "score": 0.1,
       "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-11-25T07:14:25.104399Z"
+  "written_at": "2026-11-25T18:06:12.830763Z"
 }
