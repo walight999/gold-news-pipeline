@@ -2,70 +2,70 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-11-27T11:46:08Z",
-      "title": "global · Other",
-      "source": "Cnbc",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-11-27T11:46:08Z",
-      "title": "global · Other",
-      "source": "Cnbc",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-11-27T11:46:08Z",
-      "title": "mideast · Geopolitics · risk off",
-      "source": "Cnbc",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-11-27T11:46:08Z",
+      "ts": "2026-11-27T16:56:02Z",
       "title": "global · Other · hawkish",
       "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-11-27T11:46:08Z",
+      "ts": "2026-11-27T16:56:02Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-11-27T16:56:02Z",
       "title": "global · Other",
       "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-11-27T11:46:08Z",
-      "title": "china · Geopolitics",
-      "source": "Cnbc",
+      "ts": "2026-11-27T16:56:02Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-11-27T16:56:02Z",
+      "title": "mideast · Geopolitics",
+      "source": "Bbc World",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-11-27T11:46:08Z",
+      "ts": "2026-11-27T16:56:02Z",
       "title": "global · Other",
       "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-11-27T11:46:08Z",
+      "ts": "2026-11-27T16:56:02Z",
+      "title": "global · Other",
+      "source": "Bbc World",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-11-27T16:56:02Z",
       "title": "global · Other",
       "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-11-27T11:46:08Z",
+      "ts": "2026-11-27T16:56:02Z",
       "title": "global · Other",
-      "source": "Cnbc",
+      "source": "Bbc World",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-11-27T11:46:08Z",
+      "ts": "2026-11-27T16:56:02Z",
       "title": "global · Other",
       "source": "Cnbc",
       "score": 0.1,
@@ -73,5 +73,5 @@
     }
   ],
   "count": 10,
-  "written_at": "2026-11-27T11:48:59.747013Z"
+  "written_at": "2026-11-27T20:44:05.369642Z"
 }
