@@ -2,76 +2,76 @@
   "status": "ok",
   "headlines": [
     {
-      "ts": "2026-11-27T02:36:01Z",
+      "ts": "2026-11-27T11:46:08Z",
       "title": "global · Other",
       "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-11-27T02:36:01Z",
+      "ts": "2026-11-27T11:46:08Z",
       "title": "global · Other",
       "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-11-27T02:36:01Z",
-      "title": "global · Other",
-      "source": "Cnbc",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-11-27T02:36:01Z",
-      "title": "china · Geopolitics",
-      "source": "Cnbc",
-      "score": 0.3,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-11-27T02:36:01Z",
+      "ts": "2026-11-27T11:46:08Z",
       "title": "mideast · Geopolitics · risk off",
       "source": "Cnbc",
       "score": 0.3,
       "xau_relevant": false
     },
     {
-      "ts": "2026-11-27T02:36:01Z",
-      "title": "global · Other",
-      "source": "Cnbc",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-11-27T02:36:01Z",
+      "ts": "2026-11-27T11:46:08Z",
       "title": "global · Other · hawkish",
       "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-11-27T02:36:01Z",
+      "ts": "2026-11-27T11:46:08Z",
       "title": "global · Other",
       "source": "Cnbc",
       "score": 0.1,
       "xau_relevant": false
     },
     {
-      "ts": "2026-11-27T02:36:01Z",
-      "title": "global · Other",
-      "source": "Cnbc",
-      "score": 0.1,
-      "xau_relevant": false
-    },
-    {
-      "ts": "2026-11-27T02:36:01Z",
+      "ts": "2026-11-27T11:46:08Z",
       "title": "china · Geopolitics",
       "source": "Cnbc",
       "score": 0.3,
       "xau_relevant": false
+    },
+    {
+      "ts": "2026-11-27T11:46:08Z",
+      "title": "global · Other",
+      "source": "Cnbc",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-11-27T11:46:08Z",
+      "title": "global · Other",
+      "source": "Cnbc",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-11-27T11:46:08Z",
+      "title": "global · Other",
+      "source": "Cnbc",
+      "score": 0.1,
+      "xau_relevant": false
+    },
+    {
+      "ts": "2026-11-27T11:46:08Z",
+      "title": "global · Other",
+      "source": "Cnbc",
+      "score": 0.1,
+      "xau_relevant": false
     }
   ],
   "count": 10,
-  "written_at": "2026-11-27T02:40:32.943564Z"
+  "written_at": "2026-11-27T11:48:59.747013Z"
 }
